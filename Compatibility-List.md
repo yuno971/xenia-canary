@@ -3,8 +3,8 @@
 | Frogger 2                        | Playable      |             |
 | Bejeweled 2                      | Playable      |             |
 | The Conveni 200X                 | Playable      |             |
-| Ecco the Dolphin                 | Playable      | Emulated    |
-| Sonic 2                          | Playable      | Emulated    |
+| Ecco the Dolphin                 | Playable      | Emulator    |
+| Sonic 2                          | Playable      | Emulator    |
 | Puzzle Fighter HD                | Playable      | Input bug [#138](https://github.com/benvanik/xenia/issues/138) |
 | Jewel Quest                      | Playable      |             |
 | Yaris                            | Partial       | Rendering bug [#158](https://github.com/benvanik/xenia/issues/158) |
@@ -16,7 +16,8 @@
 | Lumines                          | Issues        | [#154](https://github.com/benvanik/xenia/issues/154) |
 | Hexic 2                          | Issues        | [#149](https://github.com/benvanik/xenia/issues/149) |
 | Ridge Racer                      | Issues        |             |
-| GALAGA                           | Issues        | Emulated    |
-| PAC-MAN                          | Issues        | Emulated    |
-| MS PAC-MAN                       | Issues        | Emulated    |
+| GALAGA                           | Issues        | Emulator    |
+| PAC-MAN                          | Issues        | Emulator    |
+| MS PAC-MAN                       | Issues        | Emulator    |
 | Catan                            | Issues        |             |
+| Puzzle Arcade                    | Issues        | XMA         |
