@@ -5,6 +5,7 @@
 | The Conveni 200X                 | Playable      |             |
 | Ecco the Dolphin                 | Playable      | Emulator    |
 | Sonic 2                          | Playable      | Emulator    |
+| Golden Axe                       | Playable      | Emulator    |
 | Puzzle Fighter HD                | Playable      | Input bug [#138](https://github.com/benvanik/xenia/issues/138) |
 | Jewel Quest                      | Playable      |             |
 | Yaris                            | Partial       | Rendering bug [#158](https://github.com/benvanik/xenia/issues/158) |
