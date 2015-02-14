@@ -2,6 +2,7 @@
 |----------------------------------|:-------------:|-------------|
 | Frogger 2                        | Playable      |             |
 | Bejeweled 2                      | Playable      |             |
+| The Conveni 200X                 | Playable      |             |
 | Echo the Dolphin                 | Playable      | Emulated    |
 | Sonic 2                          | Playable      | Emulated    |
 | Puzzle Fighter HD                | Playable      | Input bug [#138](https://github.com/benvanik/xenia/issues/138) |
