@@ -17,6 +17,7 @@
 | Lumines                          | Issues        | [#154](https://github.com/benvanik/xenia/issues/154) |
 | Hexic 2                          | Issues        | [#149](https://github.com/benvanik/xenia/issues/149) |
 | Ridge Racer                      | Issues        |             |
+| Afro Samurai                     | Issues        |             |
 | GALAGA                           | Issues        | Emulator    |
 | PAC-MAN                          | Issues        | Emulator    |
 | MS PAC-MAN                       | Issues        | Emulator    |
