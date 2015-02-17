@@ -22,4 +22,6 @@
 | PAC-MAN                          | Issues        | Emulator    |
 | MS PAC-MAN                       | Issues        | Emulator    |
 | Catan                            | Issues        |             |
+| Soltrio Solitaire                | Issues        |             |
+| UNO                              | Issues        |             |
 | Puzzle Arcade                    | Issues        | XMA         |
