@@ -24,4 +24,4 @@
 | Catan                            | Issues        |             |
 | Soltrio Solitaire                | Issues        |             |
 | UNO                              | Issues        |             |
-| Puzzle Arcade                    | Issues        | XMA         |
+| Puzzle Arcade                    | Issues        |             |
