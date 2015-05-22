@@ -12,6 +12,8 @@
 | Yaris                            | Partial       | Rendering bug [#158](https://github.com/benvanik/xenia/issues/158) |
 | Tsūshin Taisen Mahjong Touryūmon | Partial       |             |
 | Zuma Deluxe                      | Partial       |             |
+| Dragon Ball Z Budokai 3 HD       | Partial       | Skinned models render broken |
+| Dragon Ball Z: Budokai Collection| Partial       | Crashes when choosing game |
 | Bomberman Live                   | Issues        | Only UI     |
 | DOOM                             | Issues        |             |
 | Scott Pilgrim                    | Issues        | [#142](https://github.com/benvanik/xenia/issues/142) |
@@ -26,3 +28,4 @@
 | Soltrio Solitaire                | Issues        |             |
 | UNO                              | Issues        |             |
 | Puzzle Arcade                    | Issues        |             |
+| Dragon Ball Z: Raging blast      | Issues        | 3D graphics don't render |
