@@ -29,3 +29,4 @@
 | UNO                              | Issues        |             |
 | Puzzle Arcade                    | Issues        |             |
 | Dragon Ball Z: Raging blast      | Issues        | 3D graphics don't render |
+| Burger King PocketBike Racer     | Issues        | Hangs on start menu |
