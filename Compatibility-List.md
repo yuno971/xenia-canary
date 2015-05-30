@@ -9,13 +9,13 @@
 | Golden Axe                       | Playable      | Emulator    |
 | Puzzle Fighter HD                | Playable      | Input bug [#138](https://github.com/benvanik/xenia/issues/138) |
 | Jewel Quest                      | Playable      |             |
+| Doritos Dash of Destruction      | Playable       | Audio and Render issues |
 | Yaris                            | Partial       | Rendering bug [#158](https://github.com/benvanik/xenia/issues/158) |
 | Tsūshin Taisen Mahjong Touryūmon | Partial       |             |
 | Zuma Deluxe                      | Partial       |             |
 | Dragon Ball Z Budokai 3 HD       | Partial       | Skinned models render broken |
 | Dragon Ball Z: Budokai Collection| Partial       | Crashes when choosing game |
 | Aegis Wing                       | Partial       | Loading screen forever |
-| Doritos Dash of Destruction      | Partial       | Audio and Render issues |
 | Bomberman Live                   | Issues        | Only UI     |
 | DOOM                             | Issues        |             |
 | Scott Pilgrim                    | Issues        | [#142](https://github.com/benvanik/xenia/issues/142) |
