@@ -42,3 +42,4 @@
 | Hexic HD                         | Issues        | Hangs forever |
 | TotemBall                        | Issues        | Many assertion failures. Black screen. Audio plays but is corrupt |
 | Worms Revolution                 | Issues        | Crashes after 3-5 seconds of loading |
+| Forza: 2                         | Issues        | "Game is claiming to be unable to read game data" and crashes |
