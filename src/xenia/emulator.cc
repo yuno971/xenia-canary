@@ -275,28 +275,38 @@ X_STATUS Emulator::LaunchXexFile(const std::filesystem::path& path,
   // and then get that symlinked to game:\, so
   // -> game:\foo.xex
 
-  auto mount_path = "\\Device\\Harddisk0\\Partition0";
+  // Register local directory as some commonly used mount paths
+  std::filesystem::path mount_paths[] = {
+      "\\Device\\Harddisk0\\Partition0",
+      "\\Device\\Harddisk0\\Partition1",
+      "\\Device\\Harddisk0\\Partition1\\DEVKIT",
+      "\\Device\\LauncherData",
+      "\\SystemRoot",
+  };
 
+  // Todo: is this even remotely correct?
   if (discSwap) {
-    mount_path = "\\Device\\LauncherData";
+    mount_paths[0] = "\\Device\\LauncherData";
   }
 
   // Register the local directory in the virtual filesystem.
   auto parent_path = path.parent_path();
-  auto device =
-      std::make_unique<vfs::HostPathDevice>(mount_path, parent_path, true);
-  if (!device->Initialize()) {
-    XELOGE("Unable to scan host path");
-    return X_STATUS_NO_SUCH_FILE;
-  }
-  if (!file_system_->RegisterDevice(std::move(device))) {
-    XELOGE("Unable to register host path");
-    return X_STATUS_NO_SUCH_FILE;
+  for (auto mount_path : mount_paths) {
+    auto device =
+        std::make_unique<vfs::HostPathDevice>(mount_path.u8string(), parent_path, true);
+    if (!device->Initialize()) {
+      XELOGE("Unable to scan host path");
+      return X_STATUS_NO_SUCH_FILE;
+    }
+    if (!file_system_->RegisterDevice(std::move(device))) {
+      XELOGE("Unable to register host path as {}", mount_path.u8string());
+      return X_STATUS_NO_SUCH_FILE;
+    }
   }
 
   // Create symlinks to the device.
-  file_system_->RegisterSymbolicLink("game:", mount_path);
-  file_system_->RegisterSymbolicLink("d:", mount_path);
+  file_system_->RegisterSymbolicLink("game:", mount_paths[0].u8string());
+  file_system_->RegisterSymbolicLink("d:", mount_paths[0].u8string());
 
   // Get just the filename (foo.xex).
   auto file_name = path.filename();
