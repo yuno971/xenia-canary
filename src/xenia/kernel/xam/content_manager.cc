@@ -16,6 +16,7 @@
 #include "xenia/base/string.h"
 #include "xenia/kernel/kernel_state.h"
 #include "xenia/kernel/xam/content_package.h"
+#include "xenia/kernel/user_module.h"
 #include "xenia/kernel/xobject.h"
 #include "xenia/vfs/devices/host_path_device.h"
 #include "xenia/vfs/devices/stfs_container_device.h"
@@ -33,36 +34,24 @@ ContentManager::ContentManager(KernelState* kernel_state,
 
 ContentManager::~ContentManager() = default;
 
+uint32_t ContentManager::title_id() {
+  if (title_id_override_) {
+    return title_id_override_;
+  }
+  if (!kernel_state_->GetExecutableModule()) {
+    return -1;
+  }
+  return kernel_state_->title_id();
+}
+
 std::filesystem::path ContentManager::ResolvePackageRoot(
     uint32_t content_type) {
-  auto title_id = fmt::format("{:8X}", kernel_state_->title_id());
-
-  std::string type_name;
-  switch (content_type) {
-    case 1:
-      // Save games.
-      type_name = "00000001";
-      break;
-    case 2:
-      // DLC from the marketplace.
-      type_name = "00000002";
-      break;
-    case 3:
-      // Publisher content?
-      type_name = "00000003";
-      break;
-    case 0x000D0000:
-      // ???
-      type_name = "000D0000";
-      break;
-    default:
-      assert_unhandled_case(data.content_type);
-      return std::filesystem::path();
-  }
+  auto title_id_str = fmt::format("{:8X}", title_id());
+  auto content_type_str = fmt::format("{:8X}", content_type);
 
   // Package root path:
   // content_root/title_id/type_name/
-  return root_path_ / title_id / type_name;
+  return root_path_ / title_id_str / content_type_str;
 }
 
 std::filesystem::path ContentManager::ResolvePackagePath(
