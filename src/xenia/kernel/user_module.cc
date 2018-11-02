@@ -151,22 +151,24 @@ X_STATUS UserModule::LoadFromFile(const std::string_view path) {
       patch_entry = file_system->ResolvePath(path_ + "p");
     }
 
-    auto patch_path = patch_entry->absolute_path();
-    XELOGI("Loading XEX patch from {}", patch_path);
+    if (patch_entry) {
+      auto patch_path = patch_entry->absolute_path();
+      XELOGI("Loading XEX patch from {}", patch_path);
 
-    auto patch_module = object_ref<UserModule>(new UserModule(kernel_state_));
-    result = patch_module->LoadFromFile(patch_path);
-    if (!result) {
-      result = patch_module->xex_module()->ApplyPatch(xex_module());
-      if (result) {
-        XELOGE("Failed to apply XEX patch, code: {}", result);
+      auto patch_module = object_ref<UserModule>(new UserModule(kernel_state_));
+      result = patch_module->LoadFromFile(patch_path);
+      if (!result) {
+        result = patch_module->xex_module()->ApplyPatch(xex_module());
+        if (result) {
+          XELOGE("Failed to apply XEX patch, code: {}", result);
+        }
+      } else {
+        XELOGE("Failed to load XEX patch, code: {}", result);
       }
-    } else {
-      XELOGE("Failed to load XEX patch, code: {}", result);
-    }
 
-    if (result) {
-      return X_STATUS_UNSUCCESSFUL;
+      if (result) {
+        return X_STATUS_UNSUCCESSFUL;
+      }
     }
   }
   return LoadXexContinue();

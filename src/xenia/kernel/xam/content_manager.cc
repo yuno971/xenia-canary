@@ -67,6 +67,8 @@ std::filesystem::path ContentManager::ResolvePackagePath(
 
   if (!std::filesystem::exists(package_path) ||
       entry.type == filesystem::FileInfo::Type::kDirectory) {
+  // Add slash to end of path if this is a folder
+  // (or package doesn't exist, meaning we're creating a new folder)
     package_path += xe::kPathSeparator;
   }
   return package_path;
