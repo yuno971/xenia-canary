@@ -47,13 +47,25 @@ class Window {
   virtual void EnableMainMenu() = 0;
   virtual void DisableMainMenu() = 0;
 
+
   const std::string& title() const { return title_; }
-  virtual bool set_title(const std::string& title) {
+  virtual bool set_title(const std::string& title,
+                         bool set_base_title = true) {
     if (title == title_) {
       return false;
     }
     title_ = title;
+    if (set_base_title) {
+      base_title_ = title;
+    }
     return true;
+  }
+
+  void ToggleFPS() { display_fps_ = !display_fps_; }
+
+  void FPSTextScale() {
+    fps_font_scale_ = fps_font_scale_ * 2.0f;
+    fps_font_scale_ = (fps_font_scale_ > 4.0f) ? 1.0f : fps_font_scale_;
   }
 
   virtual bool SetIcon(const void* buffer, size_t size) = 0;
@@ -171,7 +183,10 @@ class Window {
 
   Loop* loop_ = nullptr;
   std::unique_ptr<MenuItem> main_menu_;
+
   std::string title_;
+  std::string base_title_;
+
   int32_t width_ = 0;
   int32_t height_ = 0;
   bool has_focus_ = true;
@@ -186,6 +201,13 @@ class Window {
   uint64_t fps_update_time_ticks_ = 0;
   uint64_t fps_frame_count_ = 0;
   uint64_t last_paint_time_ticks_ = 0;
+
+  bool display_fps_ = false;
+  uint32_t game_fps_ = 0;
+  float fps_font_scale_ = 1.0f;
+
+  std::string title_fps_text_;
+  std::string osd_fps_text_;
 
   bool modifier_shift_pressed_ = false;
   bool modifier_cntrl_pressed_ = false;
