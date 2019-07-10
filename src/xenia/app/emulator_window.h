@@ -46,6 +46,8 @@ class EmulatorWindow {
 
   void FileDrop(const std::filesystem::path& filename);
   void FileOpen();
+  void RecentListUpdater(const std::filesystem::path& path);
+  void RecentList(int index);
   void FileClose();
   void ShowContentDirectory();
   void CheckHideCursor();
@@ -63,6 +65,7 @@ class EmulatorWindow {
   std::unique_ptr<ui::Loop> loop_;
   std::unique_ptr<ui::Window> window_;
   std::string base_title_;
+  std::filesystem::path global_recent_paths_[10];
   uint64_t cursor_hide_time_ = 0;
   bool initializing_shader_storage_ = false;
 };
