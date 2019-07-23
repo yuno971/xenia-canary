@@ -17,6 +17,7 @@
 #include "xenia/kernel/kernel_state.h"
 #include "xenia/kernel/xobject.h"
 #include "xenia/vfs/devices/host_path_device.h"
+#include "xenia/vfs/devices/stfs_container_device.h"
 
 namespace xe {
 namespace kernel {
@@ -36,8 +37,21 @@ ContentPackage::ContentPackage(KernelState* kernel_state,
   device_path_ = fmt::format("\\Device\\Content\\{0}\\", ++content_device_id_);
 
   auto fs = kernel_state_->file_system();
-  auto device =
-      std::make_unique<vfs::HostPathDevice>(device_path_, package_path, false);
+
+  std::unique_ptr<vfs::Device> device;
+  // If this isn't a folder try mounting as STFS package
+  // Otherwise mount as a local host path
+  filesystem::FileInfo entry;
+  bool doesEntryExist = filesystem::GetInfo(package_path, &entry);
+
+  if (doesEntryExist && entry.type != filesystem::FileInfo::Type::kDirectory) {
+    device =
+        std::make_unique<vfs::StfsContainerDevice>(device_path_, package_path);
+  } else {
+    device = std::make_unique<vfs::HostPathDevice>(device_path_, package_path,
+                                                   false);
+  }
+
   device->Initialize();
   fs->RegisterDevice(std::move(device));
   fs->RegisterSymbolicLink(root_name_ + ":", device_path_);
@@ -92,7 +106,16 @@ std::filesystem::path ContentManager::ResolvePackagePath(
   // Content path:
   // content_root/title_id/type_name/data_file_name/
   auto package_root = ResolvePackageRoot(data.content_type);
-  return package_root / xe::to_path(data.file_name);
+  auto package_path = package_root / xe::to_path(data.file_name);
+  // Add slash to end of path if this is a folder
+  // (or package doesn't exist, meaning we're creating a new folder)
+  filesystem::FileInfo entry;
+  bool doesEntryExist = filesystem::GetInfo(package_path, &entry);
+
+  if (!doesEntryExist || entry.type == filesystem::FileInfo::Type::kDirectory) {
+    package_path += xe::kPathSeparator;
+  }
+  return package_path;
 }
 
 std::vector<XCONTENT_DATA> ContentManager::ListContent(uint32_t device_id,
@@ -104,10 +127,6 @@ std::vector<XCONTENT_DATA> ContentManager::ListContent(uint32_t device_id,
   auto package_root = ResolvePackageRoot(content_type);
   auto file_infos = xe::filesystem::ListFiles(package_root);
   for (const auto& file_info : file_infos) {
-    if (file_info.type != xe::filesystem::FileInfo::Type::kDirectory) {
-      // Directories only.
-      continue;
-    }
     XCONTENT_DATA content_data;
     content_data.device_id = device_id;
     content_data.content_type = content_type;
@@ -243,7 +262,12 @@ X_RESULT ContentManager::DeleteContent(const XCONTENT_DATA& data) {
   auto global_lock = global_critical_region_.Acquire();
 
   auto package_path = ResolvePackagePath(data);
-  if (std::filesystem::remove_all(package_path) > 0) {
+
+  filesystem::FileInfo entry;
+  bool doesEntryExist = filesystem::GetInfo(package_path, &entry);
+
+  if (doesEntryExist) {
+    remove(package_path);
     return X_ERROR_SUCCESS;
   } else {
     return X_ERROR_FILE_NOT_FOUND;
