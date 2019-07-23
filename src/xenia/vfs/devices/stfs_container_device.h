@@ -187,6 +187,8 @@ class StfsContainerDevice : public Device {
   uint32_t sectors_per_allocation_unit() const override { return 8; }
   uint32_t bytes_per_sector() const override { return 0x200; }
 
+  StfsHeader& header() { return header_; }
+
  private:
   const uint32_t kSectorSize = 0x1000;
 
