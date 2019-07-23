@@ -97,10 +97,9 @@ bool FolderContentPackage::Mount(std::string root_name) {
 }
 
 X_RESULT FolderContentPackage::GetThumbnail(std::vector<uint8_t>* buffer) {
-  // TODO: grab thumb from headers.bin file if it exists
-
   auto thumb_path = package_path_ / kThumbnailFileName;
   if (std::filesystem::exists(thumb_path)) {
+
     auto file = xe::filesystem::OpenFile(thumb_path, "rb");
     fseek(file, 0, SEEK_END);
     size_t file_len = ftell(file);
@@ -110,7 +109,26 @@ X_RESULT FolderContentPackage::GetThumbnail(std::vector<uint8_t>* buffer) {
     fclose(file);
     return X_ERROR_SUCCESS;
   }
-  return X_ERROR_FILE_NOT_FOUND;
+  auto result = X_ERROR_FILE_NOT_FOUND;
+
+  // Try reading thumbnail from kStfsHeadersExtension file
+  auto headers_path = package_path_ / ContentManager::kStfsHeadersExtension;
+  if (std::filesystem::exists(headers_path)) {
+    vfs::StfsHeader* header =
+        new vfs::StfsHeader();  // huge class, alloc on heap
+    auto map = MappedMemory::Open(headers_path, MappedMemory::Mode::kRead, 0,
+                                  vfs::StfsHeader::kHeaderLength);
+    if (map) {
+      if (header->Read(map->data())) {
+        buffer->resize(header->thumbnail_image_size);
+        memcpy(buffer->data(), header->thumbnail_image,
+               header->thumbnail_image_size);
+        result = X_ERROR_SUCCESS;
+      }
+    }
+    delete header;
+  }
+  return result;
 }
 
 X_RESULT FolderContentPackage::SetThumbnail(std::vector<uint8_t> buffer) {
