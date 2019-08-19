@@ -287,7 +287,9 @@ dword_result_t NetDll_WSARecvFrom(dword_t caller, dword_t socket,
     //}
   }
 
-  return 0;
+  // we're not going to be receiving packets any time soon
+  // return error so we don't wait on that - Cancerous
+  return -1;
 }
 DECLARE_XAM_EXPORT1(NetDll_WSARecvFrom, kNetworking, kStub);
 

@@ -80,8 +80,10 @@ X_RESULT XgiApp::DispatchMessageSync(uint32_t message, uint32_t buffer_ptr,
       return X_STATUS_SUCCESS;
     }
     case 0x000B0011: {
-      // TODO(DrChat): Figure out what this is again
-    } break;
+      // TODO(PermaNull): reverse buffer contents.
+      XELOGD("XGISessionDelete");
+      return X_STATUS_SUCCESS;
+    }
     case 0x000B0012: {
       assert_true(buffer_length == 0x14);
       uint32_t session_ptr = xe::load_and_swap<uint32_t>(buffer + 0x0);
@@ -93,6 +95,17 @@ X_RESULT XgiApp::DispatchMessageSync(uint32_t message, uint32_t buffer_ptr,
       assert_zero(unk_0);
       XELOGD("XGISessionJoinLocal({:08X}, {}, {}, {:08X}, {:08X})", session_ptr,
              user_count, unk_0, user_index_array, private_slots_array);
+      return X_STATUS_SUCCESS;
+    }
+    case 0x000B0014: {
+      // Gets Jetpac XBLA in game
+      // get high score table?
+      XELOGD("XGI_unknown");
+      return X_STATUS_SUCCESS;
+    }
+    case 0x000B0015: {
+      // send high scores?
+      XELOGD("XGI_unknown");
       return X_STATUS_SUCCESS;
     }
     case 0x000B0041: {
