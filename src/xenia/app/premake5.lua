@@ -72,7 +72,6 @@ project("xenia-app")
       "xcb",
       "X11-xcb",
       "GL",
-      "vulkan",
     })
 
   filter("platforms:Windows")
