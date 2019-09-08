@@ -500,7 +500,7 @@ dword_result_t XamSwapDisc(dword_t disc_number,
   std::wstring local_path = app::EmulatorWindow::SwapNext();
   XELOGI("SwapNext returned path %S.", local_path.c_str());
 
-  auto last_slash = local_path.find_last_of(xe::kPathSeparator);
+  auto last_slash = local_path.find_last_of(xe::kPathSeparator<wchar_t>);
   auto last_dot = local_path.find_last_of('.');
 
   if (last_dot < last_slash) {

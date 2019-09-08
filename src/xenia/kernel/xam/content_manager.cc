@@ -78,7 +78,7 @@ std::wstring ContentManager::ResolvePackageRoot(uint32_t content_type) {
   // Package root path:
   // content_root/title_id/type_name/
   auto package_root =
-      xe::join_paths(root_path_, xe::join_paths(title_id, type_name));
+      xe::join_paths(root_path_, xe::join_paths(title_id_str, type_name));
   return package_root + xe::kPathSeparator<wchar_t>;
 }
 
