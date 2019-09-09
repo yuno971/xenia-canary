@@ -79,19 +79,21 @@ filter("configurations:Release")
     "NDEBUG",
     "_NO_DEBUG_HEAP=1",
   })
+  callingconvention("FastCall")
   optimize("speed")
-  inlining("Auto")
+  inlining("Explicit")
   floatingpoint("Fast")
+  functionlevellinking("off")
   flags({
     "LinkTimeOptimization",
   })
   runtime("Release")
 filter({"configurations:Release", "platforms:Windows"})
   linkoptions({
-    "/NODEFAULTLIB:MSVCRTD",
+    "/NODEFAULTLIB:MSVCRTD /LTCG",
   })
   buildoptions({
-    "/arch:AVX /GT /MD /MP /O2 /Ot", -- allthethings
+    "/arch:AVX /GL /GT /MD /MP /O2 /Oi /Ot /Qpar- /Zp16", -- allthethings
    })
 
 filter("platforms:Linux")
