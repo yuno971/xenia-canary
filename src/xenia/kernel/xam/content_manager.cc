@@ -51,34 +51,10 @@ std::wstring ContentManager::ResolvePackageRoot(uint32_t content_type) {
   wchar_t content_type_str[9] = L"00000000";
   std::swprintf(content_type_str, 9, L"%.8X", content_type);
 
-    std::wstring type_name;
-    switch (content_type) {
-      case 1:
-        // Save games.
-        type_name = L"00000001";
-        break;
-      case 2:
-        // DLC from the marketplace.
-        type_name = L"00000002";
-        break;
-      case 3:
-        // Publisher content?
-        type_name = L"00000003";
-        break;
-      case 0x000D0000:
-        // ???
-        type_name = L"000D0000";
-        break;
-      default:
-		type_name = L"00000000";
-        //assert_unhandled_case(data.content_type);
-        //return nullptr;
-    }
-
   // Package root path:
   // content_root/title_id/type_name/
   auto package_root =
-      xe::join_paths(root_path_, xe::join_paths(title_id_str, type_name));
+      xe::join_paths(root_path_, xe::join_paths(title_id_str, content_type_str));
   return package_root + xe::kPathSeparator<wchar_t>;
 }
 
@@ -88,7 +64,13 @@ std::wstring ContentManager::ResolvePackagePath(const XCONTENT_DATA& data) {
   auto package_root = ResolvePackageRoot(data.content_type);
   auto package_path =
       xe::join_paths(package_root, xe::to_wstring(data.file_name));
-  package_path += xe::kPathSeparator<char>;
+  // TEST
+  // Add slash to end of path if this is a folder
+  // (or package doesn't exist, meaning we're creating a new folder)
+  if (!xe::filesystem::PathExists(package_path) ||
+      xe::filesystem::IsFolder(package_path)) {
+    package_path += xe::kPathSeparator<wchar_t>;
+  }
   return package_path;
 }
 
