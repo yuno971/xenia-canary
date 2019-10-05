@@ -20,11 +20,11 @@ We've got jobs/lives/etc, so don't expect instant answers.
 Discussing illegal activities will get you banned.
 
 ## Status
-
 Buildbot | Status
 -------- | ------
-[Windows](https://dev.azure.com/xenia-canary/xenia-canary/_build?definitionId=1) | [![Azure Build Status](https://dev.azure.com/xenia-canary/xenia-canary/_apis/build/status/xenia-canary.xenia-canary?branchName=canary)](https://dev.azure.com/xenia-canary/xenia-canary/_build/latest?definitionId=1&branchName=canary) [![AppVeyor Build status](https://ci.appveyor.com/api/projects/status/5fs0ia3031l9rbpo/branch/canary?svg=true)](https://ci.appveyor.com/project/chris-hawley/xenia-canary/branch/canary)
-<!-- [Linux](https://travis-ci.org/xenia-project/xenia) | [![Build status](https://travis-ci.org/xenia-project/xenia.svg?branch=master)](https://travis-ci.org/xenia-project/xenia)-->
+[Windows](https://ci.appveyor.com/project/chris-hawley/xenia-canary/branch/canary) | [![Build status](https://ci.appveyor.com/api/projects/status/5fs0ia3031l9rbpo/branch/canary?svg=true)](https://ci.appveyor.com/project/chris-hawley/xenia-canary/branch/canary)
+<!-- [Windows](https://dev.azure.com/xenia-canary/xenia-canary/_build?definitionId=1) | [![Azure Build Status](https://dev.azure.com/xenia-canary/xenia-canary/_apis/build/status/xenia-canary.xenia-canary?branchName=canary)](https://dev.azure.com/xenia-canary/xenia-canary/_build/latest?definitionId=1&branchName=canary) 
+[Linux](https://travis-ci.org/xenia-project/xenia) | [![Build status](https://travis-ci.org/xenia-project/xenia.svg?branch=master)](https://travis-ci.org/xenia-project/xenia)-->
 
 Quite a few real games run. Quite a few don't.
 See the [Game compatibility list](https://github.com/xenia-project/game-compatibility/issues)
