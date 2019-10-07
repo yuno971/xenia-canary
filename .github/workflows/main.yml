@@ -20,8 +20,8 @@ jobs:
 
     - name: After build
       run: |
-          7z a artifacts\xenia-%appveyor_repo_branch%.zip LICENSE %GITHUB_WORKSPACE%\build\bin\${{matrix.platform}}\${{matrix.configuration}}\xenia.exe %GITHUB_WORKSPACE%\build\bin\${{matrix.platform}}\${{matrix.configuration}}\xenia.pdb
-          7z a artifacts\xenia-vfs-dump-%appveyor_repo_branch%.zip LICENSE %GITHUB_WORKSPACE%\build\bin\${{matrix.platform}}\${{matrix.configuration}}\xenia-vfs-dump.exe %GITHUB_WORKSPACE%\build\bin\${{matrix.platform}}\${{matrix.configuration}}\xenia-vfs-dump.pdb
+          7z a artifacts\xenia-%appveyor_repo_branch%.zip LICENSE %GITHUB_WORKSPACE%\build\bin\${{matrix.platform}}\${{matrix.configuration}}\xenia.exe
+          7z a artifacts\xenia-vfs-dump-%appveyor_repo_branch%.zip LICENSE %GITHUB_WORKSPACE%\build\bin\${{matrix.platform}}\${{matrix.configuration}}\xenia-vfs-dump.exe
 
     - name: Tests
       run: |
