@@ -1,6 +1,6 @@
 <p align="center">
-    <a href="https://github.com/xenia-project/xenia/tree/master/assets/icon">
-        <img height="120px" src="https://raw.githubusercontent.com/xenia-project/xenia/master/assets/icon/128.png" />
+    <a href="https://github.com/xenia-canary/xenia-canary/tree/canary/assets/icon">
+        <img height="120px" src="https://raw.githubusercontent.com/xenia-canary/xenia-canary/canary/assets/icon/256.png" />
     </a>
 </p>
 
@@ -9,11 +9,16 @@
 Xenia is an experimental emulator for the Xbox 360. For more information, see the
 [main Xenia wiki](https://github.com/xenia-project/xenia/wiki).
 
+See current Pull Request status [here](https://github.com/xenia-canary/xenia-canary/wiki/PR-status).
+
 **Interested in supporting the core contributors?** Visit
 [Xenia Project on Patreon](https://www.patreon.com/xenia_project).
 
-Come chat with us about **emulator-related topics** on [Discord](https://discord.gg/Q9mxZf9).
-For developer chat join `#dev` but stay on topic. Lurking is not only fine, but encouraged!
+Come chat with us about **emulator-related topics** on Discord
+<a href="https://discord.gg/jydhhRQ">
+        <img src="https://img.shields.io/discord/533275703882547200?logo=discord"
+            alt="Chat on Discord"></a>
+
 Please check the [FAQ](https://github.com/xenia-project/xenia/wiki/FAQ) page before asking questions.
 We've got jobs/lives/etc, so don't expect instant answers.
 
