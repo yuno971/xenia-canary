@@ -70,6 +70,9 @@ filter({"configurations:Debug", "platforms:Windows"})
   buildoptions({
     "/MP",
   })
+  flags({
+    "NoMinimalRebuild", -- Required for /MP above.
+  })
   
 filter({"configurations:Debug", "platforms:Linux"})
   buildoptions({
@@ -87,6 +90,7 @@ filter("configurations:Release")
   floatingpoint("Fast")
   flags({
     "LinkTimeOptimization",
+    "NoMinimalRebuild", -- Required for /MP.
   })
   runtime("Release")
 filter({"configurations:Release", "platforms:Windows"})
@@ -94,7 +98,7 @@ filter({"configurations:Release", "platforms:Windows"})
     "/NODEFAULTLIB:MSVCRTD",
   })
   buildoptions({
-    "/arch:AVX /GT /MD /MP /O2 /Ot", -- allthethings
+    "/MP /O2",
    })
 
 filter("platforms:Linux")
