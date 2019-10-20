@@ -192,8 +192,6 @@ filter("platforms:Windows")
     "wsock32",
     "ws2_32",
     "xinput",
-    --"glu32",
-    --"opengl32",
     "comctl32",
     "shcore",
     "shlwapi",
@@ -221,7 +219,7 @@ solution("xenia")
       systemversion("10.0")
     filter({})
   end
-  configurations({"Checked", "Debug", "Release"})
+  configurations({"Release", "Debug", "Checked"})
 
   include("third_party/aes_128.lua")
   include("third_party/capstone.lua")

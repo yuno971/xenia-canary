@@ -7,8 +7,7 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        configuration: [Release]
-        platform: [Windows]
+        cpu_arch: [SSE2, AVX, AVX2, AVX512]
     steps:
     - uses: actions/checkout@master
 
@@ -16,19 +15,16 @@ jobs:
       run: xb setup
 
     - name: Build
-      run: xb build --config=${{matrix.configuration}} --target=src\xenia-app --target=tests\xenia-cpu-ppc-tests --target=src\xenia-vfs-dump
+      run: xb build --cpu_arch=${{matrix.cpu_arch}} --target=src\xenia-app --target=tests\xenia-cpu-ppc-tests --target=src\xenia-vfs-dump
 
-    - name: After build
+    - name: Prepare artifacts
       run: |
-          7z a artifacts\xenia-%appveyor_repo_branch%.zip LICENSE %GITHUB_WORKSPACE%\build\bin\${{matrix.platform}}\${{matrix.configuration}}\xenia.exe
-          7z a artifacts\xenia-vfs-dump-%appveyor_repo_branch%.zip LICENSE %GITHUB_WORKSPACE%\build\bin\${{matrix.platform}}\${{matrix.configuration}}\xenia-vfs-dump.exe
-
-    - name: Tests
-      run: |
-          xb gentests
-          xb.bat test --config=${{matrix.configuration}} --no_build
+          robocopy build\bin\Windows\Release artifacts xenia.exe xenia-vfs-dump.exe
+          robocopy . artifacts LICENSE
+          if errorlevel 8 exit /b 1
+          exit /b 0
 
     - uses: actions/upload-artifact@master
       with:
-        name: xenia-${{matrix.configuration}}
+        name: xenia-canary-${{matrix.cpu_arch}}
         path: artifacts

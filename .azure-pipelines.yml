@@ -33,31 +33,27 @@ jobs:
     vmImage: windows-latest
   strategy:
     matrix:
-      Release:
-        configuration: Release
-      Checked:
-        configuration: Checked
+      SSE2:
+        cpu_arch: SSE2
+      AVX:
+        cpu_arch: AVX
+      AVX2:
+        cpu_arch: AVX2
+      AVX512:
+        cpu_arch: AVX512
   steps:
-  - script: |
-      git config --global core.autocrlf input
-      xb setup
+  - script: xb setup
     displayName: 'Setup'
 
-  - script: xb build --config=$(Configuration) --target=src\xenia-app --target=tests\xenia-cpu-ppc-tests --target=src\xenia-vfs-dump
-    displayName: 'Build $(Configuration)'
+  - script: xb build --cpu_arch=$(cpu_arch) --target=src\xenia-app --target=tests\xenia-cpu-ppc-tests --target=src\xenia-vfs-dump
+    displayName: 'Build'
 
   - script: |
-      xb gentests
-      xb test --config=$(Configuration) --no_build
-      copy xenia-cpu-ppc-test.log $(Build.ArtifactStagingDirectory)
-    displayName: 'Tests'
-
-  - script: |
-      cd build\bin\Windows\$(Configuration)
+      cd build\bin\Windows\Release
       7z a $(Build.ArtifactStagingDirectory)\xenia-$(Build.SourceBranchName).zip ..\..\..\..\LICENSE xenia.exe 
       7z a $(Build.ArtifactStagingDirectory)\xenia-vfs-dump-$(Build.SourceBranchName).zip ..\..\..\..\LICENSE xenia-vfs-dump.exe 
     displayName: 'Create archives'
 
   - publish: $(Build.ArtifactStagingDirectory)
-    artifact: $(configuration)
+    artifact: $(cpu_arch)
     displayName: Publish artifacts
