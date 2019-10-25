@@ -48,6 +48,9 @@ void VulkanCommandProcessor::RequestFrameTrace(const std::wstring& root_path) {
   return CommandProcessor::RequestFrameTrace(root_path);
 }
 
+void VulkanCommandProcessor::TracePlaybackWroteMemory(uint32_t base_ptr,
+                                                      uint32_t length) {}
+
 void VulkanCommandProcessor::ClearCaches() {
   CommandProcessor::ClearCaches();
   cache_clear_requested_ = true;
@@ -1321,6 +1324,10 @@ bool VulkanCommandProcessor::IssueCopy() {
 
   return true;
 }
+
+void VulkanCommandProcessor::InitializeTrace() {}
+
+void VulkanCommandProcessor::FinalizeTrace() {}
 
 }  // namespace vulkan
 }  // namespace gpu
