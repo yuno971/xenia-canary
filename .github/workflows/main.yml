@@ -12,17 +12,16 @@ jobs:
     - uses: actions/checkout@master
 
     - name: Setup
-      run: xb setup
+      run: .\xb setup
 
     - name: Build
-      run: xb build --cpu_arch=${{matrix.cpu_arch}} --target=src\xenia-app --target=tests\xenia-cpu-ppc-tests --target=src\xenia-vfs-dump
+      run: .\xb build --cpu_arch=${{matrix.cpu_arch}} --target=src\xenia-app --target=tests\xenia-cpu-ppc-tests --target=src\xenia-vfs-dump
 
     - name: Prepare artifacts
       run: |
           robocopy build\bin\Windows\Release artifacts xenia.exe xenia-vfs-dump.exe
           robocopy . artifacts LICENSE
-          if errorlevel 8 exit /b 1
-          exit /b 0
+          $LastExitCode = 0
 
     - uses: actions/upload-artifact@master
       with:
