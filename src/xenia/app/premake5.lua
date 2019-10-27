@@ -23,6 +23,7 @@ project("xenia-app")
     "xenia-app-discord",
     "xenia-apu",
     "xenia-apu-nop",
+    "xenia-apu-sdl",
     "xenia-base",
     "xenia-core",
     "xenia-cpu",
@@ -84,6 +85,11 @@ project("xenia-app")
       "xenia-hid-xinput",
       "xenia-ui-d3d12",
     })
+
+    filter("platforms:Windows")
+      linkoptions({
+        "/DELAYLOAD:SDL2.dll",  -- SDL is not mandatory since on windows, XAudio2 is available for sound
+      })
 
   filter("platforms:Windows")
     linkoptions({
