@@ -141,7 +141,6 @@ dword_result_t ExCreateThread(lpdword_t handle_ptr, dword_t stack_size,
         // TODO(Gliniak): Temporary solution, requires more research // && !stack_size 
         *handle_ptr = thread->handle();
       } else {
-        thread->RetainHandle();
         *handle_ptr = thread->handle();
       }
     }
