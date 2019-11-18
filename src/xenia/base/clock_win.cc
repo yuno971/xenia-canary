@@ -14,6 +14,7 @@
 namespace xe {
 
 uint64_t Clock::host_tick_frequency() {
+  return 4200LL * 1000000;
   static LARGE_INTEGER frequency = {{0}};
   if (!frequency.QuadPart) {
     QueryPerformanceFrequency(&frequency);
@@ -22,6 +23,10 @@ uint64_t Clock::host_tick_frequency() {
 }
 
 uint64_t Clock::QueryHostTickCount() {
+  int info[4];
+  __cpuid(info, 0);
+  auto tsc =  __rdtsc();
+  return tsc;
   LARGE_INTEGER counter;
   uint64_t time = 0;
   if (QueryPerformanceCounter(&counter)) {

@@ -445,7 +445,11 @@ struct LOAD_CLOCK : Sequence<LOAD_CLOCK, I<OPCODE_LOAD_CLOCK, I64Op>> {
     e.mov(i.dest, e.rax);
   }
   static uint64_t LoadClock(void* raw_context) {
-    return Clock::QueryGuestTickCount();
+    int info[4];
+    __cpuid(info, 0);
+    auto tsc = __rdtsc();
+    return tsc * 50 / 4200;  // 49875000;
+    //return Clock::QueryGuestTickCount();
   }
 };
 EMITTER_OPCODE_TABLE(OPCODE_LOAD_CLOCK, LOAD_CLOCK);

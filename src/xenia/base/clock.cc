@@ -38,6 +38,7 @@ void RecomputeGuestTickScalar() {
 
 void UpdateGuestClock() {
   uint64_t host_tick_count = Clock::QueryHostTickCount();
+  assert(host_tick_count >= last_host_tick_count_);
   uint64_t host_tick_delta = host_tick_count > last_host_tick_count_
                                  ? host_tick_count - last_host_tick_count_
                                  : 0;
