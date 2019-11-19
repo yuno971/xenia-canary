@@ -59,6 +59,36 @@ T next_pow2(T value) {
   return value;
 }
 
+#if __cplusplus >= 201703L
+template <typename T>
+inline constexpr T greatest_common_divisor(T a, T b) {
+  return std::gcd(a, b);
+}
+#else
+template <typename T>
+constexpr T greatest_common_divisor(T a, T b) {
+  // Use the Euclid algorithm to calculate the greatest common divisor
+  while (b) {
+    T tmp = b;
+    b = a % b;
+    a = tmp;
+  }
+  return a;
+}
+#endif
+
+template <typename T>
+inline constexpr void reduce_fraction(T& numerator, T& denominator) {
+  auto gcd = greatest_common_divisor(numerator, denominator);
+  numerator /= gcd;
+  denominator /= gcd;
+}
+
+template <typename T>
+inline constexpr void reduce_fraction(std::pair<T, T>& fraction) {
+  reduce_fraction<T>(fraction.first, fraction.second);
+}
+
 constexpr uint32_t make_bitmask(uint32_t a, uint32_t b) {
   return (static_cast<uint32_t>(-1) >> (31 - b)) & ~((1u << a) - 1);
 }
