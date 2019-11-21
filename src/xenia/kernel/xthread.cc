@@ -823,10 +823,6 @@ struct ThreadSavedState {
   bool is_main_thread;  // Is this the main thread?
   bool is_running;
 
-  // Clock settings (invalid if not running)
-  uint64_t tick_count_;
-  uint64_t system_time_;
-
   uint32_t apc_head;
   uint32_t tls_static_address;
   uint32_t tls_dynamic_address;
@@ -895,10 +891,6 @@ bool XThread::Save(ByteStream* stream) {
   state.stack_alloc_size = stack_alloc_size_;
 
   if (running_) {
-    state.tick_count_ = Clock::QueryGuestTickCount();
-    state.system_time_ =
-        Clock::QueryGuestSystemTime() - Clock::guest_system_time_base();
-
     // Context information
     auto context = thread_state_->context();
     state.context.lr = context->lr;
@@ -1007,10 +999,6 @@ object_ref<XThread> XThread::Restore(KernelState* kernel_state,
 
       // Profiler needs to know about the thread.
       xe::Profiler::ThreadEnter(thread->name().c_str());
-
-      // Setup the time now that we're in the thread.
-      Clock::SetGuestTickCount(state.tick_count_);
-      Clock::SetGuestSystemTime(state.system_time_);
 
       current_xthread_tls_ = thread;
       current_thread_ = thread;
