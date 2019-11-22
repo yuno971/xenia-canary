@@ -14,14 +14,14 @@
 
 namespace xe {
 
-uint64_t Clock::host_tick_frequency() {
+uint64_t Clock::host_tick_frequency_platform() {
   timespec res;
   clock_getres(CLOCK_MONOTONIC_RAW, &res);
 
   return uint64_t(res.tv_sec) + uint64_t(res.tv_nsec) * 1000000000ull;
 }
 
-uint64_t Clock::QueryHostTickCount() {
+uint64_t Clock::host_tick_count_platform() {
   timespec res;
   clock_gettime(CLOCK_MONOTONIC_RAW, &res);
 
@@ -40,7 +40,7 @@ uint64_t Clock::QueryHostSystemTime() {
 }
 
 uint64_t Clock::QueryHostUptimeMillis() {
-  return QueryHostTickCount() / (host_tick_frequency() / 1000);
+  return host_tick_count_platform() / (host_tick_frequency_platform() / 1000);
 }
 
 }  // namespace xe
