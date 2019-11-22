@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <cstring>
 #include <limits>
+#include <numeric>
 #include <type_traits>
 #include "xenia/base/platform.h"
 
@@ -57,6 +58,36 @@ T next_pow2(T value) {
   value |= value >> 16;
   value++;
   return value;
+}
+
+#if __cplusplus >= 201703L
+template <typename T>
+inline constexpr T greatest_common_divisor(T a, T b) {
+  return std::gcd(a, b);
+}
+#else
+template <typename T>
+constexpr T greatest_common_divisor(T a, T b) {
+  // Use the Euclid algorithm to calculate the greatest common divisor
+  while (b) {
+    T tmp = b;
+    b = a % b;
+    a = tmp;
+  }
+  return a;
+}
+#endif
+
+template <typename T>
+inline constexpr void reduce_fraction(T& numerator, T& denominator) {
+  auto gcd = greatest_common_divisor(numerator, denominator);
+  numerator /= gcd;
+  denominator /= gcd;
+}
+
+template <typename T>
+inline constexpr void reduce_fraction(std::pair<T, T>& fraction) {
+  reduce_fraction<T>(fraction.first, fraction.second);
 }
 
 constexpr uint32_t make_bitmask(uint32_t a, uint32_t b) {
