@@ -10,6 +10,7 @@
 #ifndef XENIA_GPU_D3D12_RENDER_TARGET_CACHE_H_
 #define XENIA_GPU_D3D12_RENDER_TARGET_CACHE_H_
 
+#include <memory>
 #include <unordered_map>
 
 #include "xenia/base/cvar.h"
@@ -21,6 +22,7 @@
 #include "xenia/gpu/xenos.h"
 #include "xenia/memory.h"
 #include "xenia/ui/d3d12/d3d12_api.h"
+#include "xenia/ui/d3d12/pools.h"
 
 DECLARE_bool(d3d12_16bit_rtv_full_range);
 
@@ -255,7 +257,8 @@ class RenderTargetCache {
   void Shutdown();
   void ClearCache();
 
-  void BeginFrame();
+  void BeginSubmission();
+  void EndFrame();
   // Called in the beginning of a draw call - may bind pipelines.
   bool UpdateRenderTargets(const D3D12Shader* pixel_shader);
   // Returns the host-to-guest mappings and host formats of currently bound
@@ -271,12 +274,14 @@ class RenderTargetCache {
   bool Resolve(SharedMemory* shared_memory, TextureCache* texture_cache,
                Memory* memory, uint32_t& written_address_out,
                uint32_t& written_length_out);
+  // Makes sure the render targets are re-attached to the command list for which
+  // the next update will take place.
+  void ForceApplyOnNextUpdate() { apply_to_command_list_ = true; }
   // Flushes the render targets to EDRAM and unbinds them, for instance, when
   // the command processor takes over framebuffer bindings to draw something
   // special.
-  void UnbindRenderTargets();
+  void FlushAndUnbindRenderTargets();
   void WriteEDRAMUint32UAVDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE handle);
-  void EndFrame();
 
   // Totally necessary to rely on the base format - Too Human switches between
   // 2_10_10_10_FLOAT and 2_10_10_10_FLOAT_AS_16_16_16_16 every draw.
@@ -297,6 +302,11 @@ class RenderTargetCache {
                ? DXGI_FORMAT_D32_FLOAT_S8X24_UINT
                : DXGI_FORMAT_D24_UNORM_S8_UINT;
   }
+
+  // Returns true if any downloads were submitted to the command processor.
+  bool InitializeTraceSubmitDownloads();
+  void InitializeTraceCompleteDownloads();
+  void RestoreEDRAMSnapshot(const void* snapshot);
 
  private:
   enum class EDRAMLoadStoreMode {
@@ -636,6 +646,7 @@ class RenderTargetCache {
   // current_edram_max_rows_ is for RTV/DSV only (render target texture size).
   uint32_t current_edram_max_rows_ = 0;
   RenderTargetBinding current_bindings_[5] = {};
+  bool apply_to_command_list_ = true;
 
   PipelineRenderTarget current_pipeline_render_targets_[5];
 
@@ -669,6 +680,11 @@ class RenderTargetCache {
 #else
   std::unordered_map<uint32_t, ResolveTarget*> resolve_targets_;
 #endif
+
+  // For traces only.
+  ID3D12Resource* edram_snapshot_download_buffer_ = nullptr;
+  std::unique_ptr<ui::d3d12::UploadBufferPool> edram_snapshot_restore_pool_ =
+      nullptr;
 };
 
 }  // namespace d3d12

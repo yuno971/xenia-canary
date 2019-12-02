@@ -14,7 +14,6 @@
 #include <memory>
 #include <vector>
 
-#include "xenia/ui/d3d12/command_list.h"
 #include "xenia/ui/d3d12/d3d12_api.h"
 #include "xenia/ui/d3d12/pools.h"
 #include "xenia/ui/immediate_drawer.h"
@@ -77,6 +76,7 @@ class D3D12ImmediateDrawer : public ImmediateDrawer {
 
   std::unique_ptr<UploadBufferPool> vertex_buffer_pool_ = nullptr;
   std::unique_ptr<DescriptorHeapPool> texture_descriptor_pool_ = nullptr;
+  uint64_t texture_descriptor_pool_heap_index_;
 
   struct PendingTextureUpload {
     ImmediateTexture* texture;
@@ -86,7 +86,7 @@ class D3D12ImmediateDrawer : public ImmediateDrawer {
 
   struct SubmittedTextureUpload {
     ID3D12Resource* buffer;
-    uint64_t frame;
+    uint64_t fence_value;
   };
   std::deque<SubmittedTextureUpload> texture_uploads_submitted_;
 
@@ -94,7 +94,6 @@ class D3D12ImmediateDrawer : public ImmediateDrawer {
   int current_render_target_width_, current_render_target_height_;
   bool batch_open_ = false;
   bool batch_has_index_buffer_;
-  uint64_t texture_descriptor_pool_full_update_;
   D3D_PRIMITIVE_TOPOLOGY current_primitive_topology_;
   ImmediateTexture* current_texture_;
   SamplerIndex current_sampler_index_;

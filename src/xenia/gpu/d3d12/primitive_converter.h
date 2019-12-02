@@ -46,8 +46,8 @@ class PrimitiveConverter {
   void Shutdown();
   void ClearCache();
 
+  void BeginSubmission();
   void BeginFrame();
-  void EndFrame();
 
   // Returns the primitive type that the original type will be converted to.
   static PrimitiveType GetReplacementPrimitiveType(PrimitiveType type);
@@ -112,7 +112,7 @@ class PrimitiveConverter {
   // CPU-side, used only for uploading - destroyed once the copy commands have
   // been completed.
   ID3D12Resource* static_ib_upload_ = nullptr;
-  uint64_t static_ib_upload_frame_;
+  uint64_t static_ib_upload_submission_;
   // GPU-side - used for drawing.
   ID3D12Resource* static_ib_ = nullptr;
   D3D12_GPU_VIRTUAL_ADDRESS static_ib_gpu_address_;

@@ -59,8 +59,7 @@ SharedMemory::SharedMemory(D3D12CommandProcessor* command_processor,
 SharedMemory::~SharedMemory() { Shutdown(); }
 
 bool SharedMemory::Initialize() {
-  auto context = command_processor_->GetD3D12Context();
-  auto provider = context->GetD3D12Provider();
+  auto provider = command_processor_->GetD3D12Context()->GetD3D12Provider();
   auto device = provider->GetDevice();
 
   D3D12_RESOURCE_DESC buffer_desc;
@@ -98,7 +97,6 @@ bool SharedMemory::Initialize() {
 
   std::memset(heaps_, 0, sizeof(heaps_));
   heap_count_ = 0;
-  heap_creation_failed_ = false;
 
   D3D12_DESCRIPTOR_HEAP_DESC buffer_descriptor_heap_desc;
   buffer_descriptor_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
@@ -131,7 +129,7 @@ bool SharedMemory::Initialize() {
               valid_and_gpu_written_pages_.size() * sizeof(uint64_t));
 
   upload_buffer_pool_ =
-      std::make_unique<ui::d3d12::UploadBufferPool>(context, 4 * 1024 * 1024);
+      std::make_unique<ui::d3d12::UploadBufferPool>(device, 4 * 1024 * 1024);
 
   physical_write_watch_handle_ =
       memory_->RegisterPhysicalWriteWatch(MemoryWriteCallbackThunk, this);
@@ -167,12 +165,9 @@ void SharedMemory::Shutdown() {
   }
 }
 
-void SharedMemory::BeginFrame() {
-  upload_buffer_pool_->BeginFrame();
-  heap_creation_failed_ = false;
+void SharedMemory::BeginSubmission() {
+  upload_buffer_pool_->Reclaim(command_processor_->GetCompletedSubmission());
 }
-
-void SharedMemory::EndFrame() { upload_buffer_pool_->EndFrame(); }
 
 SharedMemory::GlobalWatchHandle SharedMemory::RegisterGlobalWatch(
     GlobalWatchCallback callback, void* callback_context) {
@@ -297,11 +292,6 @@ bool SharedMemory::MakeTilesResident(uint32_t start, uint32_t length) {
     if (heaps_[i] != nullptr) {
       continue;
     }
-    if (heap_creation_failed_) {
-      // Don't try to create a heap for every vertex buffer or texture in the
-      // current frame anymore if have failed at least once.
-      return false;
-    }
     auto provider = command_processor_->GetD3D12Context()->GetD3D12Provider();
     auto device = provider->GetDevice();
     auto direct_queue = provider->GetDirectQueue();
@@ -311,7 +301,6 @@ bool SharedMemory::MakeTilesResident(uint32_t start, uint32_t length) {
     heap_desc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
     if (FAILED(device->CreateHeap(&heap_desc, IID_PPV_ARGS(&heaps_[i])))) {
       XELOGE("Shared memory: Failed to create a tile heap");
-      heap_creation_failed_ = true;
       return false;
     }
     ++heap_count_;
@@ -331,8 +320,8 @@ bool SharedMemory::MakeTilesResident(uint32_t start, uint32_t length) {
     UINT range_tile_count = kHeapSize / D3D12_TILED_RESOURCE_TILE_SIZE_IN_BYTES;
     // FIXME(Triang3l): This may cause issues if the emulator is shut down
     // mid-frame and the heaps are destroyed before tile mappings are updated
-    // (AwaitAllFramesCompletion won't catch this then). Defer this until the
-    // actual command list submission at the end of the frame.
+    // (awaiting the fence won't catch this then). Defer this until the actual
+    // command list submission at the end of the frame.
     direct_queue->UpdateTileMappings(
         buffer_, 1, &region_start_coordinates, &region_size, heaps_[i], 1,
         &range_flags, &heap_range_start_offset, &range_tile_count,
@@ -378,6 +367,7 @@ bool SharedMemory::RequestRange(uint32_t start, uint32_t length) {
       ID3D12Resource* upload_buffer;
       uint32_t upload_buffer_offset, upload_buffer_size;
       uint8_t* upload_buffer_mapping = upload_buffer_pool_->RequestPartial(
+          command_processor_->GetCurrentSubmission(),
           upload_range_length << page_size_log2_, &upload_buffer,
           &upload_buffer_offset, &upload_buffer_size, nullptr);
       if (upload_buffer_mapping == nullptr) {

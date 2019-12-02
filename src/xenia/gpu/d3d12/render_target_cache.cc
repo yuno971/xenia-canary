@@ -23,6 +23,7 @@
 #include "xenia/gpu/texture_info.h"
 #include "xenia/gpu/texture_util.h"
 #include "xenia/ui/d3d12/d3d12_util.h"
+#include "xenia/ui/d3d12/pools.h"
 
 DEFINE_bool(d3d12_16bit_rtv_full_range, true,
             "Use full -32...32 range for RG16 and RGBA16 render targets "
@@ -390,6 +391,8 @@ bool RenderTargetCache::Initialize(const TextureCache* texture_cache) {
 void RenderTargetCache::Shutdown() {
   ClearCache();
 
+  edram_snapshot_restore_pool_.reset();
+  ui::d3d12::util::ReleaseAndNull(edram_snapshot_download_buffer_);
   for (auto& resolve_pipeline : resolve_pipelines_) {
     resolve_pipeline.pipeline->Release();
   }
@@ -448,15 +451,31 @@ void RenderTargetCache::ClearCache() {
     }
   }
 #endif
+
+  edram_snapshot_restore_pool_.reset();
 }
 
-void RenderTargetCache::BeginFrame() {
-  // A frame does not always end in a resolve (for example, when memexport
-  // readback happens) or something else that would surely submit the UAV
-  // barrier, so we need to preserve the `current_` variables.
-  if (!command_processor_->IsROVUsedForEDRAM()) {
-    ClearBindings();
+void RenderTargetCache::BeginSubmission() {
+  if (edram_snapshot_restore_pool_) {
+    edram_snapshot_restore_pool_->Reclaim(
+        command_processor_->GetCompletedSubmission());
   }
+
+  // With the ROV, a submission does not always end in a resolve (for example,
+  // when memexport readback happens) or something else that would surely submit
+  // the UAV barrier, so we need to preserve the `current_` variables.
+  //
+  // With RTVs, simply going to a different command list doesn't have to cause
+  // storing the render targets to the EDRAM buffer, however, the new command
+  // list doesn't have the needed RTVs/DSV bound yet.
+  //
+  // Just make sure they are bound to the new command list.
+  ForceApplyOnNextUpdate();
+}
+
+void RenderTargetCache::EndFrame() {
+  // May be clearing the cache after this.
+  FlushAndUnbindRenderTargets();
 }
 
 bool RenderTargetCache::UpdateRenderTargets(const D3D12Shader* pixel_shader) {
@@ -751,6 +770,8 @@ bool RenderTargetCache::UpdateRenderTargets(const D3D12Shader* pixel_shader) {
     }
   }
 
+  bool sample_positions_set = false;
+
   // Need to change the bindings.
   if (full_update || render_targets_to_attach) {
 #if 0
@@ -892,7 +913,8 @@ bool RenderTargetCache::UpdateRenderTargets(const D3D12Shader* pixel_shader) {
     if (!rov_used) {
       // Sample positions when loading depth must match sample positions when
       // drawing.
-      command_processor_->SetSamplePositions(rb_surface_info.msaa_samples);
+      command_processor_->SetSamplePositions(current_msaa_samples_);
+      sample_positions_set = true;
 
       // Load the contents of the new render targets from the EDRAM buffer (will
       // change the state of the render targets to copy destination).
@@ -918,13 +940,16 @@ bool RenderTargetCache::UpdateRenderTargets(const D3D12Shader* pixel_shader) {
 
       // Transition the render targets to the appropriate state if needed,
       // compress the list of the render target because null RTV descriptors are
-      // broken in Direct3D 12 and bind the render targets to the command list.
-      D3D12_CPU_DESCRIPTOR_HANDLE rtv_handles[4];
+      // broken in Direct3D 12 and update the list of the render targets to bind
+      // to the command list.
       uint32_t rtv_count = 0;
       for (uint32_t i = 0; i < 4; ++i) {
         const RenderTargetBinding& binding = current_bindings_[i];
+        if (!binding.is_bound) {
+          continue;
+        }
         RenderTarget* render_target = binding.render_target;
-        if (!binding.is_bound || render_target == nullptr) {
+        if (render_target == nullptr) {
           continue;
         }
         XELOGGPU("RT Color %u: base %u, format %u", i, edram_bases[i],
@@ -933,7 +958,6 @@ bool RenderTargetCache::UpdateRenderTargets(const D3D12Shader* pixel_shader) {
             render_target->resource, render_target->state,
             D3D12_RESOURCE_STATE_RENDER_TARGET);
         render_target->state = D3D12_RESOURCE_STATE_RENDER_TARGET;
-        rtv_handles[rtv_count] = render_target->handle;
         current_pipeline_render_targets_[rtv_count].guest_render_target = i;
         current_pipeline_render_targets_[rtv_count].format =
             GetColorDXGIFormat(ColorRenderTargetFormat(formats[i]));
@@ -943,7 +967,6 @@ bool RenderTargetCache::UpdateRenderTargets(const D3D12Shader* pixel_shader) {
         current_pipeline_render_targets_[i].guest_render_target = i;
         current_pipeline_render_targets_[i].format = DXGI_FORMAT_UNKNOWN;
       }
-      const D3D12_CPU_DESCRIPTOR_HANDLE* dsv_handle;
       const RenderTargetBinding& depth_binding = current_bindings_[4];
       RenderTarget* depth_render_target = depth_binding.render_target;
       current_pipeline_render_targets_[4].guest_render_target = 4;
@@ -953,17 +976,42 @@ bool RenderTargetCache::UpdateRenderTargets(const D3D12Shader* pixel_shader) {
             depth_render_target->resource, depth_render_target->state,
             D3D12_RESOURCE_STATE_DEPTH_WRITE);
         depth_render_target->state = D3D12_RESOURCE_STATE_DEPTH_WRITE;
-        dsv_handle = &depth_binding.render_target->handle;
         current_pipeline_render_targets_[4].format =
             GetDepthDXGIFormat(DepthRenderTargetFormat(formats[4]));
       } else {
-        dsv_handle = nullptr;
         current_pipeline_render_targets_[4].format = DXGI_FORMAT_UNKNOWN;
       }
       command_processor_->SubmitBarriers();
-      command_processor_->GetDeferredCommandList()->D3DOMSetRenderTargets(
-          rtv_count, rtv_handles, FALSE, dsv_handle);
+      apply_to_command_list_ = true;
     }
+  }
+
+  // Bind the render targets to the command list, either in case of an update or
+  // if asked to externally.
+  if (!rov_used && apply_to_command_list_) {
+    apply_to_command_list_ = false;
+    if (!sample_positions_set) {
+      command_processor_->SetSamplePositions(current_msaa_samples_);
+    }
+    D3D12_CPU_DESCRIPTOR_HANDLE rtv_handles[4];
+    uint32_t rtv_count;
+    for (rtv_count = 0; rtv_count < 4; ++rtv_count) {
+      const PipelineRenderTarget& pipeline_render_target =
+          current_pipeline_render_targets_[rtv_count];
+      if (pipeline_render_target.format == DXGI_FORMAT_UNKNOWN) {
+        break;
+      }
+      const RenderTargetBinding& binding =
+          current_bindings_[pipeline_render_target.guest_render_target];
+      rtv_handles[rtv_count] = binding.render_target->handle;
+    }
+    const RenderTargetBinding& depth_binding = current_bindings_[4];
+    const D3D12_CPU_DESCRIPTOR_HANDLE* dsv_handle =
+        current_pipeline_render_targets_[4].format != DXGI_FORMAT_UNKNOWN
+            ? &depth_binding.render_target->handle
+            : nullptr;
+    command_processor_->GetDeferredCommandList()->D3DOMSetRenderTargets(
+        rtv_count, rtv_handles, FALSE, dsv_handle);
   }
 
   // Update the dirty regions.
@@ -1379,7 +1427,9 @@ bool RenderTargetCache::ResolveCopy(SharedMemory* shared_memory,
     D3D12_CPU_DESCRIPTOR_HANDLE descriptor_cpu_start;
     D3D12_GPU_DESCRIPTOR_HANDLE descriptor_gpu_start;
     if (command_processor_->RequestViewDescriptors(
-            0, 2, 2, descriptor_cpu_start, descriptor_gpu_start) == 0) {
+            ui::d3d12::DescriptorHeapPool::kHeapIndexInvalid, 2, 2,
+            descriptor_cpu_start, descriptor_gpu_start) ==
+        ui::d3d12::DescriptorHeapPool::kHeapIndexInvalid) {
       return false;
     }
     TransitionEDRAMBuffer(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
@@ -1527,7 +1577,9 @@ bool RenderTargetCache::ResolveCopy(SharedMemory* shared_memory,
     D3D12_CPU_DESCRIPTOR_HANDLE descriptor_cpu_start;
     D3D12_GPU_DESCRIPTOR_HANDLE descriptor_gpu_start;
     if (command_processor_->RequestViewDescriptors(
-            0, 3, 3, descriptor_cpu_start, descriptor_gpu_start) == 0) {
+            ui::d3d12::DescriptorHeapPool::kHeapIndexInvalid, 3, 3,
+            descriptor_cpu_start, descriptor_gpu_start) ==
+        ui::d3d12::DescriptorHeapPool::kHeapIndexInvalid) {
       return false;
     }
     // Buffer for copying.
@@ -1833,8 +1885,10 @@ bool RenderTargetCache::ResolveClear(uint32_t edram_base,
       command_processor_->GetD3D12Context()->GetD3D12Provider()->GetDevice();
   D3D12_CPU_DESCRIPTOR_HANDLE descriptor_cpu_start;
   D3D12_GPU_DESCRIPTOR_HANDLE descriptor_gpu_start;
-  if (command_processor_->RequestViewDescriptors(0, 1, 1, descriptor_cpu_start,
-                                                 descriptor_gpu_start) == 0) {
+  if (command_processor_->RequestViewDescriptors(
+          ui::d3d12::DescriptorHeapPool::kHeapIndexInvalid, 1, 1,
+          descriptor_cpu_start, descriptor_gpu_start) ==
+      ui::d3d12::DescriptorHeapPool::kHeapIndexInvalid) {
     return false;
   }
 
@@ -2089,7 +2143,7 @@ RenderTargetCache::ResolveTarget* RenderTargetCache::FindOrCreateResolveTarget(
   return resolve_target;
 }
 
-void RenderTargetCache::UnbindRenderTargets() {
+void RenderTargetCache::FlushAndUnbindRenderTargets() {
   if (command_processor_->IsROVUsedForEDRAM()) {
     return;
   }
@@ -2108,8 +2162,6 @@ void RenderTargetCache::WriteEDRAMUint32UAVDescriptor(
           uint32_t(EDRAMBufferDescriptorIndex::kUint32UAV)),
       D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 }
-
-void RenderTargetCache::EndFrame() { UnbindRenderTargets(); }
 
 ColorRenderTargetFormat RenderTargetCache::GetBaseColorFormat(
     ColorRenderTargetFormat format) {
@@ -2154,6 +2206,113 @@ DXGI_FORMAT RenderTargetCache::GetColorDXGIFormat(
   return DXGI_FORMAT_UNKNOWN;
 }
 
+bool RenderTargetCache::InitializeTraceSubmitDownloads() {
+  if (resolution_scale_2x_) {
+    // No 1:1 mapping.
+    return false;
+  }
+  const uint32_t kEDRAMSize = 2048 * 5120;
+  if (!edram_snapshot_download_buffer_) {
+    D3D12_RESOURCE_DESC edram_snapshot_download_buffer_desc;
+    ui::d3d12::util::FillBufferResourceDesc(edram_snapshot_download_buffer_desc,
+                                            kEDRAMSize,
+                                            D3D12_RESOURCE_FLAG_NONE);
+    auto device =
+        command_processor_->GetD3D12Context()->GetD3D12Provider()->GetDevice();
+    if (FAILED(device->CreateCommittedResource(
+            &ui::d3d12::util::kHeapPropertiesReadback, D3D12_HEAP_FLAG_NONE,
+            &edram_snapshot_download_buffer_desc,
+            D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
+            IID_PPV_ARGS(&edram_snapshot_download_buffer_)))) {
+      XELOGE("Failed to create a EDRAM snapshot download buffer");
+      return false;
+    }
+  }
+  auto command_list = command_processor_->GetDeferredCommandList();
+  TransitionEDRAMBuffer(D3D12_RESOURCE_STATE_COPY_SOURCE);
+  command_processor_->SubmitBarriers();
+  command_list->D3DCopyBufferRegion(edram_snapshot_download_buffer_, 0,
+                                    edram_buffer_, 0, kEDRAMSize);
+  return true;
+}
+
+void RenderTargetCache::InitializeTraceCompleteDownloads() {
+  if (!edram_snapshot_download_buffer_) {
+    return;
+  }
+  void* download_mapping;
+  if (SUCCEEDED(edram_snapshot_download_buffer_->Map(0, nullptr,
+                                                     &download_mapping))) {
+    trace_writer_->WriteEDRAMSnapshot(download_mapping);
+    D3D12_RANGE download_write_range = {};
+    edram_snapshot_download_buffer_->Unmap(0, &download_write_range);
+  } else {
+    XELOGE("Failed to map the EDRAM snapshot download buffer");
+  }
+  edram_snapshot_download_buffer_->Release();
+  edram_snapshot_download_buffer_ = nullptr;
+}
+
+void RenderTargetCache::RestoreEDRAMSnapshot(const void* snapshot) {
+  if (resolution_scale_2x_) {
+    // No 1:1 mapping.
+    return;
+  }
+  auto provider = command_processor_->GetD3D12Context()->GetD3D12Provider();
+  auto device = provider->GetDevice();
+  const uint32_t kEDRAMSize = 2048 * 5120;
+  if (!edram_snapshot_restore_pool_) {
+    edram_snapshot_restore_pool_ =
+        std::make_unique<ui::d3d12::UploadBufferPool>(device, kEDRAMSize);
+  }
+  ID3D12Resource* upload_buffer;
+  uint32_t upload_buffer_offset;
+  void* upload_buffer_mapping = edram_snapshot_restore_pool_->Request(
+      command_processor_->GetCurrentSubmission(), kEDRAMSize, &upload_buffer,
+      &upload_buffer_offset, nullptr);
+  if (!upload_buffer_mapping) {
+    XELOGE("Failed to get a buffer for restoring a EDRAM snapshot");
+    return;
+  }
+  std::memcpy(upload_buffer_mapping, snapshot, kEDRAMSize);
+  auto command_list = command_processor_->GetDeferredCommandList();
+  TransitionEDRAMBuffer(D3D12_RESOURCE_STATE_COPY_DEST);
+  command_processor_->SubmitBarriers();
+  command_list->D3DCopyBufferRegion(edram_buffer_, 0, upload_buffer,
+                                    upload_buffer_offset, kEDRAMSize);
+  if (!command_processor_->IsROVUsedForEDRAM()) {
+    // Clear and ignore the old 32-bit float depth - the non-ROV path is
+    // inaccurate anyway, and this is backend-specific, not a part of a guest
+    // trace.
+    D3D12_CPU_DESCRIPTOR_HANDLE shader_visbile_descriptor_cpu;
+    D3D12_GPU_DESCRIPTOR_HANDLE shader_visbile_descriptor_gpu;
+    if (command_processor_->RequestViewDescriptors(
+            ui::d3d12::DescriptorHeapPool::kHeapIndexInvalid, 1, 1,
+            shader_visbile_descriptor_cpu, shader_visbile_descriptor_gpu) !=
+        ui::d3d12::DescriptorHeapPool::kHeapIndexInvalid) {
+      WriteEDRAMUint32UAVDescriptor(shader_visbile_descriptor_cpu);
+      UINT clear_value[4] = {0, 0, 0, 0};
+      D3D12_RECT clear_rect;
+      clear_rect.left = kEDRAMSize >> 2;
+      clear_rect.top = 0;
+      clear_rect.right = (kEDRAMSize >> 2) << 1;
+      clear_rect.bottom = 1;
+      TransitionEDRAMBuffer(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+      command_processor_->SubmitBarriers();
+      // ClearUnorderedAccessView takes a shader-visible GPU descriptor and a
+      // non-shader-visible CPU descriptor.
+      command_list->D3DClearUnorderedAccessViewUint(
+          shader_visbile_descriptor_gpu,
+          provider->OffsetViewDescriptor(
+              edram_buffer_descriptor_heap_start_,
+              uint32_t(EDRAMBufferDescriptorIndex::kUint32UAV)),
+          edram_buffer_, clear_value, 1, &clear_rect);
+    } else {
+      XELOGE("Failed to get a UAV descriptor for invalidating 32-bit depth");
+    }
+  }
+}
+
 uint32_t RenderTargetCache::GetEDRAMBufferSize() const {
   uint32_t size = 2048 * 5120;
   if (!command_processor_->IsROVUsedForEDRAM()) {
@@ -2172,10 +2331,14 @@ void RenderTargetCache::TransitionEDRAMBuffer(D3D12_RESOURCE_STATES new_state) {
   command_processor_->PushTransitionBarrier(edram_buffer_, edram_buffer_state_,
                                             new_state);
   edram_buffer_state_ = new_state;
+  if (new_state != D3D12_RESOURCE_STATE_UNORDERED_ACCESS) {
+    edram_buffer_modified_ = false;
+  }
 }
 
 void RenderTargetCache::CommitEDRAMBufferUAVWrites(bool force) {
-  if (edram_buffer_modified_ || force) {
+  if ((edram_buffer_modified_ || force) &&
+      edram_buffer_state_ == D3D12_RESOURCE_STATE_UNORDERED_ACCESS) {
     command_processor_->PushUAVBarrier(edram_buffer_);
   }
   edram_buffer_modified_ = false;
@@ -2210,6 +2373,7 @@ void RenderTargetCache::ClearBindings() {
   current_msaa_samples_ = MsaaSamples::k1X;
   current_edram_max_rows_ = 0;
   std::memset(current_bindings_, 0, sizeof(current_bindings_));
+  apply_to_command_list_ = true;
 }
 
 #if 0
@@ -2549,8 +2713,10 @@ void RenderTargetCache::StoreRenderTargetsToEDRAM() {
   // Allocate descriptors for the buffers.
   D3D12_CPU_DESCRIPTOR_HANDLE descriptor_cpu_start;
   D3D12_GPU_DESCRIPTOR_HANDLE descriptor_gpu_start;
-  if (command_processor_->RequestViewDescriptors(0, 2, 2, descriptor_cpu_start,
-                                                 descriptor_gpu_start) == 0) {
+  if (command_processor_->RequestViewDescriptors(
+          ui::d3d12::DescriptorHeapPool::kHeapIndexInvalid, 2, 2,
+          descriptor_cpu_start, descriptor_gpu_start) ==
+      ui::d3d12::DescriptorHeapPool::kHeapIndexInvalid) {
     return;
   }
 
@@ -2694,8 +2860,10 @@ void RenderTargetCache::LoadRenderTargetsFromEDRAM(
   // Allocate descriptors for the buffers.
   D3D12_CPU_DESCRIPTOR_HANDLE descriptor_cpu_start;
   D3D12_GPU_DESCRIPTOR_HANDLE descriptor_gpu_start;
-  if (command_processor_->RequestViewDescriptors(0, 2, 2, descriptor_cpu_start,
-                                                 descriptor_gpu_start) == 0) {
+  if (command_processor_->RequestViewDescriptors(
+          ui::d3d12::DescriptorHeapPool::kHeapIndexInvalid, 2, 2,
+          descriptor_cpu_start, descriptor_gpu_start) ==
+      ui::d3d12::DescriptorHeapPool::kHeapIndexInvalid) {
     return;
   }
 

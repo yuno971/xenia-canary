@@ -53,14 +53,14 @@ PrimitiveConverter::PrimitiveConverter(D3D12CommandProcessor* command_processor,
 PrimitiveConverter::~PrimitiveConverter() { Shutdown(); }
 
 bool PrimitiveConverter::Initialize() {
-  auto context = command_processor_->GetD3D12Context();
-  auto device = context->GetD3D12Provider()->GetDevice();
+  auto device =
+      command_processor_->GetD3D12Context()->GetD3D12Provider()->GetDevice();
 
   // There can be at most 65535 indices in a Xenos draw call, but they can be up
   // to 4 bytes large, and conversion can add more indices (almost triple the
   // count for triangle strips, for instance).
   buffer_pool_ =
-      std::make_unique<ui::d3d12::UploadBufferPool>(context, 4 * 1024 * 1024);
+      std::make_unique<ui::d3d12::UploadBufferPool>(device, 4 * 1024 * 1024);
 
   // Create the static index buffer for non-indexed drawing.
   D3D12_RESOURCE_DESC static_ib_desc;
@@ -112,7 +112,7 @@ bool PrimitiveConverter::Initialize() {
   }
   static_ib_upload_->Unmap(0, nullptr);
   // Not uploaded yet.
-  static_ib_upload_frame_ = UINT64_MAX;
+  static_ib_upload_submission_ = UINT64_MAX;
   if (FAILED(device->CreateCommittedResource(
           &ui::d3d12::util::kHeapPropertiesDefault, D3D12_HEAP_FLAG_NONE,
           &static_ib_desc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
@@ -142,33 +142,32 @@ void PrimitiveConverter::Shutdown() {
 
 void PrimitiveConverter::ClearCache() { buffer_pool_->ClearCache(); }
 
-void PrimitiveConverter::BeginFrame() {
+void PrimitiveConverter::BeginSubmission() {
   // Got a command list now - upload and transition the static index buffer if
   // needed.
-  if (static_ib_upload_ != nullptr) {
-    auto context = command_processor_->GetD3D12Context();
-    if (static_ib_upload_frame_ == UINT64_MAX) {
+  if (static_ib_upload_) {
+    if (static_ib_upload_submission_ == UINT64_MAX) {
       // Not uploaded yet - upload.
       command_processor_->GetDeferredCommandList()->D3DCopyResource(
           static_ib_, static_ib_upload_);
       command_processor_->PushTransitionBarrier(
           static_ib_, D3D12_RESOURCE_STATE_COPY_DEST,
           D3D12_RESOURCE_STATE_INDEX_BUFFER);
-      static_ib_upload_frame_ = context->GetCurrentFrame();
-    } else if (context->GetLastCompletedFrame() >= static_ib_upload_frame_) {
+      static_ib_upload_submission_ = command_processor_->GetCurrentSubmission();
+    } else if (command_processor_->GetCompletedSubmission() >=
+               static_ib_upload_submission_) {
       // Completely uploaded - release the upload buffer.
       static_ib_upload_->Release();
       static_ib_upload_ = nullptr;
     }
   }
+}
 
-  buffer_pool_->BeginFrame();
-
+void PrimitiveConverter::BeginFrame() {
+  buffer_pool_->Reclaim(command_processor_->GetCompletedFrame());
   converted_indices_cache_.clear();
   memory_regions_used_ = 0;
 }
-
-void PrimitiveConverter::EndFrame() { buffer_pool_->EndFrame(); }
 
 PrimitiveType PrimitiveConverter::GetReplacementPrimitiveType(
     PrimitiveType type) {
@@ -696,7 +695,8 @@ void* PrimitiveConverter::AllocateIndices(
   }
   D3D12_GPU_VIRTUAL_ADDRESS gpu_address;
   uint8_t* mapping =
-      buffer_pool_->RequestFull(size, nullptr, nullptr, &gpu_address);
+      buffer_pool_->Request(command_processor_->GetCurrentFrame(), size,
+                            nullptr, nullptr, &gpu_address);
   if (mapping == nullptr) {
     XELOGE("Failed to allocate space for %u converted %u-bit vertex indices",
            count, format == IndexFormat::kInt32 ? 32 : 16);

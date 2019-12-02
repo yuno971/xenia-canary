@@ -44,8 +44,7 @@ class SharedMemory {
     return buffer_gpu_address_;
   }
 
-  void BeginFrame();
-  void EndFrame();
+  void BeginSubmission();
 
   typedef void (*GlobalWatchCallback)(void* context, uint32_t address_first,
                                       uint32_t address_last,
@@ -166,8 +165,6 @@ class SharedMemory {
   ID3D12Heap* heaps_[kBufferSize >> kHeapSizeLog2] = {};
   // Number of the heaps currently resident, for profiling.
   uint32_t heap_count_ = 0;
-  // Whether creation of a heap has failed in the current frame.
-  bool heap_creation_failed_ = false;
 
   // Log2 of system page size.
   uint32_t page_size_log2_;

@@ -24,6 +24,7 @@
 #include "xenia/gpu/texture_info.h"
 #include "xenia/gpu/texture_util.h"
 #include "xenia/ui/d3d12/d3d12_util.h"
+#include "xenia/ui/d3d12/pools.h"
 
 DEFINE_int32(d3d12_resolution_scale, 1,
              "Scale of rendering width and height (currently only 1 and 2 "
@@ -90,6 +91,7 @@ namespace d3d12 {
 #include "xenia/gpu/d3d12/shaders/dxbc/texture_tile_r10g11b11_rgba16_cs.h"
 #include "xenia/gpu/d3d12/shaders/dxbc/texture_tile_r11g11b10_rgba16_cs.h"
 
+constexpr uint32_t TextureCache::Texture::kCachedSRVDescriptorSwizzleMissing;
 constexpr uint32_t TextureCache::SRVDescriptorCachePage::kHeapSize;
 constexpr uint32_t TextureCache::LoadConstants::kGuestPitchTiled;
 constexpr uint32_t TextureCache::kScaledResolveBufferSizeLog2;
@@ -1168,8 +1170,7 @@ void TextureCache::BeginFrame() {
   texture_current_usage_time_ = xe::Clock::QueryHostUptimeMillis();
 
   // If memory usage is too high, destroy unused textures.
-  uint64_t last_completed_frame =
-      command_processor_->GetD3D12Context()->GetLastCompletedFrame();
+  uint64_t completed_frame = command_processor_->GetCompletedFrame();
   uint32_t limit_soft_mb = cvars::d3d12_texture_cache_limit_soft;
   uint32_t limit_hard_mb = cvars::d3d12_texture_cache_limit_hard;
   if (IsResolutionScale2X()) {
@@ -1186,7 +1187,7 @@ void TextureCache::BeginFrame() {
       break;
     }
     Texture* texture = texture_used_first_;
-    if (texture->last_usage_frame > last_completed_frame) {
+    if (texture->last_usage_frame > completed_frame) {
       break;
     }
     if (!limit_hard_exceeded &&
@@ -1213,7 +1214,8 @@ void TextureCache::BeginFrame() {
     // Exclude the texture from the memory usage counter.
     textures_total_size_ -= texture->resource_size;
     // Destroy the texture.
-    if (texture->cached_srv_descriptor.ptr) {
+    if (texture->cached_srv_descriptor_swizzle !=
+        Texture::kCachedSRVDescriptorSwizzleMissing) {
       srv_descriptor_cache_free_.push_back(texture->cached_srv_descriptor);
     }
     shared_memory_->UnwatchMemoryRange(texture->base_watch_handle);
@@ -1515,16 +1517,20 @@ void TextureCache::WriteTextureSRV(const D3D12Shader::TextureSRV& texture_srv,
   // swizzle. Profiling results say that CreateShaderResourceView takes the
   // longest time of draw call processing, and it's very noticeable in many
   // games.
+  bool cached_handle_available = false;
   D3D12_CPU_DESCRIPTOR_HANDLE cached_handle = {};
   assert_not_null(texture);
-  if (texture->cached_srv_descriptor.ptr) {
+  if (texture->cached_srv_descriptor_swizzle !=
+      Texture::kCachedSRVDescriptorSwizzleMissing) {
     // Use an existing cached descriptor if it has the needed swizzle.
     if (binding.swizzle == texture->cached_srv_descriptor_swizzle) {
+      cached_handle_available = true;
       cached_handle = texture->cached_srv_descriptor;
     }
   } else {
     // Try to create a new cached descriptor if it doesn't exist yet.
     if (!srv_descriptor_cache_free_.empty()) {
+      cached_handle_available = true;
       cached_handle = srv_descriptor_cache_free_.back();
       srv_descriptor_cache_free_.pop_back();
     } else if (srv_descriptor_cache_.empty() ||
@@ -1542,22 +1548,24 @@ void TextureCache::WriteTextureSRV(const D3D12Shader::TextureSRV& texture_srv,
         new_page.heap = new_heap;
         new_page.heap_start = new_heap->GetCPUDescriptorHandleForHeapStart();
         new_page.current_usage = 1;
+        cached_handle_available = true;
         cached_handle = new_page.heap_start;
         srv_descriptor_cache_.push_back(new_page);
       }
     } else {
       SRVDescriptorCachePage& page = srv_descriptor_cache_.back();
+      cached_handle_available = true;
       cached_handle =
           provider->OffsetViewDescriptor(page.heap_start, page.current_usage);
       ++page.current_usage;
     }
-    if (cached_handle.ptr) {
+    if (cached_handle_available) {
       device->CreateShaderResourceView(resource, &desc, cached_handle);
       texture->cached_srv_descriptor = cached_handle;
       texture->cached_srv_descriptor_swizzle = binding.swizzle;
     }
   }
-  if (cached_handle.ptr) {
+  if (cached_handle_available) {
     device->CopyDescriptorsSimple(1, handle, cached_handle,
                                   D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
   } else {
@@ -1813,8 +1821,10 @@ bool TextureCache::TileResolvedTexture(
   // Tile the texture.
   D3D12_CPU_DESCRIPTOR_HANDLE descriptor_cpu_start;
   D3D12_GPU_DESCRIPTOR_HANDLE descriptor_gpu_start;
-  if (command_processor_->RequestViewDescriptors(0, 2, 2, descriptor_cpu_start,
-                                                 descriptor_gpu_start) == 0) {
+  if (command_processor_->RequestViewDescriptors(
+          ui::d3d12::DescriptorHeapPool::kHeapIndexInvalid, 2, 2,
+          descriptor_cpu_start, descriptor_gpu_start) ==
+      ui::d3d12::DescriptorHeapPool::kHeapIndexInvalid) {
     return false;
   }
   if (resolution_scale_log2) {
@@ -1953,8 +1963,8 @@ bool TextureCache::EnsureScaledResolveBufferResident(uint32_t start_unscaled,
         kScaledResolveHeapSize / D3D12_TILED_RESOURCE_TILE_SIZE_IN_BYTES;
     // FIXME(Triang3l): This may cause issues if the emulator is shut down
     // mid-frame and the heaps are destroyed before tile mappings are updated
-    // (AwaitAllFramesCompletion won't catch this then). Defer this until the
-    // actual command list submission at the end of the frame.
+    // (awaiting the fence won't catch this then). Defer this until the actual
+    // command list submission.
     direct_queue->UpdateTileMappings(
         scaled_resolve_buffer_, 1, &region_start_coordinates, &region_size,
         scaled_resolve_heaps_[i], 1, &range_flags, &heap_range_start_offset,
@@ -2290,8 +2300,8 @@ TextureCache::Texture* TextureCache::FindOrCreateTexture(TextureKey key) {
   // Untiling through a buffer instead of using unordered access because copying
   // is not done that often.
   desc.Flags = D3D12_RESOURCE_FLAG_NONE;
-  auto context = command_processor_->GetD3D12Context();
-  auto device = context->GetD3D12Provider()->GetDevice();
+  auto device =
+      command_processor_->GetD3D12Context()->GetD3D12Provider()->GetDevice();
   // Assuming untiling will be the next operation.
   D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_COPY_DEST;
   ID3D12Resource* resource;
@@ -2309,7 +2319,7 @@ TextureCache::Texture* TextureCache::FindOrCreateTexture(TextureKey key) {
   texture->resource_size =
       device->GetResourceAllocationInfo(0, 1, &desc).SizeInBytes;
   texture->state = state;
-  texture->last_usage_frame = context->GetCurrentFrame();
+  texture->last_usage_frame = command_processor_->GetCurrentFrame();
   texture->last_usage_time = texture_current_usage_time_;
   texture->used_previous = texture_used_last_;
   texture->used_next = nullptr;
@@ -2378,8 +2388,8 @@ TextureCache::Texture* TextureCache::FindOrCreateTexture(TextureKey key) {
   }
   texture->base_watch_handle = nullptr;
   texture->mip_watch_handle = nullptr;
-  texture->cached_srv_descriptor.ptr = 0;
-  texture->cached_srv_descriptor_swizzle = 0b100100100100;
+  texture->cached_srv_descriptor_swizzle =
+      Texture::kCachedSRVDescriptorSwizzleMissing;
   textures_.insert(std::make_pair(map_key, texture));
   COUNT_profile_set("gpu/texture_cache/textures", textures_.size());
   textures_total_size_ += texture->resource_size;
@@ -2496,8 +2506,9 @@ bool TextureCache::LoadTextureData(Texture* texture) {
   D3D12_CPU_DESCRIPTOR_HANDLE descriptor_cpu_start;
   D3D12_GPU_DESCRIPTOR_HANDLE descriptor_gpu_start;
   if (command_processor_->RequestViewDescriptors(
-          0, descriptor_count, descriptor_count, descriptor_cpu_start,
-          descriptor_gpu_start) == 0) {
+          ui::d3d12::DescriptorHeapPool::kHeapIndexInvalid, descriptor_count,
+          descriptor_count, descriptor_cpu_start, descriptor_gpu_start) ==
+      ui::d3d12::DescriptorHeapPool::kHeapIndexInvalid) {
     command_processor_->ReleaseScratchGPUBuffer(copy_buffer, copy_buffer_state);
     return false;
   }
@@ -2602,7 +2613,8 @@ bool TextureCache::LoadTextureData(Texture* texture) {
                                          load_constants.guest_mip_offset[2]);
       }
       D3D12_GPU_VIRTUAL_ADDRESS cbuffer_gpu_address;
-      uint8_t* cbuffer_mapping = cbuffer_pool->RequestFull(
+      uint8_t* cbuffer_mapping = cbuffer_pool->Request(
+          command_processor_->GetCurrentFrame(),
           xe::align(uint32_t(sizeof(load_constants)), 256u), nullptr, nullptr,
           &cbuffer_gpu_address);
       if (cbuffer_mapping == nullptr) {
@@ -2680,8 +2692,7 @@ bool TextureCache::LoadTextureData(Texture* texture) {
 }
 
 void TextureCache::MarkTextureUsed(Texture* texture) {
-  uint64_t current_frame =
-      command_processor_->GetD3D12Context()->GetCurrentFrame();
+  uint64_t current_frame = command_processor_->GetCurrentFrame();
   // This is called very frequently, don't relink unless needed for caching.
   if (texture->last_usage_frame != current_frame) {
     texture->last_usage_frame = current_frame;

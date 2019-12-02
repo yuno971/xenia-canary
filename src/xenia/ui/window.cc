@@ -256,6 +256,7 @@ void Window::OnPaint(UIEvent* e) {
   
   // Flush ImGui buffers before we swap.
   ImGui::Render();
+  imgui_drawer_->RenderDrawLists();
 
   ForEachListener([e](auto listener) { listener->OnPainted(e); });
   on_painted(e);

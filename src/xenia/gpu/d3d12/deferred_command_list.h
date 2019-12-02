@@ -15,7 +15,7 @@
 #include <vector>
 
 #include "xenia/base/math.h"
-#include "xenia/ui/d3d12/command_list.h"
+#include "xenia/ui/d3d12/d3d12_api.h"
 
 namespace xe {
 namespace gpu {
@@ -31,6 +31,24 @@ class DeferredCommandList {
   void Reset();
   void Execute(ID3D12GraphicsCommandList* command_list,
                ID3D12GraphicsCommandList1* command_list_1);
+
+  inline void D3DClearUnorderedAccessViewUint(
+      D3D12_GPU_DESCRIPTOR_HANDLE view_gpu_handle_in_current_heap,
+      D3D12_CPU_DESCRIPTOR_HANDLE view_cpu_handle, ID3D12Resource* resource,
+      const UINT values[4], UINT num_rects, const D3D12_RECT* rects) {
+    auto args = reinterpret_cast<ClearUnorderedAccessViewHeader*>(
+        WriteCommand(Command::kD3DClearUnorderedAccessViewUint,
+                     sizeof(ClearUnorderedAccessViewHeader) +
+                         num_rects * sizeof(D3D12_RECT)));
+    args->view_gpu_handle_in_current_heap = view_gpu_handle_in_current_heap;
+    args->view_cpu_handle = view_cpu_handle;
+    args->resource = resource;
+    std::memcpy(args->values_uint, values, 4 * sizeof(UINT));
+    args->num_rects = num_rects;
+    if (num_rects != 0) {
+      std::memcpy(args + 1, rects, num_rects * sizeof(D3D12_RECT));
+    }
+  }
 
   inline void D3DCopyBufferRegion(ID3D12Resource* dst_buffer, UINT64 dst_offset,
                                   ID3D12Resource* src_buffer, UINT64 src_offset,
@@ -303,6 +321,7 @@ class DeferredCommandList {
   static constexpr size_t kAlignment = std::max(sizeof(void*), sizeof(UINT64));
 
   enum class Command : uint32_t {
+    kD3DClearUnorderedAccessViewUint,
     kD3DCopyBufferRegion,
     kD3DCopyResource,
     kCopyTexture,
@@ -329,6 +348,17 @@ class DeferredCommandList {
     kD3DSetPipelineState,
     kSetPipelineStateHandle,
     kD3DSetSamplePositions,
+  };
+
+  struct ClearUnorderedAccessViewHeader {
+    D3D12_GPU_DESCRIPTOR_HANDLE view_gpu_handle_in_current_heap;
+    D3D12_CPU_DESCRIPTOR_HANDLE view_cpu_handle;
+    ID3D12Resource* resource;
+    union {
+      float values_float[4];
+      UINT values_uint[4];
+    };
+    UINT num_rects;
   };
 
   struct D3DCopyBufferRegionArguments {

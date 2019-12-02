@@ -2,7 +2,7 @@
  ******************************************************************************
  * Xenia : Xbox 360 Emulator Research Project                                 *
  ******************************************************************************
- * Copyright 2013 Ben Vanik. All rights reserved.                             *
+ * Copyright 2019 Ben Vanik. All rights reserved.                             *
  * Released under the BSD license - see LICENSE in the root for more details. *
  ******************************************************************************
  */
@@ -366,7 +366,7 @@ X_STATUS XThread::Create() {
   InitializeGuestObject();
 
   // Always retain when starting - the thread owns itself until exited.
-  Retain();
+  RetainHandle();
 
   xe::threading::Thread::CreationParameters params;
   params.stack_size = 16 * 1024 * 1024;  // Allocate a big host stack.
@@ -407,7 +407,7 @@ X_STATUS XThread::Create() {
     xe::Profiler::ThreadExit();
 
     // Release the self-reference to the thread.
-    Release();
+    ReleaseHandle();
   });
 
   if (!thread_) {
@@ -466,7 +466,7 @@ X_STATUS XThread::Exit(int exit_code) {
   xe::Profiler::ThreadExit();
 
   running_ = false;
-  Release();
+  ReleaseHandle();
 
   // NOTE: this does not return!
   xe::threading::Thread::Exit(exit_code);
@@ -486,11 +486,11 @@ X_STATUS XThread::Terminate(int exit_code) {
 
   running_ = false;
   if (XThread::IsInThread(this)) {
-    Release();
+    ReleaseHandle();
     xe::threading::Thread::Exit(exit_code);
   } else {
     thread_->Terminate(exit_code);
-    Release();
+    ReleaseHandle();
   }
 
   return X_STATUS_SUCCESS;
@@ -823,10 +823,6 @@ struct ThreadSavedState {
   bool is_main_thread;  // Is this the main thread?
   bool is_running;
 
-  // Clock settings (invalid if not running)
-  uint64_t tick_count_;
-  uint64_t system_time_;
-
   uint32_t apc_head;
   uint32_t tls_static_address;
   uint32_t tls_dynamic_address;
@@ -895,10 +891,6 @@ bool XThread::Save(ByteStream* stream) {
   state.stack_alloc_size = stack_alloc_size_;
 
   if (running_) {
-    state.tick_count_ = Clock::QueryGuestTickCount();
-    state.system_time_ =
-        Clock::QueryGuestSystemTime() - Clock::guest_system_time_base();
-
     // Context information
     auto context = thread_state_->context();
     state.context.lr = context->lr;
@@ -993,7 +985,7 @@ object_ref<XThread> XThread::Restore(KernelState* kernel_state,
     context->vscr_sat = state.context.vscr_sat;
 
     // Always retain when starting - the thread owns itself until exited.
-    thread->Retain();
+    thread->RetainHandle();
 
     xe::threading::Thread::CreationParameters params;
     params.create_suspended = true;  // Not done restoring yet.
@@ -1007,10 +999,6 @@ object_ref<XThread> XThread::Restore(KernelState* kernel_state,
 
       // Profiler needs to know about the thread.
       xe::Profiler::ThreadEnter(thread->name().c_str());
-
-      // Setup the time now that we're in the thread.
-      Clock::SetGuestTickCount(state.tick_count_);
-      Clock::SetGuestSystemTime(state.system_time_);
 
       current_xthread_tls_ = thread;
       current_thread_ = thread;
@@ -1035,7 +1023,7 @@ object_ref<XThread> XThread::Restore(KernelState* kernel_state,
       xe::Profiler::ThreadExit();
 
       // Release the self-reference to the thread.
-      thread->Release();
+      thread->ReleaseHandle();
     });
 
     // Notify processor we were recreated.
