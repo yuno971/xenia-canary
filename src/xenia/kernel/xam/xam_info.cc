@@ -353,9 +353,21 @@ dword_result_t XamEnumerate(dword_t handle, dword_t flags, lpvoid_t buffer,
     }
   }
 
-  // Don't trust buffer_length. It might be invalid (Based on "Resonance of fate")
-  // also fixes "Angry Birds" - Thanks Gliniak
-  size_t actual_buffer_length = e->item_count() * e->item_size();
+  size_t actual_buffer_length = (uint32_t)buffer_length;
+  if (buffer_length == e->items_per_enumerate()) {
+    // Known culprits:
+    //   Final Fight: Double Impact (saves)
+    XELOGW(
+        "Broken usage of XamEnumerate! buffer length=%.X vs actual length=%.X "
+        "(item size=%.X, items per enumerate=%u)",
+        (uint32_t)buffer_length, actual_buffer_length, e->item_size(),
+        e->items_per_enumerate());
+    // actual_buffer_length = e->item_size() * e->items_per_enumerate();
+    // leaving old method commented for now until more widely tested
+    // Don't trust buffer_length. It might be invalid (Based on "Resonance of fate")
+    // also fixes "Angry Birds" - Thanks Gliniak
+    actual_buffer_length = e->item_count() * e->item_size();
+  }
 
   X_RESULT result;
   uint32_t item_count = 0;
