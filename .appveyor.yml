@@ -42,12 +42,6 @@ after_build:
       7z a ..\..\..\..\xenia-vfs-dump-%appveyor_repo_branch%.zip ..\..\..\..\LICENSE xenia-vfs-dump.exe
       cd ..\..\..\..
 
-before_test:
-  - xb gentests
-
-test_script:
-  - xb test --no_build
-
 artifacts:
   - path: xenia-cpu-ppc-test.log
   - path: xenia-$(appveyor_repo_branch).zip
