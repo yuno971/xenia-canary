@@ -377,7 +377,7 @@ object_ref<UserModule> KernelState::LoadUserModule(const char* raw_name,
     module = object_ref<UserModule>(new UserModule(this));
     X_STATUS status = module->LoadFromFile(path);
     if (XFAILED(status)) {
-      object_table()->RemoveHandle(module->handle());
+      object_table()->ReleaseHandle(module->handle());
       return nullptr;
     }
 
@@ -435,8 +435,7 @@ void KernelState::UnloadUserModule(const object_ref<UserModule>& module,
                              return e->path() == module->path();
                            }) == user_modules_.end());
 
-  global_lock.unlock();
-  object_table()->RemoveHandle(module->handle());
+  object_table()->ReleaseHandle(module->handle());
 }
 
 void KernelState::TerminateTitle() {
