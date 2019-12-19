@@ -37,7 +37,7 @@ class EmulatorWindow {
 
   void UpdateTitle();
   void ToggleFullscreen();
-  static std::wstring SwapNext();
+  static std::wstring SwapNext(int8_t disc_number);
 
  private:
   explicit EmulatorWindow(Emulator* emulator);
