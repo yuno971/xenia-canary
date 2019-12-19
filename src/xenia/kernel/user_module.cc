@@ -709,7 +709,8 @@ void UserModule::Dump() {
   }
 
   sb.Append("Sections:\n");
-  for (uint32_t i = 0, page = 0; i < security_info->page_descriptor_count->value;
+  for (uint32_t i = 0, page = 0;
+       i < (uint32_t)security_info->page_descriptor_count;
        i++) {
     // Manually byteswap the bitfield data.
     xex2_page_descriptor page_descriptor;
