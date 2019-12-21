@@ -107,7 +107,7 @@ DECLARE_XAM_EXPORT1(XamProfileEnumerate, kUserProfiles, kImplemented);
 
 X_HRESULT_result_t XamUserGetXUID(dword_t user_index, dword_t unk,
                                   lpqword_t xuid_ptr) {
-  if (user_index) {
+  if (user_index && user_index != 0xFF) {
     return X_E_NO_SUCH_USER;
   }
   const auto& user_profile = kernel_state()->user_profile();
@@ -153,7 +153,7 @@ X_HRESULT_result_t XamUserGetSigninInfo(dword_t user_index, dword_t flags,
   }
 
   std::memset(info, 0, sizeof(X_USER_SIGNIN_INFO));
-  if (user_index) {
+  if (user_index && user_index != 0xFF) {
     return X_E_NO_SUCH_USER;
   }
 
@@ -167,7 +167,7 @@ DECLARE_XAM_EXPORT1(XamUserGetSigninInfo, kUserProfiles, kImplemented);
 
 dword_result_t XamUserGetName(dword_t user_index, lpstring_t buffer,
                               dword_t buffer_len) {
-  if (user_index) {
+  if (user_index && user_index != 0xFF) {
     return X_ERROR_NO_SUCH_USER;
   }
 
