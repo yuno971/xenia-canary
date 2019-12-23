@@ -152,11 +152,12 @@ X_HRESULT_result_t XamUserGetSigninInfo(dword_t user_index, dword_t flags,
     return X_E_INVALIDARG;
   }
 
-  std::memset(info, 0, sizeof(X_USER_SIGNIN_INFO));
   if (user_index && user_index != 0xFF) {
     return X_E_NO_SUCH_USER;
   }
 
+  std::memset(info, 0, sizeof(X_USER_SIGNIN_INFO));
+ 
   const auto& user_profile = kernel_state()->user_profile();
   info->xuid = user_profile->xuid();
   info->signin_state = ((cvars::signin_state) ? 1 : 0);
