@@ -13,6 +13,7 @@
 
 #include "config.h"
 #include "third_party/fmt/include/fmt/format.h"
+#include "xenia/app/emulator_window.h"
 #include "xenia/apu/audio_system.h"
 #include "xenia/base/assert.h"
 #include "xenia/base/byte_stream.h"
@@ -39,10 +40,11 @@
 #include "xenia/kernel/xbdm/xbdm_module.h"
 #include "xenia/kernel/xboxkrnl/xboxkrnl_module.h"
 #include "xenia/memory.h"
-#include "xenia/ui/imgui_dialog.h"
 #include "xenia/ui/file_picker.h"
+#include "xenia/ui/imgui_dialog.h"
 #include "xenia/vfs/devices/disc_image_device.h"
 #include "xenia/vfs/devices/host_path_device.h"
+#include "xenia/vfs/devices/null_device.h"
 #include "xenia/vfs/devices/stfs_container_device.h"
 #include "xenia/vfs/virtual_file_system.h"
 
@@ -292,8 +294,8 @@ X_STATUS Emulator::LaunchXexFile(const std::filesystem::path& path,
   // Register the local directory in the virtual filesystem.
   auto parent_path = path.parent_path();
   for (auto mount_path : mount_paths) {
-    auto device =
-        std::make_unique<vfs::HostPathDevice>(mount_path.u8string(), parent_path, true);
+    auto device = std::make_unique<vfs::HostPathDevice>(mount_path.u8string(),
+                                                        parent_path, true);
     if (!device->Initialize()) {
       XELOGE("Unable to scan host path");
       return X_STATUS_NO_SUCH_FILE;
@@ -702,6 +704,20 @@ std::string Emulator::FindLaunchModule() {
 
 X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
                                   const std::string_view module_path) {
+  if (cvars::mount_cache) {
+    // Below are accessed directly by STFC/cache code baked into the game
+    // By using a NullDevice that just returns success to all IO requests, the
+    // cache code should hopefully progress without erroring out
+    std::initializer_list<std::string_view> null_files = {
+        "\\Partition0", "\\Cache0", "\\Cache1"};
+
+    auto null_device =
+        std::make_unique<vfs::NullDevice>("\\Device\\Harddisk0", null_files);
+    if (null_device->Initialize()) {
+      file_system_->RegisterDevice(std::move(null_device));
+    }
+  }
+
   // Reset state.
   title_id_ = 0;
   game_title_ = "";

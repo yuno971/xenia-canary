@@ -19,6 +19,7 @@
 #include "xenia/debug/ui/debug_window.h"
 #include "xenia/emulator.h"
 #include "xenia/ui/file_picker.h"
+#include "xenia/vfs/virtual_file_system.h"
 #include "xenia/vfs/devices/host_path_device.h"
 
 // Available audio systems:
@@ -68,7 +69,6 @@ DEFINE_path(
     "Storage");
 
 DEFINE_bool(mount_scratch, false, "Enable scratch mount", "Storage");
-DEFINE_bool(mount_cache, false, "Enable cache mount", "Storage");
 
 DEFINE_transient_path(target, "",
                       "Specifies the target .xex or .iso to execute.",
