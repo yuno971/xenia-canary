@@ -119,8 +119,8 @@ X_STATUS Emulator::Setup(
   display_window_ = display_window;
 
   // Initialize clock.
-  // 360 uses a 50MHz clock.
-  Clock::set_guest_tick_frequency(50000000);
+  // 360 uses a ~49.875MHz clock.
+  Clock::set_guest_tick_frequency(49875000);
   // We could reset this with save state data/constant value to help replays.
   Clock::set_guest_system_time_base(Clock::QueryHostSystemTime());
   // This can be adjusted dynamically, as well.

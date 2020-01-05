@@ -283,8 +283,7 @@ void KeSetCurrentProcessType(dword_t type) {
 DECLARE_XBOXKRNL_EXPORT1(KeSetCurrentProcessType, kThreading, kImplemented);
 
 dword_result_t KeQueryPerformanceFrequency() {
-  uint64_t result = Clock::guest_tick_frequency();
-  return static_cast<uint32_t>(result);
+  return 50000000;  // always returns 50MHz, even though X360 is at 49.875 or so
 }
 DECLARE_XBOXKRNL_EXPORT2(KeQueryPerformanceFrequency, kThreading, kImplemented,
                          kHighFrequency);
