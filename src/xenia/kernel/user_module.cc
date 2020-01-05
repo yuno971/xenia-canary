@@ -165,10 +165,6 @@ X_STATUS UserModule::LoadFromFile(const std::string_view path) {
       } else {
         XELOGE("Failed to load XEX patch, code: {}", result);
       }
-
-      if (result) {
-        return X_STATUS_UNSUCCESSFUL;
-      }
     }
   }
   return LoadXexContinue();
