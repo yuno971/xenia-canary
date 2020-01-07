@@ -556,16 +556,14 @@ void UserModule::Dump() {
           sb.AppendFormat("    {} - {} imports\n", name,
                           (uint16_t)library->count);
 
-          // Manually byteswap these because of the bitfields.
-          xex2_version version, version_min;
-          version.value = xe::byte_swap<uint32_t>(library->version.value);
-          version_min.value =
-              xe::byte_swap<uint32_t>(library->version_min.value);
-          sb.AppendFormat("      Version: {}.{}.{}.{}\n", version.major,
-                          version.minor, version.build, version.qfe);
-          sb.AppendFormat("      Min Version: {}.{}.{}.{}\n", version_min.major,
-                          version_min.minor, version_min.build,
-                          version_min.qfe);
+          auto& version = library->version;
+          auto& version_min = library->version_min;
+
+          sb.AppendFormat("      Version: {}.{}.{}.{}\n", version.major(),
+                          version.minor(), version.build(), version.qfe());
+          sb.AppendFormat("      Min Version: {}.{}.{}.{}\n",
+                          version_min.major(), version_min.minor(),
+                          version_min.build(), version_min.qfe());
 
           library_offset += library->size;
         }
@@ -749,13 +747,15 @@ void UserModule::Dump() {
     if (library->imports.size() > 0) {
       sb.AppendFormat(" {} - {} imports\n", library->name,
                       library->imports.size());
-      sb.AppendFormat("   Version: {}.{}.{}.{}\n", library->version.major,
-                      library->version.minor, library->version.build,
-                      library->version.qfe);
+
+      sb.AppendFormat("   Version: {}.{}.{}.{}\n", library->version.major(),
+                      library->version.minor(), library->version.build(),
+                      library->version.qfe());
       sb.AppendFormat("   Min Version: {}.{}.{}.{}\n",
-                      library->min_version.major, library->min_version.minor,
-                      library->min_version.build, library->min_version.qfe);
-      sb.Append("\n");
+                      library->min_version.major(),
+                      library->min_version.minor(),
+                      library->min_version.build(), library->min_version.qfe());
+      sb.AppendFormat("\n");
 
       // Counts.
       int known_count = 0;
