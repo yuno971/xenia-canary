@@ -35,7 +35,7 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        cpu_arch: [SSE2, AVX, AVX2, AVX512]  # SSE2 BUILDS WON'T WORK ON NON-AVX(2) CPUs!
+        cpu_arch: [AVX, AVX2, SSE2]  # SSE2 BUILDS WON'T WORK ON NON-AVX(2) CPUs!
     steps:
     - uses: actions/checkout@master
       with:
@@ -49,12 +49,9 @@ jobs:
 
     - name: Prepare artifacts
       run: |
-          ren build\bin\Windows\Release\xenia.exe xenia-canary.exe
           robocopy build\bin\Windows\Release artifacts xenia*.exe
           robocopy . artifacts LICENSE
           $LastExitCode = 0
-          cd artifacts
-          7z a ..\xenia-canary.zip LICENSE xenia-canary.exe
 
     - uses: actions/upload-artifact@master
       with:
