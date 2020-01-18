@@ -350,7 +350,7 @@ void XmaDecoder::WriteRegister(uint32_t addr, uint32_t value) {
         if (register_info) {
           XELOGE("XMA: Write to unhandled register ({:04X}, {}): {:08X}", r,
                  register_info->name, value);
-        } else {
+        } else if (r != 0x601) {
           XELOGE("XMA: Write to unknown register ({:04X}): {:08X}", r, value);
         }
         break;
