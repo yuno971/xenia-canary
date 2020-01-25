@@ -18,8 +18,11 @@
 #include "xenia/base/logging.h"
 #include "xenia/base/profiling.h"
 #include "xenia/ui/imgui_drawer.h"
+#include "xenia/cpu/thread.h"
 
 DEFINE_bool(fps_titlebar, true, "Show FPS in titlebar", "General");
+
+DEFINE_bool(fps_limit, false, "try to limit 2d games from being too fast", "Video");
 
 namespace xe {
 namespace ui {
@@ -178,6 +181,17 @@ void Window::OnPaint(UIEvent* e) {
   ++frame_count_;
   ++fps_frame_count_;
   uint64_t now_ns = xe::Clock::QueryHostSystemTime();
+
+  // crude FPS limiter until one of you does a better implementation
+  if(cvars::fps_limit) {
+    if (now_ns > fps_update_time_ns_ + 16666) {
+      // do nothing
+    } else {
+      xe::threading::Sleep(std::chrono::nanoseconds((fps_update_time_ns_ +
+		  16666) - now_ns));
+    }
+  }
+
   if (now_ns > fps_update_time_ns_ + 1000 * 10000) {
     fps_ = static_cast<uint32_t>(
         fps_frame_count_ /

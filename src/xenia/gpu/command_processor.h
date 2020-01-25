@@ -260,6 +260,8 @@ class CommandProcessor {
   std::wstring trace_stream_path_;
   std::wstring trace_frame_path_;
 
+  uint64_t swap_update_time_ns_ = 0;
+
   std::atomic<bool> worker_running_;
   kernel::object_ref<kernel::XHostThread> worker_thread_;
 
