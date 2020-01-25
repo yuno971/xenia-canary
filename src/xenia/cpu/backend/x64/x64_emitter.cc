@@ -55,13 +55,13 @@ static const size_t kStashOffset = 32;
 // static const size_t kStashOffsetHigh = 32 + 32;
 
 const uint32_t X64Emitter::gpr_reg_map_[X64Emitter::GPR_COUNT] = {
-    Xbyak::Operand::RBX, Xbyak::Operand::R10, Xbyak::Operand::R11,
-    Xbyak::Operand::R12, Xbyak::Operand::R13, Xbyak::Operand::R14,
-    Xbyak::Operand::R15,
+  Xbyak::Operand::RBX, Xbyak::Operand::R10, Xbyak::Operand::R11,
+  Xbyak::Operand::R12, Xbyak::Operand::R13, Xbyak::Operand::R14,
+  Xbyak::Operand::R15,
 };
 
 const uint32_t X64Emitter::xmm_reg_map_[X64Emitter::XMM_COUNT] = {
-    4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+  4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
 };
 
 X64Emitter::X64Emitter(X64Backend* backend, XbyakAllocator* allocator)
@@ -210,9 +210,8 @@ bool X64Emitter::Emit(HIRBuilder* builder, EmitFunctionInfo& func_info) {
 
     // Record call history value into slot (guest addr in RDX).
     mov(dword[Xbyak::RegExp(uint32_t(uint64_t(
-                  low_address(&trace_header->function_caller_history)))) +
-              rax * 4],
-        edx);
+		low_address(&trace_header->function_caller_history)))) +
+		rax * 4], edx);
 
     // Calling thread. Load ax with thread ID.
     EmitGetCurrentThreadId();
@@ -738,7 +737,7 @@ static const vec128_t xmm_consts[] = {
     /* XMMIntMaxPD            */ vec128d(INT_MAX),
     /* XMMPosIntMinPS         */ vec128f((float)0x80000000u),
     /* XMMQNaN                */ vec128i(0x7FC00000u),
-        /*XMMOneDouble*/        vec128d(1.0)
+    /* XMMOneDouble           */ vec128d(1.0)
 };
 
 // First location to try and place constants.
@@ -798,10 +797,10 @@ void X64Emitter::LoadConstantXmm(Xbyak::Xmm dest, const vec128_t& v) {
   } else {
 
     for(unsigned i = 0; i < (kConstDataSize / sizeof(vec128_t)); ++i) {
-        if(xmm_consts[i] == v) {
-            vmovapd(dest, GetXmmConstPtr((XmmConst)i));
-            return;
-        }
+      if(xmm_consts[i] == v) {
+        vmovapd(dest, GetXmmConstPtr((XmmConst)i));
+        return;
+      }
     }
     // TODO(benvanik): see what other common values are.
     // TODO(benvanik): build constant table - 99% are reused.
@@ -826,15 +825,13 @@ void X64Emitter::LoadConstantXmm(Xbyak::Xmm dest, float v) {
     // TODO(benvanik): see what other common values are.
     // TODO(benvanik): build constant table - 99% are reused.
 
-
     unsigned raw_bits =*reinterpret_cast<unsigned*>(&v);
 
     for (unsigned i = 0; i < (kConstDataSize / sizeof(vec128_t)); ++i) {
-        
-        if(xmm_consts[i].u32[0] == raw_bits) {
-            vmovss(dest, GetXmmConstPtr((XmmConst)i));
-            return;
-        }
+      if(xmm_consts[i].u32[0] == raw_bits) {
+        vmovss(dest, GetXmmConstPtr((XmmConst)i));
+        return;
+      }
     }
 
     mov(eax, x.i);
@@ -861,11 +858,10 @@ void X64Emitter::LoadConstantXmm(Xbyak::Xmm dest, double v) {
       uint64_t raw_bits = *reinterpret_cast<uint64_t*>(&v);
 
     for (unsigned i = 0; i < (kConstDataSize / sizeof(vec128_t)); ++i) {
-        
-        if(xmm_consts[i].u64[0] == raw_bits) {
-            vmovsd(dest, GetXmmConstPtr((XmmConst)i));
-            return;
-        }
+      if(xmm_consts[i].u64[0] == raw_bits) {
+        vmovsd(dest, GetXmmConstPtr((XmmConst)i));
+        return;
+      }
     }
     mov(rax, x.i);
     vmovq(dest, rax);
