@@ -26,6 +26,8 @@
 #include "xenia/kernel/kernel_state.h"
 #include "xenia/kernel/user_module.h"
 
+DECLARE_bool(fps_limit);
+
 namespace xe {
 namespace gpu {
 
@@ -804,7 +806,7 @@ bool CommandProcessor::ExecutePacketType3_XE_SWAP(RingBuffer* reader,
                                                   uint32_t count) {
   SCOPE_profile_cpu_f("gpu");
 
-  XELOGI("XE_SWAP");
+  XELOGD("XE_SWAP");
 
   Profiler::Flip();
 
@@ -826,6 +828,19 @@ bool CommandProcessor::ExecutePacketType3_XE_SWAP(RingBuffer* reader,
   }
 
   ++counter_;
+
+
+  // crude FPS limiter until one of you does a better implementation
+  if(cvars::fps_limit) {
+
+    if (xe::Clock::QueryHostSystemTime() > swap_update_time_ns_ + 16666) {
+      swap_update_time_ns_ = xe::Clock::QueryHostSystemTime();
+    } else {
+      xe::threading::MaybeYield();
+      xe::threading::Sleep(std::chrono::nanoseconds((swap_update_time_ns_ +
+		  16666) - xe::Clock::QueryHostSystemTime()));
+    }
+  }
   return true;
 }
 
