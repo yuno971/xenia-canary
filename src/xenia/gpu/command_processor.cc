@@ -839,8 +839,6 @@ bool CommandProcessor::ExecutePacketType3_XE_SWAP(RingBuffer* reader,
       swap_update_time_ns_ = xe::Clock::QueryHostSystemTime();
     } else {
       xe::threading::MaybeYield();
-      xe::threading::Sleep(std::chrono::nanoseconds((swap_update_time_ns_ +
-		  16666) - xe::Clock::QueryHostSystemTime()));
     }
   }
   return true;
