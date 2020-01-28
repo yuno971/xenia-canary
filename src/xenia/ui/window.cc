@@ -187,8 +187,7 @@ void Window::OnPaint(UIEvent* e) {
     if (now_ns > fps_update_time_ns_ + 16666) {
       // do nothing
     } else {
-      xe::threading::Sleep(std::chrono::nanoseconds((fps_update_time_ns_ +
-		  16666) - now_ns));
+      xe::threading::MaybeYield();
     }
   }
 
