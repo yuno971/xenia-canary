@@ -59,6 +59,7 @@ class EmulatorWindow {
   void GpuTraceFrame();
   void GpuClearCaches();
   void ShowHelpWebsite();
+  void ShowCommitID();
 
   Emulator* emulator_;
   std::unique_ptr<ui::Loop> loop_;
