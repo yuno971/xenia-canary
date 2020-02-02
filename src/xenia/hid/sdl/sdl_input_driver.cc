@@ -51,7 +51,7 @@ SDLInputDriver::~SDLInputDriver() {
   }
 }
 
-X_STATUS SDLInputDriver::Setup() {
+X_STATUS SDLInputDriver::Setup(std::vector<std::unique_ptr<hid::InputDriver>>& drivers) {
   if (!TestSDLVersion()) {
     return X_STATUS_UNSUCCESSFUL;
   }
