@@ -378,7 +378,7 @@ object_ref<UserModule> KernelState::LoadUserModule(const char* raw_name,
     module = object_ref<UserModule>(new UserModule(this));
     X_STATUS status = module->LoadFromFile(path);
     if (XFAILED(status)) {
-      object_table()->RemoveHandle(module->handle());
+      object_table()->ReleaseHandle(module->handle());
       return nullptr;
     }
 

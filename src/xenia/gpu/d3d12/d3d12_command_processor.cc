@@ -50,6 +50,10 @@ DEFINE_bool(d3d12_ssaa_custom_sample_positions, false,
             "path where available instead of centers (experimental, not very "
             "high-quality).",
             "D3D12");
+DEFINE_bool(d3d12_submit_on_primary_buffer_end, true,
+            "Submit the command list when a PM4 primary buffer ends if it's "
+            "possible to submit immediately to try to reduce frame latency.",
+            "D3D12");
 
 namespace xe {
 namespace gpu {
@@ -770,9 +774,15 @@ bool D3D12CommandProcessor::SetupContext() {
       std::make_unique<ui::d3d12::UploadBufferPool>(device, 1024 * 1024);
   view_heap_pool_ = std::make_unique<ui::d3d12::DescriptorHeapPool>(
       device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 32768);
-  // Can't create a shader-visible heap with more than 2048 samplers.
+  // Direct3D 12 only allows shader-visible heaps with no more than 2048
+  // samplers (due to Nvidia addressing). However, there's also possibly a weird
+  // bug in the Nvidia driver (tested on 440.97 and earlier on Windows 10 1803)
+  // that caused the sampler with index 2047 not to work if a heap with 8 or
+  // less samplers also exists - in case of Xenia, it's the immediate drawer's
+  // sampler heap.
+  // FIXME(Triang3l): Investigate the issue with the sampler 2047 on Nvidia.
   sampler_heap_pool_ = std::make_unique<ui::d3d12::DescriptorHeapPool>(
-      device, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 2048);
+      device, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 2000);
 
   shared_memory_ =
       std::make_unique<SharedMemory>(this, memory_, &trace_writer_);
@@ -1214,6 +1224,13 @@ void D3D12CommandProcessor::PerformSwap(uint32_t frontbuffer_ptr,
   }
 
   EndSubmission(true);
+}
+
+void D3D12CommandProcessor::OnPrimaryBufferEnd() {
+  if (cvars::d3d12_submit_on_primary_buffer_end && submission_open_ &&
+      CanEndSubmissionImmediately()) {
+    EndSubmission(false);
+  }
 }
 
 Shader* D3D12CommandProcessor::LoadShader(ShaderType shader_type,
@@ -2065,6 +2082,10 @@ bool D3D12CommandProcessor::EndSubmission(bool is_swap) {
   }
 
   return true;
+}
+
+bool D3D12CommandProcessor::CanEndSubmissionImmediately() const {
+  return !submission_open_ || !pipeline_cache_->IsCreatingPipelines();
 }
 
 void D3D12CommandProcessor::AwaitAllSubmissionsCompletion() {
@@ -3032,23 +3053,15 @@ bool D3D12CommandProcessor::UpdateBindings(
     write_float_constant_view_pixel = true;
   }
   if (!cbuffer_bindings_bool_loop_.up_to_date) {
-    uint32_t* bool_loop_constants =
-        reinterpret_cast<uint32_t*>(constant_buffer_pool_->Request(
-            frame_current_, 768, nullptr, nullptr,
-            &cbuffer_bindings_bool_loop_.buffer_address));
+    uint8_t* bool_loop_constants = constant_buffer_pool_->Request(
+        frame_current_, 256, nullptr, nullptr,
+        &cbuffer_bindings_bool_loop_.buffer_address);
     if (bool_loop_constants == nullptr) {
       return false;
     }
-    // Bool and loop constants are quadrupled to allow dynamic indexing.
-    for (uint32_t i = 0; i < 40; ++i) {
-      uint32_t bool_loop_constant =
-          regs[XE_GPU_REG_SHADER_CONSTANT_BOOL_000_031 + i].u32;
-      uint32_t* bool_loop_constant_vector = bool_loop_constants + (i << 2);
-      bool_loop_constant_vector[0] = bool_loop_constant;
-      bool_loop_constant_vector[1] = bool_loop_constant;
-      bool_loop_constant_vector[2] = bool_loop_constant;
-      bool_loop_constant_vector[3] = bool_loop_constant;
-    }
+    std::memcpy(bool_loop_constants,
+                &regs[XE_GPU_REG_SHADER_CONSTANT_BOOL_000_031].u32,
+                (8 + 32) * sizeof(uint32_t));
     cbuffer_bindings_bool_loop_.up_to_date = true;
     write_bool_loop_constant_view = true;
   }
@@ -3205,7 +3218,7 @@ bool D3D12CommandProcessor::UpdateBindings(
     gpu_handle_bool_loop_constants_ = view_gpu_handle;
     constant_buffer_desc.BufferLocation =
         cbuffer_bindings_bool_loop_.buffer_address;
-    constant_buffer_desc.SizeInBytes = 768;
+    constant_buffer_desc.SizeInBytes = 256;
     device->CreateConstantBufferView(&constant_buffer_desc, view_cpu_handle);
     view_cpu_handle.ptr += descriptor_size_view;
     view_gpu_handle.ptr += descriptor_size_view;
