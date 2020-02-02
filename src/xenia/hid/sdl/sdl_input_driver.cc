@@ -58,7 +58,7 @@ SDLInputDriver::~SDLInputDriver() {
   }
 }
 
-X_STATUS SDLInputDriver::Setup() {
+X_STATUS SDLInputDriver::Setup(std::vector<std::unique_ptr<hid::InputDriver>>& drivers) {
   if (!TestSDLVersion()) {
     return X_STATUS_UNSUCCESSFUL;
   }
@@ -102,6 +102,7 @@ X_STATUS SDLInputDriver::Setup() {
       }
       switch (type) {
         case SDL_CONTROLLERDEVICEADDED:
+        case SDL_JOYDEVICEADDED:
           driver->OnControllerDeviceAdded(event);
           break;
         case SDL_CONTROLLERDEVICEREMOVED:
