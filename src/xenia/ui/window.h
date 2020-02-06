@@ -192,9 +192,9 @@ class Window {
 
   uint32_t frame_count_ = 0;
   uint32_t fps_ = 0;
-  uint64_t fps_update_time_ns_ = 0;
+  uint64_t fps_update_time_ticks_ = 0;
   uint64_t fps_frame_count_ = 0;
-  uint64_t last_paint_time_ns_ = 0;
+  uint64_t last_paint_time_ticks_ = 0;
 
   bool display_fps_ = false;
   uint32_t game_fps_ = 0;
