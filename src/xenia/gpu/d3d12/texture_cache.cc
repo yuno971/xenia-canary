@@ -2094,7 +2094,7 @@ void TextureCache::BindingInfoFromFetchConstant(
     *has_signed_out = false;
   }
 
-  if (fetch.type != 2) {
+  if (!(fetch.type - 1)) { // != 2
     XELOGW(
         "Texture fetch type is not 2 - ignoring (fetch constant is %.8X %.8X "
         "%.8X %.8X %.8X %.8X)!",
@@ -2103,6 +2103,9 @@ void TextureCache::BindingInfoFromFetchConstant(
     return;
   }
 
+  if (fetch.type > 2) {  // !=
+    XELOGW("Texture fetch type is %d - unexpected behaviour may follow", fetch.type);
+  }
   // Validate the dimensions, get the size and clamp the maximum mip level.
   Dimension dimension = Dimension(fetch.dimension);
   uint32_t width, height, depth;
@@ -2442,8 +2445,13 @@ bool TextureCache::LoadTextureData(Texture* texture) {
     }
   }
   if (!mips_in_sync) {
+    if (texture->mip_size == 0xB0000) {
+      XELOGD3D("[D3D] Mip shrinked - this may have unexpected behavior");
+    }
     if (!shared_memory_->RequestRange(texture->key.mip_page << 12,
-                                      texture->mip_size)) {
+                                      texture->mip_size == 0xB0000 
+                                        ? texture->mip_size >> 4
+                                        : texture->mip_size)) {
       return false;
     }
   }

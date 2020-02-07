@@ -303,12 +303,8 @@ bool EmulatorWindow::Initialize() {
   auto help_menu = MenuItem::Create(MenuItem::Type::kPopup, L"&Help");
   {
     help_menu->AddChild(MenuItem::Create(
-        MenuItem::Type::kString, L"Build commit on GitHub...", L"F2", [this]() {
-          std::wstring url =
-              std::wstring(L"https://github.com/xenia-canary/xenia-canary/commit/") +
-              xe::to_wstring(XE_BUILD_COMMIT) + L"/";
-          LaunchBrowser(url.c_str());
-        }));
+        MenuItem::Type::kString, L"Build commit on GitHub...", L"F2",
+        std::bind(&EmulatorWindow::ShowCommitID, this)));
     help_menu->AddChild(MenuItem::Create(
         MenuItem::Type::kString, L"Recent changes on GitHub...", [this]() {
           std::wstring url =

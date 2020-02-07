@@ -22,8 +22,6 @@
 
 DEFINE_bool(fps_titlebar, true, "Show FPS in titlebar", "General");
 
-DEFINE_bool(fps_limit, false, "try to limit 2d games from being too fast", "Video");
-
 namespace xe {
 namespace ui {
 
@@ -180,22 +178,16 @@ void Window::OnPaint(UIEvent* e) {
 
   ++frame_count_;
   ++fps_frame_count_;
-  uint64_t now_ns = xe::Clock::QueryHostSystemTime();
-
-  // crude FPS limiter until one of you does a better implementation
-  if(cvars::fps_limit) {
-    if (now_ns > fps_update_time_ns_ + 16666) {
-      // do nothing
-    } else {
-      xe::threading::MaybeYield();
-    }
-  }
-
-  if (now_ns > fps_update_time_ns_ + 1000 * 10000) {
+  static auto tick_frequency = Clock::QueryHostTickFrequency();
+  auto now_ticks = Clock::QueryHostTickCount();
+  // Average fps over 1 second.
+  if (now_ticks > fps_update_time_ticks_ + tick_frequency * 1) {
     fps_ = static_cast<uint32_t>(
         fps_frame_count_ /
-        (static_cast<double>(now_ns - fps_update_time_ns_) / 10000000.0));
-    fps_update_time_ns_ = now_ns;
+        (static_cast<double>(now_ticks - fps_update_time_ticks_) /
+         tick_frequency));
+    fps_update_time_ticks_ = now_ticks;
+
     fps_frame_count_ = 0;
 #if XE_OPTION_PROFILING
     // This means FPS counter will not work with profiling disabled (e.g. on
@@ -231,22 +223,24 @@ void Window::OnPaint(UIEvent* e) {
 
   // Prepare ImGui for use this frame.
   auto& io = imgui_drawer_->GetIO();
-  if (!last_paint_time_ns_) {
+  if (!last_paint_time_ticks_) {
     io.DeltaTime = 0.0f;
-    last_paint_time_ns_ = now_ns;
+    last_paint_time_ticks_ = now_ticks;
   } else {
-    io.DeltaTime = (now_ns - last_paint_time_ns_) / 10000000.0f;
-    last_paint_time_ns_ = now_ns;
+    io.DeltaTime = (now_ticks - last_paint_time_ticks_) /
+                   static_cast<float>(tick_frequency);
+    last_paint_time_ticks_ = now_ticks;
   }
   io.DisplaySize = ImVec2(static_cast<float>(scaled_width()),
                           static_cast<float>(scaled_height()));
-  ImGui::NewFrame();
 
   context_->BeginSwap();
   if (context_->WasLost()) {
     on_context_lost(e);
     return;
   }
+
+  ImGui::NewFrame();
 
   ForEachListener([e](auto listener) { listener->OnPainting(e); });
   on_painting(e);
