@@ -78,7 +78,7 @@ DECLARE_XBOXKRNL_EXPORT1(ObLookupThreadByThreadId, kNone, kImplemented);
 dword_result_t ObReferenceObjectByHandle(dword_t handle,
                                          dword_t object_type_ptr,
                                          lpdword_t out_object_ptr) {
-  const std::pair<XObject::Type, uint32_t> obj_type_match[] = {
+  const static std::unordered_map<XObject::Type, uint32_t> obj_type_match = {
       {XObject::kTypeEvent, 0xD00EBEEF},
       {XObject::kTypeSemaphore, 0xD017BEEF},
       {XObject::kTypeThread, 0xD01BBEEF}};
@@ -90,16 +90,11 @@ dword_result_t ObReferenceObjectByHandle(dword_t handle,
   }
 
   uint32_t native_ptr = object->guest_object();
+  auto obj_type = obj_type_match.find(object->type());
 
-  auto obj_type = std::find_if(
-      std::begin(obj_type_match), std::end(obj_type_match),
-      [object](const auto& entry) { return entry.first == object->type(); });
-
-  if (obj_type != std::end(obj_type_match)) {
-    if (object_type_ptr) {
-      if (object_type_ptr != obj_type->second) {
-        return X_STATUS_OBJECT_TYPE_MISMATCH;
-      }
+  if (obj_type != obj_type_match.end()) {
+    if (object_type_ptr && object_type_ptr != obj_type->second) {
+      return X_STATUS_OBJECT_TYPE_MISMATCH;
     }
   } else {
     assert_unhandled_case(object->type());

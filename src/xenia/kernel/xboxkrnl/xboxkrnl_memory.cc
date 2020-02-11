@@ -97,14 +97,13 @@ dword_result_t NtAllocateVirtualMemory(lpdword_t base_addr_ptr,
   }
 
   uint32_t page_size;
-
   if (*base_addr_ptr != 0) {
-    // TODO(gibbed): ignore specified page size when base address is specified.
+    // ignore specified page size when base address is specified.
     auto heap = kernel_memory()->LookupHeap(*base_addr_ptr);
     page_size = heap->page_size();
   } else {
     // Adjust size.
-    page_size = 4096;
+    page_size = 4 * 1024;
     if (alloc_type & X_MEM_LARGE_PAGES) {
       page_size = 64 * 1024;
     }

@@ -44,7 +44,7 @@ class EmulatorWindow {
 
   bool Initialize();
 
-  void FileDrop(wchar_t* filename);
+  void FileDrop(const wchar_t* filename);
   void FileOpen();
   void RecentListUpdater(std::wstring path);
   void RecentList(int index);
