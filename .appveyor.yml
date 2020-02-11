@@ -38,7 +38,7 @@ after_build:
   - |-
       7z a xenia-%appveyor_repo_branch%.zip LICENSE .\build\bin\Windows\Release\xenia-canary.exe
       7z a xenia-vfs-dump-%appveyor_repo_branch%.zip LICENSE .\build\bin\Windows\Release\xenia-vfs-dump.exe
-      7z a SDL2.zip %APPVEYOR_BUILD_FOLDER%\build\bin\%PLATFORM%\%CONFIGURATION%\SDL2.dll
+      7z a SDL2.zip .\build\bin\Windows\Release\SDL2.dll
 
 test: off
 
