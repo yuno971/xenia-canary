@@ -9,6 +9,7 @@
 
 #include "xenia/base/logging.h"
 #include "xenia/base/memory.h"
+#include "xenia/base/mutex.h"
 #include "xenia/cpu/processor.h"
 #include "xenia/kernel/kernel_state.h"
 #include "xenia/kernel/util/shim_utils.h"
@@ -170,10 +171,11 @@ dword_result_t NtReadFile(dword_t file_handle, dword_t event_handle,
   if (XSUCCEEDED(result)) {
     if (true || file->is_synchronous()) {
       // some games NtReadFile() directly into texture memory
-      // TODO(rick): better checking of physical address
-      if (buffer.guest_address() >= 0xA0000000) {
-        kernel_memory()->TriggerWatches(buffer.guest_address(), buffer_length,
-                                        true, true);
+      auto heap = kernel_memory()->LookupHeap(buffer.guest_address());
+      if (heap && heap->IsGuestPhysicalHeap()) {
+        kernel_memory()->TriggerPhysicalMemoryCallbacks(
+            xe::global_critical_region::AcquireDirect(), buffer.guest_address(),
+            buffer_length, true, true);
       }
 
       // Synchronous.
