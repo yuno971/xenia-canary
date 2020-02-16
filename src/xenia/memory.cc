@@ -1379,6 +1379,7 @@ bool PhysicalHeap::Alloc(uint32_t size, uint32_t alignment,
   if (protect & kMemoryProtectWrite) {
     TriggerCallbacks(std::move(global_lock), address, size, true, true, false);
   }
+
   *out_address = address;
   return true;
 }
@@ -1482,17 +1483,10 @@ bool PhysicalHeap::Decommit(uint32_t address, uint32_t size) {
 bool PhysicalHeap::Release(uint32_t base_address, uint32_t* out_region_size) {
   auto global_lock = global_critical_region_.Acquire();
   uint32_t parent_base_address = GetPhysicalAddress(base_address);
-  uint32_t region_size = 0;
-  if (QuerySize(base_address, &region_size)) {
-    TriggerWatches(base_address, region_size, true, true,
-                   !cvars::protect_on_release);
-  }
-
   if (!parent_heap_->Release(parent_base_address, out_region_size)) {
     XELOGE("PhysicalHeap::Release failed due to parent heap failure");
     return false;
   }
-
   return BaseHeap::Release(base_address, out_region_size);
 }
 
