@@ -731,7 +731,7 @@ class StringFormatData : public FormatData {
 
   void skip(int32_t count) {
     while (count-- > 0) {
-      if (!get()) {
+      if (!*input_) {
         break;
       }
     }
@@ -764,11 +764,11 @@ class WideStringFormatData : public FormatData {
     return xe::byte_swap(result);
   }
 
-  uint16_t peek(int32_t offset) { return xe::byte_swap(input_[offset]); }
+  uint16_t peek(int32_t offset) { return input_[offset]; }
 
   void skip(int32_t count) {
     while (count-- > 0) {
-      if (!get()) {
+      if (!*input_) {
         break;
       }
     }
@@ -798,11 +798,11 @@ class WideCountFormatData : public FormatData {
     return xe::byte_swap(result);
   }
 
-  uint16_t peek(int32_t offset) { return xe::byte_swap(input_[offset]); }
+  uint16_t peek(int32_t offset) { return input_[offset]; }
 
   void skip(int32_t count) {
     while (count-- > 0) {
-      if (!get()) {
+      if (!*input_) {
         break;
       }
     }
