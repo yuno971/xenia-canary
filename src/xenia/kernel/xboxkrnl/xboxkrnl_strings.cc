@@ -49,9 +49,6 @@ enum FormatFlags {
   FF_IsWide = 1 << 9,
   FF_IsSigned = 1 << 10,
   FF_ForceLeadingZero = 1 << 11,
-  // IsWide gets used as an "is opposite encoding" flag, but this flag means
-  // it's definitely wide
-  FF_IsAlwaysWide = 1 << 12, 
 };
 
 enum ArgumentSize {
@@ -295,7 +292,7 @@ int32_t format_core(PPCContext* ppc_context, FormatData& data, ArgList& args,
           state = FS_Type;
           continue;
         } else if (c == 'w') {
-          flags |= (FF_IsWide | FF_IsAlwaysWide);
+          flags |= FF_IsWide;
           state = FS_Type;
           continue;
         } else if (c == 'I') {
@@ -340,7 +337,7 @@ int32_t format_core(PPCContext* ppc_context, FormatData& data, ArgList& args,
               // functions and with C in wprintf functions."
               is_wide = false;
             } else {
-              is_wide = (((flags & FF_IsWide) != 0) ^ wide) || (flags & FF_IsAlwaysWide) != 0;
+              is_wide = ((flags & FF_IsWide) != 0) ^ wide;
             }
 
             auto value = args.get32();
@@ -555,7 +552,7 @@ int32_t format_core(PPCContext* ppc_context, FormatData& data, ArgList& args,
                 // functions and with S in wprintf functions."
                 is_wide = false;
               } else {
-                is_wide = (((flags & (FF_IsWide)) != 0) ^ wide) || (flags & FF_IsAlwaysWide) != 0;
+                is_wide = ((flags & (FF_IsWide)) != 0) ^ wide;
               }
               int32_t length;
 
