@@ -13,6 +13,10 @@ skip_commits:
     - docs/*/*
     - .github/*
     - .github/*/*
+    - src/**/*_posix.*
+    - src/**/*_linux.*
+    - src/**/*_x11.*
+    - src/**/*_gtk.*    
     - LICENSE
     - README.md
     - .azure-pipelines.yml
