@@ -39,6 +39,9 @@ class MessageBoxDialog : public xe::ui::ImGuiDialog {
         buttons_(std::move(buttons)),
         default_button_(default_button),
         out_chosen_button_(out_chosen_button) {
+    if (!title_.size()) {
+      title_ = "Message Box";
+    }
     if (out_chosen_button) {
       *out_chosen_button = default_button;
     }
@@ -53,7 +56,9 @@ class MessageBoxDialog : public xe::ui::ImGuiDialog {
     }
     if (ImGui::BeginPopupModal(title_.c_str(), nullptr,
                                ImGuiWindowFlags_AlwaysAutoResize)) {
-      ImGui::Text("%s", description_.c_str());
+      if (description_.size()) {
+        ImGui::Text("%s", description_.c_str());
+      }
       if (first_draw) {
         ImGui::SetKeyboardFocusHere();
       }
@@ -214,6 +219,14 @@ class KeyboardInputDialog : public xe::ui::ImGuiDialog {
         default_text_(xe::to_string(default_text)),
         out_text_(out_text),
         max_length_(max_length) {
+    if (!title_.size()) {
+      if (!description_.size()) {
+        title_ = "Keyboard Input";
+      } else {
+        title_ = description_;
+        description_ = "";
+      }
+    }
     if (out_text_) {
       *out_text_ = default_text;
     }
@@ -231,7 +244,9 @@ class KeyboardInputDialog : public xe::ui::ImGuiDialog {
     }
     if (ImGui::BeginPopupModal(title_.c_str(), nullptr,
                                ImGuiWindowFlags_AlwaysAutoResize)) {
-      ImGui::TextWrapped("%s", description_.c_str());
+      if (description_.size()) {
+        ImGui::TextWrapped("%s", description_.c_str());
+      }
       if (first_draw) {
         ImGui::SetKeyboardFocusHere();
       }

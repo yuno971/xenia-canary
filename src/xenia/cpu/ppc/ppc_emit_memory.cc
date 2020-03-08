@@ -1091,27 +1091,27 @@ int InstrEmit_dcbf(PPCHIRBuilder& f, const InstrData& i) {
   } else {
     Value* ea = CalculateEA_0(f, i.X.RA, i.X.RB);
     f.CacheControl(ea, 128,
-                   CacheControlType::CACHE_CONTOROL_TYPE_DATA_STORE_AND_FLUSH);
+                   CacheControlType::CACHE_CONTROL_TYPE_DATA_STORE_AND_FLUSH);
   }
   return 0;
 }
 
 int InstrEmit_dcbst(PPCHIRBuilder& f, const InstrData& i) {
   Value* ea = CalculateEA_0(f, i.X.RA, i.X.RB);
-  f.CacheControl(ea, 128, CacheControlType::CACHE_CONTOROL_TYPE_DATA_STORE);
+  f.CacheControl(ea, 128, CacheControlType::CACHE_CONTROL_TYPE_DATA_STORE);
   return 0;
 }
 
 int InstrEmit_dcbt(PPCHIRBuilder& f, const InstrData& i) {
   Value* ea = CalculateEA_0(f, i.X.RA, i.X.RB);
-  f.CacheControl(ea, 128, CacheControlType::CACHE_CONTOROL_TYPE_DATA_TOUCH);
+  f.CacheControl(ea, 128, CacheControlType::CACHE_CONTROL_TYPE_DATA_TOUCH);
   return 0;
 }
 
 int InstrEmit_dcbtst(PPCHIRBuilder& f, const InstrData& i) {
   Value* ea = CalculateEA_0(f, i.X.RA, i.X.RB);
   f.CacheControl(ea, 128,
-                 CacheControlType::CACHE_CONTOROL_TYPE_DATA_TOUCH_FOR_STORE);
+                 CacheControlType::CACHE_CONTROL_TYPE_DATA_TOUCH_FOR_STORE);
   return 0;
 }
 
