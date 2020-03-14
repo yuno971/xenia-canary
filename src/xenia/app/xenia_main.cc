@@ -205,42 +205,32 @@ int xenia_main(const std::vector<std::wstring>& args) {
   std::wstring content_root = xe::to_wstring(cvars::content_root);
   std::wstring config_folder;
 
-  auto base_path = xe::filesystem::GetExecutableFolder();
-  base_path = xe::to_absolute_path(base_path);
+  if (content_root.empty()) {
+    auto base_path = xe::filesystem::GetExecutableFolder();
+    base_path = xe::to_absolute_path(base_path);
 
-  // Setup config folder location
-  auto portable_path = xe::join_paths(base_path, L"portable.txt");
-  if (xe::filesystem::PathExists(portable_path)) {
-    config_folder = base_path;
-  } else {
-    config_folder = xe::filesystem::GetUserFolder();
+    auto portable_path = xe::join_paths(base_path, L"portable.txt");
+    if (xe::filesystem::PathExists(portable_path)) {
+      content_root = xe::join_paths(base_path, L"content");
+      config_folder = base_path;
+    } else {
+      content_root = xe::filesystem::GetUserFolder();
 #if defined(XE_PLATFORM_WIN32)
-    config_folder = xe::join_paths(config_folder, L"Xenia");
+      content_root = xe::join_paths(content_root, L"Xenia");
 #elif defined(XE_PLATFORM_LINUX)
-    config_folder = xe::join_paths(config_folder, L"Xenia");
+      content_root = xe::join_paths(content_root, L"Xenia");
 #else
 #warning Unhandled platform for content root.
-    config_folder = xe::join_paths(config_folder, L"Xenia");
+      content_root = xe::join_paths(content_root, L"Xenia");
 #endif
+      config_folder = content_root;
+      content_root = xe::join_paths(content_root, L"content");
+    }
   }
-
-  // If no content_root set, use folder inside config dir
-  if (content_root.empty()) {
-    content_root = xe::join_paths(config_folder, L"content");
-  }
-
   content_root = xe::to_absolute_path(content_root);
 
-  XELOGI("Config folder: %S", config_folder.c_str());
-  config::SetupConfig(config_folder);
-
-  // If content_root cvar is set after reading config, use that
-  if (!cvars::content_root.empty()) {
-    content_root = xe::to_wstring(cvars::content_root);
-    content_root = xe::to_absolute_path(content_root);
-  }
-
   XELOGI("Content root: %S", content_root.c_str());
+  config::SetupConfig(config_folder);
 
   if (cvars::discord) {
     discord::DiscordPresence::Initialize();
