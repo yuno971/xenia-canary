@@ -38,6 +38,7 @@ class EmulatorWindow {
   void UpdateTitle();
   void ToggleFullscreen();
   static std::wstring SwapNext(int8_t disc_number);
+  void SetInitializingShaderStorage(bool initializing);
 
  private:
   explicit EmulatorWindow(Emulator* emulator);
@@ -67,6 +68,7 @@ class EmulatorWindow {
   std::wstring base_title_;
   std::wstring global_recent_paths_[10];
   uint64_t cursor_hide_time_ = 0;
+  bool initializing_shader_storage_ = false;
 };
 
 }  // namespace app

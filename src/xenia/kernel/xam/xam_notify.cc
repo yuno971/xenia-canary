@@ -68,12 +68,19 @@ dword_result_t XNotifyGetNext(dword_t handle, dword_t match_id,
     dequeued = listener->DequeueNotification(&id, &param);
   }
 
+  // param_ptr may be null - Ghost Recon Advanced Warfighter 2 Demo explicitly
+  // passes nullptr in the code.
+  // https://github.com/xenia-project/xenia/pull/1577
   if (dequeued) {
     *id_ptr = id;
-    *param_ptr = param;
+    if (param_ptr) {
+      *param_ptr = param;
+    }
   } else {
     *id_ptr = 0;
-    *param_ptr = 0;
+    if (param_ptr) {
+      *param_ptr = 0;
+    }
   }
 
   return dequeued ? 1 : 0;
