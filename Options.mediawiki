@@ -58,7 +58,7 @@ __TOC__
 | PT (Portuguese/Português)
 |align="center"| <code>9</code>
 |-
-| PL (Polish/Polskie)
+| PL (Polish/Polski)
 |align="center"| <code>11</code>
 |-
 | RU (Russian/русский)
