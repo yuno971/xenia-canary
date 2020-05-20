@@ -46,8 +46,8 @@ uint32_t ContentManager::title_id() {
 
 std::filesystem::path ContentManager::ResolvePackageRoot(
     uint32_t content_type) {
-  auto title_id_str = fmt::format("{:8X}", title_id());
-  auto content_type_str = fmt::format("{:8X}", content_type);
+  auto title_id_str = fmt::format("{:08X}", title_id());
+  auto content_type_str = fmt::format("{:08X}", content_type);
 
   // Package root path:
   // content_root/title_id/type_name/
