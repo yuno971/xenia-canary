@@ -149,7 +149,7 @@ X_RESULT FolderContentPackage::Delete() {
   Unmount();
 
   if (std::filesystem::exists(package_path_)) {
-    std::filesystem::remove(package_path_);
+    std::filesystem::remove_all(package_path_);
     return X_ERROR_SUCCESS;
   }
   return X_ERROR_FILE_NOT_FOUND;
@@ -190,8 +190,8 @@ X_RESULT StfsContentPackage::Delete() {
   Unmount();
 
   if (std::filesystem::exists(package_path_)) {
-    return std::filesystem::remove(package_path_) ? X_ERROR_SUCCESS
-                                                  : X_ERROR_FUNCTION_FAILED;
+    return std::filesystem::remove_all(package_path_) ? X_ERROR_SUCCESS
+                                                      : X_ERROR_FUNCTION_FAILED;
   }
   return X_ERROR_FILE_NOT_FOUND;
 }
