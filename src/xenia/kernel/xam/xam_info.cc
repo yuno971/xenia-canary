@@ -366,7 +366,7 @@ dword_result_t XamEnumerate(dword_t handle, dword_t flags, lpvoid_t buffer,
         e->items_per_enumerate());
   }
 
-  buffer.Zero(actual_buffer_length);
+  //buffer.Zero(actual_buffer_length);
 
   X_RESULT result;
   uint32_t item_count = 0;
