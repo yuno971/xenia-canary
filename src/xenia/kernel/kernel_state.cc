@@ -229,7 +229,7 @@ object_ref<XModule> KernelState::GetModule(const std::string_view name,
   }
 
   // Module not found, try loading it
-  return LoadUserModule(name);
+  return nullptr;
 }
 
 object_ref<XThread> KernelState::LaunchModule(object_ref<UserModule> module) {
@@ -406,7 +406,16 @@ object_ref<UserModule> KernelState::LoadUserModule(
   module->Dump();
 
   if (module->is_dll_module() && module->entry_point() && call_entry) {
-    LaunchModule(module);
+    // Call DllMain(DLL_PROCESS_ATTACH):
+    // https://msdn.microsoft.com/en-us/library/windows/desktop/ms682583%28v=vs.85%29.aspx
+    uint64_t args[] = {
+        module->handle(),
+        1,  // DLL_PROCESS_ATTACH
+        0,  // 0 because always dynamic
+    };
+    auto thread_state = XThread::GetCurrentThread()->thread_state();
+    processor()->Execute(thread_state, module->entry_point(), args,
+                         xe::countof(args));
   }
 
   return module;
