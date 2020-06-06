@@ -49,7 +49,7 @@ __TOC__
 | IT (Italian/Italiano)
 |align="center"| <code>6</code>
 |-
-| KO (Korean/한국인)
+| KO (Korean/한국어)
 |align="center"| <code>7</code>
 |-
 | ZH (Traditional Chinese/繁體中文)
