@@ -14,7 +14,7 @@
   * Runs on Linux with Wine.
 * CPU: 64-bit x86 processor with AVX(2) support
   * You can check with [CPU-Z](https://www.cpuid.com/softwares/cpu-z.html)
-  * **Pentiums do not support AVX(2).**
+  * **Pentiums and Celerons do not support AVX(2).**
 * GPU: Vulkan compatible GPU from [this list](https://vulkan.gpuinfo.org/) or D3D12 compatible GPU
   * You can check with [GPU-Z](https://www.techpowerup.com/download/techpowerup-gpu-z/)
   * D3D12 will only work on Windows 10 due to D3D12on7 and vkd3d not being supported.
