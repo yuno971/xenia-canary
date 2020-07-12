@@ -44,7 +44,7 @@ jobs:
           robocopy . artifacts LICENSE
           $LastExitCode = 0
           cd artifacts
-          7z a ..\xenia-canary.zip LICENSE xenia-canary.exe
+          7z a ..\xenia_canary.zip LICENSE xenia_canary.exe
     - uses: actions/upload-artifact@master
       with:
         name: xenia-canary-${{matrix.cpu_arch}}
@@ -71,6 +71,6 @@ jobs:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       with:
         upload_url: ${{steps.create_release.outputs.upload_url}}
-        asset_path: ./xenia-canary.zip
-        asset_name: xenia-canary.zip
+        asset_path: ./xenia_canary.zip
+        asset_name: xenia_canary.zip
         asset_content_type: application/zip
