@@ -113,7 +113,7 @@ dword_result_t keXamBuildResourceLocator(uint64_t module,
                                          uint32_t buffer_count) {
   std::u16string path;
   if (!module) {
-    path = fmt::format(u"file://media:/{0}.xzp#{0}", container, resource);
+    path = fmt::format(u"file://media:/{}.xzp#{}", container, resource);
     XELOGD(
         "XamBuildResourceLocator({0}) returning locator to local file {0}.xzp",
         xe::to_utf8(container));
@@ -123,6 +123,7 @@ dword_result_t keXamBuildResourceLocator(uint64_t module,
   }
   auto copy_count = std::min(size_t(buffer_count), path.size());
   xe::copy_and_swap(buffer_ptr.as<char16_t*>(), path.c_str(), copy_count);
+  (buffer_ptr.as<char16_t*>())[copy_count] = 0;
   return 0;
 }
 
