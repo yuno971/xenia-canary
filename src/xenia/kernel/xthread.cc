@@ -220,7 +220,7 @@ void XThread::InitializeGuestObject() {
 }
 
 bool XThread::AllocateStack(uint32_t size) {
-  auto heap = memory()->LookupHeap(0x40000000);
+  auto heap = memory()->LookupHeap(0x70000000);
 
   auto alignment = heap->page_size();
   auto padding = heap->page_size() * 2;  // Guard page size * 2
@@ -228,7 +228,7 @@ bool XThread::AllocateStack(uint32_t size) {
   auto actual_size = size + padding;
 
   uint32_t address = 0;
-  if (!heap->AllocRange(0x40000000, 0x7F000000, actual_size, alignment,
+  if (!heap->AllocRange(0x70000000, 0x7F000000, actual_size, alignment,
                         kMemoryAllocationReserve | kMemoryAllocationCommit,
                         kMemoryProtectRead | kMemoryProtectWrite, false,
                         &address)) {
@@ -252,7 +252,7 @@ bool XThread::AllocateStack(uint32_t size) {
 
 void XThread::FreeStack() {
   if (stack_alloc_base_) {
-    auto heap = memory()->LookupHeap(0x40000000);
+    auto heap = memory()->LookupHeap(0x70000000);
     heap->Release(stack_alloc_base_);
 
     stack_alloc_base_ = 0;
