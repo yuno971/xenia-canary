@@ -109,6 +109,9 @@ class XThread : public XObject, public cpu::Thread {
 
   enum StartupType { Normal, XapiThreadStartup, DllMain };
 
+  static constexpr uint32_t kStackAddressRangeBegin = 0x70000000;
+  static constexpr uint32_t kStackAddressRangeEnd = 0x7F000000;
+
   struct CreationParams {
     uint32_t stack_size;
     StartupType startup_type;
