@@ -27,18 +27,6 @@ namespace xe {
 namespace kernel {
 namespace xboxkrnl {
 
-struct CreateOptions {
-  // https://processhacker.sourceforge.io/doc/ntioapi_8h.html
-  static const uint32_t FILE_DIRECTORY_FILE = 0x00000001;
-  // Optimization - files access will be sequential, not random.
-  static const uint32_t FILE_SEQUENTIAL_ONLY = 0x00000004;
-  static const uint32_t FILE_SYNCHRONOUS_IO_ALERT = 0x00000010;
-  static const uint32_t FILE_SYNCHRONOUS_IO_NONALERT = 0x00000020;
-  static const uint32_t FILE_NON_DIRECTORY_FILE = 0x00000040;
-  // Optimization - file access will be random, not sequential.
-  static const uint32_t FILE_RANDOM_ACCESS = 0x00000800;
-};
-
 static bool IsValidPath(const std::string_view s, bool is_pattern) {
   // TODO(gibbed): validate path components individually
   for (const auto& c : s) {
@@ -126,16 +114,15 @@ dword_result_t NtCreateFile(lpdword_t handle_out, dword_t desired_access,
   X_STATUS result = kernel_state()->file_system()->OpenFile(
       root_entry, target_path,
       vfs::FileDisposition((uint32_t)creation_disposition), desired_access,
-      (create_options & CreateOptions::FILE_DIRECTORY_FILE) != 0, &vfs_file,
-      &file_action);
+      create_options, &vfs_file, &file_action);
   object_ref<XFile> file = nullptr;
 
   X_HANDLE handle = X_INVALID_HANDLE_VALUE;
   if (XSUCCEEDED(result)) {
     // If true, desired_access SYNCHRONIZE flag must be set.
     bool synchronous =
-        (create_options & CreateOptions::FILE_SYNCHRONOUS_IO_ALERT) ||
-        (create_options & CreateOptions::FILE_SYNCHRONOUS_IO_NONALERT);
+        (create_options & vfs::CreateOptions::FILE_SYNCHRONOUS_IO_ALERT) ||
+        (create_options & vfs::CreateOptions::FILE_SYNCHRONOUS_IO_NONALERT);
     file = object_ref<XFile>(new XFile(kernel_state(), vfs_file, synchronous));
 
     // Handle ref is incremented, so return that.

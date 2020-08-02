@@ -173,7 +173,7 @@ bool VirtualFileSystem::DeletePath(const std::string_view path) {
 X_STATUS VirtualFileSystem::OpenFile(Entry* root_entry,
                                      const std::string_view path,
                                      FileDisposition creation_disposition,
-                                     uint32_t desired_access, bool is_directory,
+                                     uint32_t desired_access, uint32_t create_options,
                                      File** out_file, FileAction* out_action) {
   // TODO(gibbed): should 'is_directory' remain as a bool or should it be
   // flipped to a generic FileAttributeFlags?
@@ -189,10 +189,20 @@ X_STATUS VirtualFileSystem::OpenFile(Entry* root_entry,
     desired_access |= FileAccess::kFileReadData | FileAccess::kFileWriteData;
   }
 
+  bool is_directory = create_options & CreateOptions::FILE_DIRECTORY_FILE;
+
   // Lookup host device/parent path.
   // If no device or parent, fail.
   Entry* parent_entry = nullptr;
   Entry* entry = nullptr;
+
+  auto path_entry = ResolvePath(path);
+  if (path_entry) {
+    if (path_entry->attributes() & kFileAttributeDirectory &&
+        create_options & CreateOptions::FILE_NON_DIRECTORY_FILE) {
+      return X_STATUS_FILE_IS_A_DIRECTORY;
+    }
+  }
 
   auto base_path = xe::utf8::find_base_guest_path(path);
   if (!base_path.empty()) {

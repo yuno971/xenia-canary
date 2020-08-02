@@ -258,12 +258,17 @@ object_ref<XFile> XFile::Restore(KernelState* kernel_state,
   auto is_directory = stream->Read<bool>();
   auto is_synchronous = stream->Read<bool>();
 
+  uint32_t create_options = 0;
+  if (is_directory) {
+    create_options |= vfs::CreateOptions::FILE_DIRECTORY_FILE;
+  }
+
   XELOGD("XFile {:08X} ({})", file->handle(), abs_path);
 
   vfs::File* vfs_file = nullptr;
   vfs::FileAction action;
   auto res = kernel_state->file_system()->OpenFile(
-      nullptr, abs_path, vfs::FileDisposition::kOpen, access, is_directory,
+      nullptr, abs_path, vfs::FileDisposition::kOpen, access, create_options,
       &vfs_file, &action);
   if (XFAILED(res)) {
     XELOGE("Failed to open XFile: error {:08X}", res);

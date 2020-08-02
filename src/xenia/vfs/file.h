@@ -17,6 +17,18 @@
 namespace xe {
 namespace vfs {
 
+struct CreateOptions {
+  // https://processhacker.sourceforge.io/doc/ntioapi_8h.html
+  static const uint32_t FILE_DIRECTORY_FILE = 0x00000001;
+  // Optimization - files access will be sequential, not random.
+  static const uint32_t FILE_SEQUENTIAL_ONLY = 0x00000004;
+  static const uint32_t FILE_SYNCHRONOUS_IO_ALERT = 0x00000010;
+  static const uint32_t FILE_SYNCHRONOUS_IO_NONALERT = 0x00000020;
+  static const uint32_t FILE_NON_DIRECTORY_FILE = 0x00000040;
+  // Optimization - file access will be random, not sequential.
+  static const uint32_t FILE_RANDOM_ACCESS = 0x00000800;
+};
+
 class Entry;
 
 class File {
