@@ -96,6 +96,14 @@ dword_result_t NtAllocateVirtualMemory(lpdword_t base_addr_ptr,
     XELOGW("Game setting EXECUTE bit on allocation");
   }
 
+  // Tried to allocate virtual over xex or physical range
+  if (*base_addr_ptr >= 0x80000000) {
+    XELOGE(
+        "NtAllocateVirtualMemory tried to allocate memory over xex or physical "
+        "range");
+    return X_STATUS_INVALID_PARAMETER;
+  }
+
   uint32_t page_size;
   if (*base_addr_ptr != 0) {
     // ignore specified page size when base address is specified.
