@@ -48,7 +48,8 @@ X_STATUS xeExGetXConfigSetting(uint16_t category, uint16_t setting,
                                void* buffer, uint16_t buffer_size,
                                uint16_t* required_size) {
   uint16_t setting_size = 0;
-  alignas(uint32_t) uint8_t value[4];
+  //alignas(uint32_t) uint8_t value[4];
+  uint64_t value = 0;
 
   // TODO(benvanik): have real structs here that just get copied from.
   // https://free60project.github.io/wiki/XConfig.html
@@ -57,9 +58,13 @@ X_STATUS xeExGetXConfigSetting(uint16_t category, uint16_t setting,
     case 0x0002:
       // XCONFIG_SECURED_CATEGORY
       switch (setting) {
+        case 0x0001:                // XCONFIG_SECURED_MAC_ADDRESS (6 bytes)
+          setting_size = 6;
+          xe::store_and_swap(&value, 0x0025AE3DE79E);
+          return X_STATUS_SUCCESS;  // x360 MAC found in pic results in google
         case 0x0002:  // XCONFIG_SECURED_AV_REGION
           setting_size = 4;
-          xe::store_and_swap<uint32_t>(value, 0x00001000);  // USA/Canada
+          xe::store_and_swap<uint32_t>(&value, 0x00001000);  // USA/Canada
           break;
         default:
           assert_unhandled_case(setting);
@@ -70,59 +75,106 @@ X_STATUS xeExGetXConfigSetting(uint16_t category, uint16_t setting,
       // XCONFIG_USER_CATEGORY
       switch (setting) {
         case 0x0001:  // XCONFIG_USER_TIME_ZONE_BIAS
+          setting_size = 2;
+          // TODO(benvanik): get this value.
+          static_cast<int8_t>(&value, 0x12C);
+          break;
         case 0x0002:  // XCONFIG_USER_TIME_ZONE_STD_NAME
+          // https://www.timeanddate.com/time/zones/
+          setting_size = 4;
+          // TODO(benvanik): get this value.
+          static_cast<uint32_t>(&value, 0x45535400);
+          break;
         case 0x0003:  // XCONFIG_USER_TIME_ZONE_DLT_NAME
+          setting_size = 4;
+          // TODO(benvanik): get this value.
+          static_cast<uint32_t>(&value, 0x45445400);
+          break;
         case 0x0004:  // XCONFIG_USER_TIME_ZONE_STD_DATE
         case 0x0005:  // XCONFIG_USER_TIME_ZONE_DLT_DATE
         case 0x0006:  // XCONFIG_USER_TIME_ZONE_STD_BIAS
         case 0x0007:  // XCONFIG_USER_TIME_ZONE_DLT_BIAS
           setting_size = 4;
           // TODO(benvanik): get this value.
-          xe::store_and_swap<uint32_t>(value, 0);
+          static_cast<uint32_t>(&value, 0);
+          break;
+        case 0x0008:  // XCONFIG_DEFAULT_PROFILE
+          setting_size = 8;
+          static_cast<uint64_t>(&value, 0);
           break;
         case 0x0009:  // XCONFIG_USER_LANGUAGE
           setting_size = 4;
-          xe::store_and_swap<uint32_t>(value, cvars::user_language);
+          xe::store_and_swap<uint32_t>(&value, cvars::user_language);
           break;
         case 0x000A:  // XCONFIG_USER_VIDEO_FLAGS
           setting_size = 4;
-          xe::store_and_swap<uint32_t>(value, 0x00040000);
+          xe::store_and_swap<uint32_t>(&value, 0x004B0020);  // 00400000?
+          break;
+        case 0x000B:  // XCONFIG_USER_AUDIO_FLAGS
+          setting_size = 4;
+          xe::store_and_swap<uint32_t>(&value, 0x00000000);
           break;
         case 0x000C:  // XCONFIG_USER_RETAIL_FLAGS
           setting_size = 4;
           // TODO(benvanik): get this value.
-          xe::store_and_swap<uint32_t>(
-              value, cvars::xconfig_initial_setup ? 0 : 0x40);
+          // 0x40 = dashboard initial setup complete
+          xe::store_and_swap<uint32_t>(&value,
+                                        cvars::xconfig_initial_setup
+                                        ? 0 : 0x40);
           break;
         case 0x000E:  // XCONFIG_USER_COUNTRY
           setting_size = 1;
-          value[0] = static_cast<uint8_t>(cvars::user_country);
+          xe::store_and_swap<uint8_t>(&value, cvars::user_country);
           break;
         case 0x000F:  // XCONFIG_USER_PC_FLAGS (parental control?)
           setting_size = 1;
-          xe::store_and_swap<uint8_t>(value, 0);
+          xe::store_and_swap<uint8_t>(&value, 0xFF);  // value[0]?
           break;
         case 0x0010:  // XCONFIG_USER_SMB_CONFIG (0x100 byte string)
                       // Just set the start of the buffer to 0 so that callers
                       // don't error from an un-inited buffer
           setting_size = 4;
-          xe::store_and_swap<uint32_t>(value, 0);
+          static_cast<uint32_t>(&value, 0);
           break;
         default:
           assert_unhandled_case(setting);
           return X_STATUS_INVALID_PARAMETER_2;
       }
       break;
+    case 0x0007:
+      // XCONFIG_CONSOLE_SETTINGS
+      switch (setting) {
+        case 0x0001: // XCONFIG_SCREENSAVER
+          setting_size = 2;
+          static_cast<uint16_t>(&value, 0x00);
+          break;
+        case 0x0002: // XCONFIG_AUTO_SHUTDOWN
+          setting_size = 2;
+          static_cast<uint16_t>(&value, 0);
+          break;
+        case 0x0004: // XCONFIG_CAMERA_SETTINGS
+          setting_size = 4;
+          static_cast<uint32_t>(&value, 0);
+          break;
+        case 0x000B:
+          setting_size = 4;
+          static_cast<uint32_t>(&value, 0);
+          break;
+        default:
+          assert_unhandled_case(setting);
+          return X_STATUS_INVALID_PARAMETER_2;
+    }
+    break;
     default:
       assert_unhandled_case(category);
       return X_STATUS_INVALID_PARAMETER_1;
   }
-
+  //XELOGI("XCONFIG IS RETURNING CATEGORY(%X) SETTING(%X) VALUE(%X)", category, setting, value);
   if (buffer) {
     if (buffer_size < setting_size) {
       return X_STATUS_BUFFER_TOO_SMALL;
     }
-    std::memcpy(buffer, value, setting_size);
+    std::memcpy(buffer, &value, setting_size);
   } else {
     if (buffer_size) {
       return X_STATUS_INVALID_PARAMETER_3;
@@ -138,7 +190,7 @@ X_STATUS xeExGetXConfigSetting(uint16_t category, uint16_t setting,
 
 dword_result_t ExGetXConfigSetting(word_t category, word_t setting,
                                    lpdword_t buffer_ptr, word_t buffer_size,
-                                   lpword_t required_size_ptr) {
+                                   lpdword_t required_size_ptr) {
   uint16_t required_size = 0;
   X_STATUS result = xeExGetXConfigSetting(category, setting, buffer_ptr,
                                           buffer_size, &required_size);
@@ -150,6 +202,30 @@ dword_result_t ExGetXConfigSetting(word_t category, word_t setting,
   return result;
 }
 DECLARE_XBOXKRNL_EXPORT1(ExGetXConfigSetting, kModules, kImplemented);
+
+dword_result_t ExSetXConfigSetting(word_t category, word_t setting,
+                                   lpdword_t value, word_t unknown,
+                                   dword_t unknown2, dword_t unknown3) {
+  /*XELOGI(
+      "SETXCONFIG IS RUNNING WITH CATEGORY(%X) SETTING(%X) VALUE(%d) ??(%X) "
+      "??(%X) ??(%X) *??(%X) *??(%X) *??(%X)",
+      category, setting, *value, unknown, unknown2, unknown3, &unknown,
+      &unknown2, &unknown3);*/
+  return X_ERROR_SUCCESS;
+}
+DECLARE_XBOXKRNL_EXPORT2(ExSetXConfigSetting, kModules, kImplemented, kImportant);
+
+dword_result_t ExReadModifyWriteXConfigSettingUlong(word_t category, word_t setting,
+                                              lpdword_t value, word_t unknown,
+                                              dword_t unknown2, dword_t unknown3) {
+  /*XELOGI(
+      "SETXCONFIG RWM IS RUNNING WITH CATEGORY(%X) SETTING(%X) VALUE(%d) ??(%X) "
+      "??(%X) ??(%X) *??(%X) *??(%X) *??(%X)",
+      category, setting, *value, unknown, unknown2, unknown3, &unknown,
+      &unknown2, &unknown3);*/
+  return X_ERROR_SUCCESS;
+}
+DECLARE_XBOXKRNL_EXPORT1(ExReadModifyWriteXConfigSettingUlong, kModules, kImplemented);
 
 void RegisterXConfigExports(xe::cpu::ExportResolver* export_resolver,
                             KernelState* kernel_state) {}
