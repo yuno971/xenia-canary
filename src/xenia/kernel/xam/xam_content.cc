@@ -501,23 +501,27 @@ static_assert_size(X_SWAPDISC_ERROR_MESSAGE, 12);
 dword_result_t XamSwapDisc(dword_t disc_number,
                            pointer_t<X_KEVENT> completion_handle,
                            pointer_t<X_SWAPDISC_ERROR_MESSAGE> error_message) {
-  auto filesystem = kernel_state()->file_system();
-  auto mount_path = "\\Device\\LauncherData";
-
-  if (filesystem->ResolvePath(mount_path) != NULL) {
-    filesystem->UnregisterDevice(mount_path);
-  }
-
   std::u16string text_message = xe::load_and_swap<std::u16string>(
       kernel_state()->memory()->TranslateVirtual(error_message->stringTextPtr));
-
   const std::filesystem::path new_disc_path =
       kernel_state()->emulator()->GetNewDiscPath(xe::to_utf8(text_message));
   XELOGI("GetNewDiscPath returned path {}.", new_disc_path.string().c_str());
+  if (new_disc_path != L"") {
 
-  // TODO(Gliniak): Implement checking if inserted file is requested one
-  kernel_state()->emulator()->LaunchPath(new_disc_path, true);
+	  auto filesystem = kernel_state()->file_system();
+	  auto mount_path = "\\Device\\LauncherData";
+	
+	  if (filesystem->ResolvePath(mount_path) != NULL) {
+	    filesystem->UnregisterDevice(mount_path);
+	  }
 
+	  const std::filesystem::path new_disc_path =
+	      kernel_state()->emulator()->GetNewDiscPath(xe::to_utf8(text_message));
+	  XELOGI("GetNewDiscPath returned path {}.", new_disc_path.string().c_str());
+
+	  // TODO(Gliniak): Implement checking if inserted file is requested one
+	  kernel_state()->emulator()->LaunchPath(new_disc_path, true);
+  }
   // Resolve the pending disc swap event
   auto kevent = xboxkrnl::xeKeSetEvent(completion_handle, 1, 0);
 
