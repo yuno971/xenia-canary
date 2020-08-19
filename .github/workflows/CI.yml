@@ -21,56 +21,55 @@ on:
       - 'LICENSE'
 
 jobs:
-  build:
+  build-windows:
     runs-on: windows-latest
+    env:
+      POWERSHELL_TELEMETRY_OPTOUT: 1
     strategy:
       fail-fast: false
       matrix:
-        cpu_arch: [AVX, AVX2, AVX512]
+        cpu_arch: [ AVX, AVX2, AVX512 ]
     steps:
     - uses: actions/checkout@v2
       with:
         fetch-depth: 0
-
     - name: Setup
       run: .\xb setup
-
     - name: Build
       run: .\xb build --cpu_arch=${{ matrix.cpu_arch }} --config=Release --target=src\xenia-app --target=src\xenia-vfs-dump
-
     - name: Prepare artifacts
       run: |
-          robocopy build\bin\Windows\Release artifacts xenia*.exe
-          robocopy . artifacts LICENSE
-          $LastExitCode = 0
-          cd artifacts
-          7z a ..\xenia_canary.zip LICENSE xenia_canary.exe
-    - uses: actions/upload-artifact@master
+        robocopy . build\bin\${{ runner.os }}\Release                                                                LICENSE /r:0 /w:0
+        robocopy   build\bin\${{ runner.os }}\Release artifacts\xenia_canary   xenia_canary.exe   xenia_canary.pdb   LICENSE /r:0 /w:0
+        robocopy   build\bin\${{ runner.os }}\Release artifacts\xenia-vfs-dump xenia-vfs-dump.exe xenia-vfs-dump.pdb LICENSE /r:0 /w:0
+        If ($LastExitCode -le 7) { echo "LastExitCode = $LastExitCode";$LastExitCode = 0 }
+        7z a -mx1 xenia_canary.zip                  .\artifacts\xenia_canary\*.exe                                   LICENSE
+        echo "::set-env name=short_commit_sha::$(git rev-parse --short HEAD)"
+    - name: Upload xenia-vfs-dump artifacts
+      uses: actions/upload-artifact@v2
+      if: matrix.cpu_arch == 'AVX'
       with:
-        name: xenia-canary-${{matrix.cpu_arch}}
-        path: artifacts
-
-    - name: Create Release
-      if: github.event.action != 'pull_request' && matrix.cpu_arch == 'AVX'
+        name: xenia-vfs-dump_canary
+        path: artifacts\xenia-vfs-dump
+    - name: Upload xenia artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: xenia_canary_${{ matrix.cpu_arch }}
+        path: artifacts\xenia
+    - uses: actions/create-release@v1
+      if: github.event.action != 'pull_request' && github.ref == 'refs/heads/canary' && matrix.cpu_arch == 'AVX'
       id: create_release
-      uses: actions/create-release@v1
       env:
-        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: tag-${{github.sha}}
-        release_name: xenia-canary-${{github.sha}}
-        body: |
-          Changes in this Release
-          - First Change
-          - Second Change
-    - name: Upload Release Asset
-      if: github.event.action != 'pull_request' && matrix.cpu_arch == 'AVX'
-      id: upload-release-asset
-      uses: actions/upload-release-asset@v1.0.1
+        tag_name: ${{ env.short_commit_sha }}
+        release_name: xenia_canary_${{ env.short_commit_sha }}
+    - uses: actions/upload-release-asset@v1
+      if: github.event.action != 'pull_request' && github.ref == 'refs/heads/canary' && matrix.cpu_arch == 'AVX'
       env:
-        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{steps.create_release.outputs.upload_url}}
-        asset_path: ./xenia_canary.zip
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: xenia_canary.zip
         asset_name: xenia_canary.zip
         asset_content_type: application/zip
