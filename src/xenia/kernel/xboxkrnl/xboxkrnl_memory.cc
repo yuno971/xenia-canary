@@ -192,6 +192,10 @@ dword_result_t NtProtectVirtualMemory(lpdword_t base_addr_ptr,
     return X_STATUS_INVALID_PARAMETER;
   }
 
+  if (*base_addr_ptr >= 0x80000000) {
+    return X_STATUS_INVALID_PARAMETER;
+  }
+
   // Don't allow games to set execute bits.
   if (protect_bits & (X_PAGE_EXECUTE | X_PAGE_EXECUTE_READ |
                       X_PAGE_EXECUTE_READWRITE | X_PAGE_EXECUTE_WRITECOPY)) {
