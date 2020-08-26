@@ -247,6 +247,10 @@ dword_result_t NtFreeVirtualMemory(lpdword_t base_addr_ptr,
     return X_STATUS_MEMORY_NOT_ALLOCATED;
   }
 
+  if (*base_addr_ptr >= 0x80000000) {
+    return X_STATUS_INVALID_PARAMETER;
+  }
+
   auto heap = kernel_state()->memory()->LookupHeap(base_addr_value);
   bool result = false;
   if (free_type == X_MEM_DECOMMIT) {
