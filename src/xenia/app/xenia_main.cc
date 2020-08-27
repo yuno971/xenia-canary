@@ -31,21 +31,40 @@
 Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin);
 #endif
 
-DEFINE_bool(mount_scratch, false, "Enable scratch mount", "General");
-DEFINE_bool(mount_cache, false, "Enable cache mount", "General");
 DEFINE_bool(show_debug_tab, true, "Show the debug tab in the Qt UI", "General");
-DEFINE_string(
+DEFINE_string(apu, "any", "Audio system. Use: [any, nop, sdl, xaudio2]", "APU");
+DEFINE_string(gpu, "any", "Graphics system. Use: [any, d3d12, vulkan, null]",
+              "GPU");
+DEFINE_string(hid, "any", "Input system. Use: [any, nop, sdl, winkey, xinput]",
+              "HID");
+
+DEFINE_bool(fullscreen, false, "Toggles fullscreen", "GPU");
+
+DEFINE_path(
     storage_root, "",
     "Root path for persistent internal data storage (config, etc.), or empty "
     "to use the path preferred for the OS, such as the documents folder, or "
     "the emulator executable directory if portable.txt is present in it.",
     "Storage");
-DEFINE_string(
+DEFINE_path(
     content_root, "",
     "Root path for guest content storage (saves, etc.), or empty to use the "
     "content folder under the storage root.",
     "Storage");
 
+DEFINE_bool(mount_scratch, false, "Enable scratch mount", "Storage");
+DEFINE_bool(mount_cache, false, "Enable cache mount", "Storage");
+
+DEFINE_transient_path(target, "",
+                      "Specifies the target .xex or .iso to execute.",
+                      "General");
+DEFINE_transient_bool(portable, false,
+                      "Specifies if Xenia should run in portable mode.",
+                      "General");
+
+DEFINE_bool(discord, true, "Enable Discord rich presence", "General");
+
+DECLARE_bool(debug);
 namespace xe {
 namespace app {
 

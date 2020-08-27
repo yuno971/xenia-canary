@@ -28,16 +28,6 @@
 #include "xenia/ui/vulkan/vulkan_instance.h"
 #include "xenia/ui/vulkan/vulkan_provider.h"
 
-DEFINE_string(apu, "any", "Audio system. Use: [any, nop, xaudio2]", "General");
-DEFINE_string(gpu, "any", "Graphics system. Use: [any, vulkan, null]",
-              "General");
-DEFINE_string(hid, "any", "Input system. Use: [any, nop, winkey, xinput]",
-              "General");
-
-DEFINE_string(target, "", "Specifies the target .xex or .iso to execute.",
-              "General");
-DEFINE_bool(fullscreen, false, "Toggles fullscreen", "General");
-
 namespace xe {
 namespace app {
 
