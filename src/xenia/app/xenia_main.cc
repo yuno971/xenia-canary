@@ -23,6 +23,7 @@
 #include <QFontDatabase>
 #include <QtPlugin>
 
+#include "discord/discord_presence.h"
 #include "xenia/base/logging.h"
 #include "xenia/config.h"
 #include "xenia/ui/qt/loop_qt.h"
@@ -65,6 +66,7 @@ DEFINE_transient_bool(portable, false,
 DEFINE_bool(discord, true, "Enable Discord rich presence", "General");
 
 DECLARE_bool(debug);
+
 namespace xe {
 namespace app {
 
@@ -102,6 +104,11 @@ int xenia_main(const std::vector<std::string>& args) {
 
   Config::Instance().SetupConfig(storage_root);
 
+  if (cvars::discord) {
+    discord::DiscordPresence::Initialize();
+    discord::DiscordPresence::NotPlaying();
+  }
+
   int argc = 1;
   char* argv[] = {"xenia", nullptr};
   QApplication app(argc, argv);
@@ -120,6 +127,11 @@ int xenia_main(const std::vector<std::string>& args) {
   main_wnd->SetIcon(QIcon(":/resources/graphics/icon.ico"));
   main_wnd->Resize(1280, 720);
 
+  loop.on_quit.AddListener([](ui::UIEvent*) {
+    if (cvars::discord) {
+      discord::DiscordPresence::Shutdown();
+    }
+  });
   /*
   if (FLAGS_mount_scratch) {
     auto scratch_device = std::make_unique<xe::vfs::HostPathDevice>(
