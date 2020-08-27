@@ -196,7 +196,7 @@ CommandVar<T>* register_commandvar(std::string_view name, T* default_value,
               std::filesystem::path)
 
 #define DEFINE_transient_bool(name, default_value, description, category) \
-  DEFINE_CVar(name, default_value, description, category, true, bool)
+  DEFINE_CVar(name, default_value, description, category, true, false, bool)
 
 #define DEFINE_transient_string(name, default_value, description, category) \
   DEFINE_CVar(name, default_value, description, category, true, false,      \
