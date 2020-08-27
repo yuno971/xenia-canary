@@ -4,13 +4,13 @@
 #include <QGraphicsEffect>
 #include <QScrollArea>
 
-#include "settings/advanced_pane.h"
-#include "settings/controls_pane.h"
-#include "settings/cpu_pane.h"
-#include "settings/general_pane.h"
-#include "settings/gpu_pane.h"
-#include "settings/interface_pane.h"
-#include "settings/library_pane.h"
+#include "xenia/ui/qt/settings/panes/advanced_pane.h"
+#include "xenia/ui/qt/settings/panes/controls_pane.h"
+#include "xenia/ui/qt/settings/panes/cpu_pane.h"
+#include "xenia/ui/qt/settings/panes/general_pane.h"
+#include "xenia/ui/qt/settings/panes/gpu_pane.h"
+#include "xenia/ui/qt/settings/panes/interface_pane.h"
+#include "xenia/ui/qt/settings/panes/library_pane.h"
 
 #include "xenia/ui/qt/widgets/separator.h"
 

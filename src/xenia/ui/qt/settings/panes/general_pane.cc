@@ -3,7 +3,7 @@
 #include <QLabel>
 #include <QVBoxLayout>
 
-#include "xenia/ui/qt/widgets/checkbox.h"
+#include "xenia/ui/qt/settings/widgets/settings_checkbox.h"
 #include "xenia/ui/qt/widgets/combobox.h"
 #include "xenia/ui/qt/widgets/groupbox.h"
 #include "xenia/ui/qt/widgets/scroll_area.h"
@@ -16,7 +16,7 @@ DECLARE_bool(show_debug_tab)
 
   const QStringList game_languages = {
       "English", "Japanese", "German",  "French",    "Spanish",
-      "Italian", "Korean",   "Chinese", "Portugese", "Polish",
+      "Italian", "Korean",   "Chinese", "Portuguese", "Polish",
       "Russian", "Swedish",  "Turkish", "Norwegian", "Dutch"};
 
   void GeneralPane::Build() {
@@ -53,13 +53,9 @@ DECLARE_bool(show_debug_tab)
     groupbox_layout->setContentsMargins(16, 16, 16, 16);
     groupbox->setLayout(groupbox_layout);
 
-    XCheckBox* discord_presence_checkbox = new XCheckBox();
+    auto discord_presence_checkbox = new SettingsCheckBox("discord");
     discord_presence_checkbox->setText("Discord Rich Presence");
-
-    connect(discord_presence_checkbox, &XCheckBox::stateChanged,
-            [&](bool value) {
-              //update_config_var(cvars::cv_show_debug_tab, value);
-            });
+    
     groupbox_layout->addWidget(discord_presence_checkbox);
 
     XCheckBox* game_icon_checkbox = new XCheckBox();

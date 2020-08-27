@@ -6,6 +6,7 @@
 #include "xenia/base/cvar.h"
 #include "xenia/config.h"
 #include "xenia/ui/qt/themeable_widget.h"
+#include "xenia/config.h"
 
 namespace xe {
 namespace ui {
@@ -49,7 +50,7 @@ bool SettingsPane::update_config_var(cvar::ConfigVar<T>* var,
                                      const T& value) const {
   var->SetConfigValue(value);
 
-  config::SaveConfig();
+  Config::Instance().SaveConfig();
 
   return true;
 }
@@ -64,7 +65,7 @@ bool SettingsPane::update_config_var(cvar::ConfigVar<T>* var,
 
   var->SetConfigValue(value.value<T>());
 
-  config::SaveConfig();
+   Config::Instance().SaveConfig();
 
   return true;
 }
