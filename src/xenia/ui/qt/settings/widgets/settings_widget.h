@@ -25,7 +25,14 @@ class SettingsWidget : public Widget {
   SettingsWidget(const std::string& config_name, Args... args)
       : Widget(args...), cvar_(nullptr) {
     cvar_ = dynamic_cast<cvar::ConfigVar<T>*>(
-        Config::Instance().FindConfigVar(config_name));
+        Config::Instance().FindConfigVarByName(config_name));
+  }
+
+  template <typename... Args>
+  SettingsWidget(const T& config_ref, Args... args)
+      : Widget(args...), cvar_(nullptr) {
+    cvar_ = dynamic_cast<cvar::ConfigVar<T>*>(
+        Config::Instance().FindConfigVar(config_ref));
   }
 
   void UpdateValue(T val) {

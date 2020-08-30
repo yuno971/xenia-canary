@@ -18,27 +18,23 @@ namespace xe {
 namespace ui {
 namespace qt {
 
-class SettingsCheckBox : public SettingsWidget<bool, XCheckBox> {
+using SettingsType = bool;
+
+class SettingsCheckBox : public SettingsWidget<SettingsType, XCheckBox> {
  public:
   explicit SettingsCheckBox(const std::string& config_name,
                             QWidget* parent = nullptr)
       : SettingsWidget(config_name, parent) {
-    if (!cvar_) {
-      return;
-    }
-
-    setChecked(*cvar_->current_value());
-
-    connect(this, &SettingsCheckBox::stateChanged, [&](int state) {
-      if (state == Qt::Checked) {
-        UpdateValue(true);
-      } else if (state == Qt::Unchecked) {
-        UpdateValue(false);
-      } else {
-        XELOGW("PartiallyChecked state not supported for SettingsCheckBox");
-      }
-    });
+    Initialize();
   }
+
+  explicit SettingsCheckBox(const SettingsType& config_var,
+                            QWidget* parent = nullptr)
+      : SettingsWidget(config_var, parent) {
+    Initialize();
+  }
+
+  void Initialize();
 };
 
 }  // namespace qt

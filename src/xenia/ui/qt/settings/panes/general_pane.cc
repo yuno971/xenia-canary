@@ -8,7 +8,9 @@
 #include "xenia/ui/qt/widgets/groupbox.h"
 #include "xenia/ui/qt/widgets/scroll_area.h"
 
-DECLARE_bool(show_debug_tab)
+DECLARE_bool(show_debug_tab);
+DECLARE_bool(discord);
+DECLARE_bool(use_game_icon);
 
     namespace xe {
   namespace ui {
@@ -53,7 +55,7 @@ DECLARE_bool(show_debug_tab)
     groupbox_layout->setContentsMargins(16, 16, 16, 16);
     groupbox->setLayout(groupbox_layout);
 
-    auto discord_presence_checkbox = new SettingsCheckBox("discord");
+    auto discord_presence_checkbox = new SettingsCheckBox(cvars::discord);
     discord_presence_checkbox->setText("Discord Rich Presence");
     
     groupbox_layout->addWidget(discord_presence_checkbox);
