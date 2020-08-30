@@ -59,7 +59,13 @@ class Config {
   /**
    * Find a config variable for a given config field
    */
-  cvar::IConfigVar* FindConfigVar(const std::string& name);
+  cvar::IConfigVar* FindConfigVarByName(const std::string& name);
+
+  /**
+   * Find a config variable that contains a pointer to a provided reference
+   */
+  template <typename T>
+  cvar::ConfigVar<T>* FindConfigVar(const T& value);
 
   /**
    * Find a command variable for a given name
@@ -103,6 +109,19 @@ class Config {
   std::string game_config_suffix_ = ".config.toml";
   cxxopts::Options options_;
 };
+
+template <typename T>
+cvar::ConfigVar<T>* Config::FindConfigVar(const T& value) {
+  for (const auto& [name, var] : config_vars_) {
+    auto typed_var = dynamic_cast<cvar::ConfigVar<T>*>(var.get());
+    if (typed_var) {
+      if (std::addressof(value) == typed_var->current_value()) {
+        return typed_var;
+      }
+    }
+  }
+  return nullptr;
+}
 
 template <typename T>
 cvar::ConfigVar<T>* Config::RegisterConfigVar(cvar::ConfigVar<T>* var) {

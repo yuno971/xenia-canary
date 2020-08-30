@@ -185,7 +185,7 @@ void Config::LoadGameConfig(const std::string_view title_id) {
   }
 }
 
-cvar::IConfigVar* Config::FindConfigVar(const std::string& name) {
+cvar::IConfigVar* Config::FindConfigVarByName(const std::string& name) {
   const auto it = config_vars_.find(name);
   if (it != config_vars_.end()) {
     return it->second.get();    
