@@ -28,10 +28,6 @@ class D3D12Context : public GraphicsContext {
 
   ImmediateDrawer* immediate_drawer() override;
 
-  bool is_current() override;
-  bool MakeCurrent() override;
-  void ClearCurrent() override;
-
   bool WasLost() override { return context_lost_; }
 
   void BeginSwap() override;
@@ -39,11 +35,12 @@ class D3D12Context : public GraphicsContext {
 
   std::unique_ptr<RawImage> Capture() override;
 
-  D3D12Provider* GetD3D12Provider() const {
-    return static_cast<D3D12Provider*>(provider_);
+  D3D12Provider& GetD3D12Provider() const {
+    return static_cast<D3D12Provider&>(*provider_);
   }
 
-  static constexpr DXGI_FORMAT kSwapChainFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+  // The format used by DWM.
+  static constexpr DXGI_FORMAT kSwapChainFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
   ID3D12Resource* GetSwapChainBuffer(uint32_t buffer_index) const {
     return swap_chain_buffers_[buffer_index];
   }
