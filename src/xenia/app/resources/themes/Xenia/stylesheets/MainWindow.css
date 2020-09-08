@@ -20,7 +20,7 @@ QMenu::item {
 }
 
 QMenu::item:selected {
-  background-color: $secondaryDark;
+  background-color: $accentDark;
 }
 
 /* Global Scrollbar theming */
@@ -45,13 +45,12 @@ QScrollBar::add-line:horizontal {
 
 QScrollBar::sub-line:horizontal {
   background: $dark2;
-  width: 20px; 
+  width: 20px;
   subcontrol-position: left;
   subcontrol-origin: margin;
 }
 
-QScrollBar::add-page:horizontal, 
-QScrollBar::sub-page:horizontal {
+QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
   background: none;
 }
 
@@ -87,17 +86,17 @@ QScrollBar::add-line:vertical {
 
 QScrollBar::sub-line:vertical {
   background: $dark2;
-  height: 20px; 
+  height: 20px;
   subcontrol-position: bottom;
   subcontrol-origin: margin;
 }
 
-QScrollBar::add-page:vertical, 
-QScrollBar::sub-page:vertical {
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
   background: $dark2;
 }
 
 /* up and down are inversed here for some reason */
+
 QScrollBar::up-arrow:vertical {
   image: url(:/resources/graphics/down-arrow.png);
   width: 8px;

@@ -8,10 +8,14 @@
     },
     {
       "name": "secondary",
+      "value": "#282828"
+    },
+    {
+      "name": "accent",
       "value": "#5CE494"
     },
     {
-      "name": "secondaryDark",
+      "name": "accentDark",
       "value": "#4AA971"
     },
     {
@@ -23,8 +27,8 @@
       "value": "#1F1F1F"
     },
     {
-      "name": "accent",
-      "value": "#282828"
+      "name": "warning",
+      "value": "#FFC864"
     },
     {
       "name": "light1",

@@ -5,7 +5,7 @@ QLineEdit#XLineEdit {
 }
 
 QLineEdit#XLineEdit:focus {
-    border: 2px solid $secondaryDark;
+    border: 2px solid $accentDark;
 }
 
 QLineEdit#XLineEdit:disabled {

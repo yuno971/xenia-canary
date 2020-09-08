@@ -11,14 +11,13 @@ QToolButton#XDropdownButton:disabled {
   border: none;
 }
 
-QToolButton#XDropdownButton:hover:!pressed,
-QToolButton#XDropdownButton:focus {
-  border: 2px solid $secondaryDark;
+QToolButton#XDropdownButton:hover:!pressed, QToolButton#XDropdownButton:focus {
+  border: 2px solid $accentDark;
   outline: none;
 }
 
 QToolButton#XDropdownButton:pressed {
-  background: $secondaryDark;
+  background: $accentDark;
   border: none;
 }
 
@@ -33,8 +32,7 @@ QToolButton#XDropdownButton::menu-button {
   border: none;
 }
 
-QToolButton#XDropdownButton:disabled,
-QToolButton#XDropdownButton::menu-button {
+QToolButton#XDropdownButton:disabled, QToolButton#XDropdownButton::menu-button {
   width: 15px;
   margin: 2px;
   background: $light3;
@@ -42,7 +40,7 @@ QToolButton#XDropdownButton::menu-button {
 }
 
 QToolButton#XDropdownButton::menu-button:pressed {
-  background: $secondaryDark;
+  background: $accentDark;
 }
 
 QToolButton#XDropdownButton::menu-arrow:open {

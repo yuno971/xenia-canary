@@ -5,7 +5,7 @@ QPlainTextEdit#XTextEdit {
 }
 
 QPlainTextEdit#XTextEdit:focus {
-    border: 2px solid $secondaryDark;
+    border: 2px solid $accentDark;
 }
 
 QPlainTextEdit#XTextEdit:disabled {

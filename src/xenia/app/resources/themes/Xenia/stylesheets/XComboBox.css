@@ -5,11 +5,8 @@ QComboBox#XComboBox {
     padding-left: 4px;
 }
 
-QComboBox#XComboBox:pressed,
-QComboBox#XComboBox:hover,
-QComboBox#XComboBox:focus,
-QComboBox#XComboBox:on {
-    border: 2px solid $secondaryDark;
+QComboBox#XComboBox:pressed, QComboBox#XComboBox:hover, QComboBox#XComboBox:focus, QComboBox#XComboBox:on {
+    border: 2px solid $accentDark;
 }
 
 QComboBox#XComboBox::drop-down {
@@ -23,28 +20,25 @@ QComboBox#XComboBox::down-arrow {
     height: 14px;
 }
 
-QComboBox#XComboBox::item
-{
-     background: $dark2;
+QComboBox#XComboBox::item {
+    background: $dark2;
 }
 
-QComboBox#XComboBox::item:selected
-{
-     background: $secondaryDark;
+QComboBox#XComboBox::item:selected {
+    background: $accentDark;
 }
 
-QComboBox#XComboBox::item:checked
-{
-     font-weight: bold;
+QComboBox#XComboBox::item:checked {
+    font-weight: bold;
 }
 
 QComboBox#XComboBox QAbstractItemView {
     background: $dark2;
     color: $light2;
-    selection-background-color: $secondaryDark;
+    selection-background-color: $accentDark;
     outline: 0;
 }
 
 /* QComboBox#XComboBox QFrame:focus {
-    background: $secondaryDark;
+    background: $accentDark;
 } */

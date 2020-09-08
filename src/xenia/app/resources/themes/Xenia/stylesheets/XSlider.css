@@ -4,7 +4,7 @@ QSlider#XSlider:horizontal {
 }
 
 QSlider#XSlider::groove:horizontal {
-  background: $secondaryDark;
+  background: $accentDark;
   height: 4px;
   margin: 0px 1px 0px 1px;
 }
@@ -12,7 +12,7 @@ QSlider#XSlider::groove:horizontal {
 QSlider#XSlider::handle:horizontal {
   width: 10px;
   border-radius: 5px;
-  background: $secondary;
+  background: $accent;
   margin: -3px -1px -3px -1px;
 }
 
@@ -21,12 +21,12 @@ QSlider#XSlider::handle:horizontal:focus {
   height: 14px;
   line-height: 14px;
   border-radius: 7px;
-  background: $secondary;
+  background: $accent;
   margin: -5px -1px -5px -1px;
 }
 
 QSlider#XSlider::groove:vertical {
-  background: $secondaryDark;
+  background: $accentDark;
   width: 4px;
   margin: 1px 0px 1px 0px;
 }
@@ -34,21 +34,21 @@ QSlider#XSlider::groove:vertical {
 QSlider#XSlider::handle:vertical {
   height: 10px;
   border-radius: 5px;
-  background: $secondary;
+  background: $accent;
   margin: -1px -3px -1px -3px;
 }
 
 QSlider#XSlider::handle:vertical:focus {
   height: 14px;
   border-radius: 7px;
-  background: $secondary;
+  background: $accent;
   margin: -1px -5px -1px -5px;
 }
 
 /* Uncomment these to make slider color different before the handle to after */
 
 QSlider#XSlider::sub-page:horizontal {
-  background: $secondaryDark;
+  background: $accentDark;
   margin: 0px 1px 0px 1px;
 }
 
@@ -58,7 +58,7 @@ QSlider#XSlider::add-page:horizontal {
 }
 
 QSlider#XSlider::add-page:vertical {
-  background: $secondaryDark;
+  background: $accentDark;
   margin: 1px 0px 1px 0px;
 }
 
