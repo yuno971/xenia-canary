@@ -101,6 +101,10 @@ dword_result_t NtAllocateVirtualMemory(lpdword_t base_addr_ptr,
   if (*base_addr_ptr != 0) {
     // ignore specified page size when base address is specified.
     auto heap = kernel_memory()->LookupHeap(*base_addr_ptr);
+    if (heap->page_size == 0x1000 && !*region_size_ptr) {
+      return X_STATUS_INVALID_PARAMETER;
+    }
+
     if (heap->heap_type() != HeapType::kGuestVirtual) {
       return X_STATUS_INVALID_PARAMETER;
     }
@@ -195,6 +199,10 @@ dword_result_t NtProtectVirtualMemory(lpdword_t base_addr_ptr,
   }
 
   auto heap = kernel_memory()->LookupHeap(*base_addr_ptr);
+  if (heap->page_size == 0x1000 && !*region_size_ptr) {
+    return X_STATUS_INVALID_PARAMETER;
+  }
+
   if (heap->heap_type() != HeapType::kGuestVirtual) {
     return X_STATUS_INVALID_PARAMETER;
   }
@@ -245,6 +253,10 @@ dword_result_t NtFreeVirtualMemory(lpdword_t base_addr_ptr,
   }
 
   auto heap = kernel_state()->memory()->LookupHeap(base_addr_value);
+  if (heap->page_size == 0x1000 && !*region_size_ptr) {
+    return X_STATUS_INVALID_PARAMETER;
+  }
+
   if (heap->heap_type() != HeapType::kGuestVirtual) {
     return X_STATUS_INVALID_PARAMETER;
   }
