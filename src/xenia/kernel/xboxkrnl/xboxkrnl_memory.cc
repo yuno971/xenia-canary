@@ -163,7 +163,8 @@ dword_result_t NtAllocateVirtualMemory(lpdword_t base_addr_ptr,
 
   // Zero memory, if needed.
   if (address && !(alloc_type & X_MEM_NOZERO)) {
-    if (alloc_type & X_MEM_COMMIT) {
+    if (alloc_type & X_MEM_COMMIT &&
+        !(protect_bits & (X_PAGE_NOACCESS | X_PAGE_READONLY))) {
       kernel_memory()->Zero(address, adjusted_size);
     }
   }
