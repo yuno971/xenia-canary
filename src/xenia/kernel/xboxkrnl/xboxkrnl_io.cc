@@ -93,11 +93,6 @@ dword_result_t NtCreateFile(lpdword_t handle_out, dword_t desired_access,
     return X_STATUS_OBJECT_NAME_INVALID;
   }
 
-  if (target_path.back() == '\\' &&
-      create_options & CreateOptions::FILE_NON_DIRECTORY_FILE) {
-    return X_STATUS_FILE_IS_A_DIRECTORY;
-  }
-
   if (object_attrs->root_directory != 0xFFFFFFFD &&  // ObDosDevices
       object_attrs->root_directory != 0) {
     auto root_file = kernel_state()->object_table()->LookupObject<XFile>(

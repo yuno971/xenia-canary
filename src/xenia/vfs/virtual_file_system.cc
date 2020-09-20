@@ -173,8 +173,9 @@ bool VirtualFileSystem::DeletePath(const std::string_view path) {
 X_STATUS VirtualFileSystem::OpenFile(Entry* root_entry,
                                      const std::string_view path,
                                      FileDisposition creation_disposition,
-                                     uint32_t desired_access, uint32_t create_options,
-                                     File** out_file, FileAction* out_action) {
+                                     uint32_t desired_access,
+                                     uint32_t create_options, File** out_file,
+                                     FileAction* out_action) {
   // TODO(gibbed): should 'is_directory' remain as a bool or should it be
   // flipped to a generic FileAttributeFlags?
 
