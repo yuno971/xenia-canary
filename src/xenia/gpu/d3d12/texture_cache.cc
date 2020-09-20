@@ -25,8 +25,8 @@
 #include "xenia/gpu/gpu_flags.h"
 #include "xenia/gpu/texture_info.h"
 #include "xenia/gpu/texture_util.h"
+#include "xenia/ui/d3d12/d3d12_upload_buffer_pool.h"
 #include "xenia/ui/d3d12/d3d12_util.h"
-#include "xenia/ui/d3d12/pools.h"
 
 DEFINE_int32(d3d12_resolution_scale, 1,
              "Scale of rendering width and height (currently only 1 and 2 "
@@ -2396,9 +2396,9 @@ bool TextureCache::LoadTextureData(Texture* texture) {
       }
       D3D12_GPU_VIRTUAL_ADDRESS cbuffer_gpu_address;
       uint8_t* cbuffer_mapping = cbuffer_pool.Request(
-          command_processor_.GetCurrentFrame(),
-          xe::align(uint32_t(sizeof(load_constants)), uint32_t(256)), nullptr,
-          nullptr, &cbuffer_gpu_address);
+          command_processor_.GetCurrentFrame(), sizeof(load_constants),
+          D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT, nullptr, nullptr,
+          &cbuffer_gpu_address);
       if (cbuffer_mapping == nullptr) {
         command_processor_.ReleaseScratchGPUBuffer(copy_buffer,
                                                    copy_buffer_state);
