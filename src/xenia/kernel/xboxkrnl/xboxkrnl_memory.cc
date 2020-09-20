@@ -97,14 +97,6 @@ dword_result_t NtAllocateVirtualMemory(lpdword_t base_addr_ptr,
     XELOGW("Game setting EXECUTE bit on allocation");
   }
 
-  // Tried to allocate virtual over xex or physical range
-  if (*base_addr_ptr >= 0x80000000) {
-    XELOGE(
-        "NtAllocateVirtualMemory tried to allocate memory over xex or physical "
-        "range");
-    return X_STATUS_INVALID_PARAMETER;
-  }
-
   uint32_t page_size;
   if (*base_addr_ptr != 0) {
     // ignore specified page size when base address is specified.
@@ -195,10 +187,6 @@ dword_result_t NtProtectVirtualMemory(lpdword_t base_addr_ptr,
     return X_STATUS_INVALID_PARAMETER;
   }
 
-  if (*base_addr_ptr >= 0x80000000) {
-    return X_STATUS_INVALID_PARAMETER;
-  }
-
   // Don't allow games to set execute bits.
   if (protect_bits & (X_PAGE_EXECUTE | X_PAGE_EXECUTE_READ |
                       X_PAGE_EXECUTE_READWRITE | X_PAGE_EXECUTE_WRITECOPY)) {
@@ -254,10 +242,6 @@ dword_result_t NtFreeVirtualMemory(lpdword_t base_addr_ptr,
 
   if (!base_addr_value) {
     return X_STATUS_MEMORY_NOT_ALLOCATED;
-  }
-
-  if (*base_addr_ptr >= 0x80000000) {
-    return X_STATUS_INVALID_PARAMETER;
   }
 
   auto heap = kernel_state()->memory()->LookupHeap(base_addr_value);
