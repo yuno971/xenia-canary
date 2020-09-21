@@ -112,7 +112,8 @@ dword_result_t NtAllocateVirtualMemory(lpdword_t base_addr_ptr,
   } else {
     // Adjust size.
     page_size = 4 * 1024;
-    if (alloc_type & X_MEM_LARGE_PAGES) {
+    if (alloc_type & X_MEM_LARGE_PAGES ||
+        (alloc_type & X_MEM_RESERVE && !(alloc_type & X_MEM_COMMIT))) {
       page_size = 64 * 1024;
     }
   }
@@ -254,10 +255,6 @@ dword_result_t NtFreeVirtualMemory(lpdword_t base_addr_ptr,
   }
 
   auto heap = kernel_state()->memory()->LookupHeap(base_addr_value);
-  if (heap->page_size() != 0x1000 && !*region_size_ptr) {
-    return X_STATUS_INVALID_PARAMETER;
-  }
-
   if (heap->heap_type() != HeapType::kGuestVirtual) {
     return X_STATUS_INVALID_PARAMETER;
   }
