@@ -20,24 +20,17 @@ void XCheckBox::paintEvent(QPaintEvent* e) {
   // create rect for indicator box
   // rect must start at 1 as the painter draws either side of start offset so
   // starting at (0,0) would leave 2 sides cut off
-  QRectF indicator_box = QRectF(1, 1, 16, 16);
+  QRectF indicator_rect = style()->proxy()->subElementRect(
+      QStyle::SE_CheckBoxIndicator, &option, this);
+  QRectF indicator_box =
+      QRectF(indicator_rect.x() + 1.0, indicator_rect.y() + 0.0, 16, 16);
 
   // get original rect for checkbox label
-
-  QRect label_rect = style()->proxy()->subElementRect(
+  QRectF label_rect = style()->proxy()->subElementRect(
       QStyle::SE_CheckBoxContents, &option, this);
 
-  QFont font = this->font();
-
-  QFontMetrics metrics(font);
-  QRect font_rect = metrics.boundingRect(text());
-
-  // TODO(Razzile): I can't seem to work out why this -1 is needed. I think the
-  // Segoe UI font file misreports height of font
-  label_rect.setY(indicator_box.center().y() - (font_rect.height() / 2) - 1);
-  label_rect.translate(label_indent_, 0);
-
   QPainter painter(this);
+  painter.setClipping(false);
   painter.setRenderHints(QPainter::Antialiasing);
 
   QPen pen(border_color_);
@@ -45,33 +38,48 @@ void XCheckBox::paintEvent(QPaintEvent* e) {
   if (hasFocus()) {
     pen.setColor(focus_color_);
   }
-  painter.setFont(font);
-
   pen.setJoinStyle(Qt::MiterJoin);
+
   painter.setPen(pen);
 
   painter.drawRect(indicator_box);
 
-  painter.drawText(label_rect, text());
-
   // paint checked inner box if checkbox is checked
   if (isChecked()) {
-    painter.setPen(Qt::transparent);
-    QBrush checked_brush = QBrush(checked_color_);
-    QRectF checked_rect =
-        QRectF(indicator_box.x() + 2, indicator_box.y() + 2, 12, 12);
+    // remove pen
+    painter.setPen(Qt::NoPen);
 
+    auto checked_brush = QBrush(checked_color_);
+    auto checked_rect =
+        QRectF(indicator_box.x() + (indicator_box.width() * 0.125),
+               indicator_box.y() + (indicator_box.height() * 0.125),
+               indicator_box.width() * 0.75, indicator_box.height() * 0.75);
     painter.setBrush(checked_brush);
     painter.drawRect(checked_rect);
+
+    // reset pen
+    painter.setPen(pen);
   }
+
+  // Draw checkbox label text
+  auto font = this->font();
+  painter.setFont(font);
+
+  QFontMetrics metrics(font);
+  QRectF font_rect = metrics.boundingRect(text());
+
+  label_rect.setY(indicator_box.center().y() - (font_rect.height() / 2) - 1);
+  label_rect.translate(label_indent_, 0);
+
+  painter.drawText(label_rect, text());
 }
 
 QSize XCheckBox::sizeHint() const {
-  // Increase sizeHint by indent amount to compensate for slightly larget
+  // Increase sizeHint by indent amount to compensate for slightly larger
   // indicator box and translated label.
   // This is not exact, but to get it exact would require using an algorithm
   // with QFontMetrics.
-  return QCheckBox::sizeHint() + QSize(label_indent_, 0);
+  return QCheckBox::sizeHint() + QSize(int(label_indent_), 0);
 }
 
 }  // namespace qt
