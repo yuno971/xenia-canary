@@ -50,7 +50,7 @@
 DEFINE_string(apu, "any", "Audio system. Use: [any, nop, sdl, xaudio2]", "APU");
 DEFINE_string(gpu, "any", "Graphics system. Use: [any, d3d12, vulkan, null]",
               "GPU");
-DEFINE_string(hid, "any", "Input system. Use: [any, nop, sdl, winkey, xinput]",
+DEFINE_string(hid, "sdl", "Input system. Use: [any, nop, sdl, winkey, xinput]",
               "HID");
 
 DEFINE_bool(fullscreen, false, "Toggles fullscreen", "GPU");
@@ -186,12 +186,12 @@ std::vector<std::unique_ptr<hid::InputDriver>> CreateInputDrivers(
     drivers.emplace_back(xe::hid::nop::Create(window));
   } else {
     Factory<hid::InputDriver, ui::Window*> factory;
+    factory.Add("sdl", xe::hid::sdl::Create);
 #if XE_PLATFORM_WIN32
     factory.Add("xinput", xe::hid::xinput::Create);
     // WinKey input driver should always be the last input driver added!
     factory.Add("winkey", xe::hid::winkey::Create);
 #endif  // XE_PLATFORM_WIN32
-    factory.Add("sdl", xe::hid::sdl::Create);
     for (auto& driver : factory.CreateAll(cvars::hid, window)) {
       if (XSUCCEEDED(driver->Setup(drivers))) {
         drivers.emplace_back(std::move(driver));
