@@ -19,6 +19,7 @@ class XCheckBox : public Themeable<QCheckBox> {
 
  public:
   explicit XCheckBox(QWidget* parent = nullptr);
+  XCheckBox(const QString& text, QWidget* parent = nullptr);
 
   bool custom() const { return custom_; }
   void set_custom(bool value) { custom_ = value; }

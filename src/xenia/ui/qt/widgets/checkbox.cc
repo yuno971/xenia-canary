@@ -13,6 +13,11 @@ XCheckBox::XCheckBox(QWidget* parent)
   setFocusPolicy(Qt::TabFocus);  // disable retaining focus through mouse click
 }
 
+XCheckBox::XCheckBox(const QString& title, QWidget* parent)
+    : Themeable<QCheckBox>("XCheckBox", title, parent) {
+  setFocusPolicy(Qt::TabFocus);  // disable retaining focus through mouse click
+}
+
 void XCheckBox::paintEvent(QPaintEvent* e) {
   QStyleOptionButton option;
   initStyleOption(&option);
