@@ -20,7 +20,7 @@ void SettingsCheckBox::Initialize() {
 
   setChecked(*cvar_->current_value());
 
-  connect(this, &SettingsCheckBox::stateChanged, [&](int state) {
+  connect(this, &SettingsCheckBox::stateChanged, [this](int state) {
     if (state == Qt::Checked) {
       UpdateValue(true);
     } else if (state == Qt::Unchecked) {

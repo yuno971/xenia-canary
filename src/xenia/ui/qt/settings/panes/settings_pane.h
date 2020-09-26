@@ -7,6 +7,11 @@
 #include "xenia/config.h"
 #include "xenia/ui/qt/themeable_widget.h"
 #include "xenia/config.h"
+#include "xenia/ui/qt/settings/widgets/settings_widget.h"
+#include "xenia/ui/qt/settings/widgets/settings_radio_button.h"
+#include "xenia/ui/qt/settings/widgets/settings_combobox.h"
+#include "xenia/ui/qt/settings/widgets/settings_text_edit.h"
+#include "xenia/ui/qt/settings/widgets/settings_checkbox.h"
 
 namespace xe {
 namespace ui {
@@ -33,42 +38,12 @@ class SettingsPane : public Themeable<QWidget> {
  protected:
   void set_widget(QWidget* widget) { widget_ = widget; }
 
-  template <typename T>
-  bool update_config_var(cvar::ConfigVar<T>* var, const T& value) const;
-
-  template <typename T>
-  bool update_config_var(cvar::ConfigVar<T>* var, QVariant value) const;
 
  private:
   QChar glyph_;
   QString title_;
   QWidget* widget_ = nullptr;
 };
-
-template <typename T>
-bool SettingsPane::update_config_var(cvar::ConfigVar<T>* var,
-                                     const T& value) const {
-  var->SetConfigValue(value);
-
-  Config::Instance().SaveConfig();
-
-  return true;
-}
-
-template <typename T>
-bool SettingsPane::update_config_var(cvar::ConfigVar<T>* var,
-                                     QVariant value) const {
-  // QVariant can't be converted to type T
-  if (!value.canConvert<T>()) {
-    return false;
-  }
-
-  var->SetConfigValue(value.value<T>());
-
-   Config::Instance().SaveConfig();
-
-  return true;
-}
 
 }  // namespace qt
 }  // namespace ui

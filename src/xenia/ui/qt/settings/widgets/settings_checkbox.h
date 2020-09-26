@@ -18,19 +18,14 @@ namespace xe {
 namespace ui {
 namespace qt {
 
-using SettingsType = bool;
+using SettingsCvar = cvar::ConfigVar<bool>;
 
-class SettingsCheckBox : public SettingsWidget<SettingsType, XCheckBox> {
+class SettingsCheckBox : public SettingsWidget<bool, XCheckBox> {
  public:
-  explicit SettingsCheckBox(const std::string& config_name,
+  explicit SettingsCheckBox(const QString& text,
+                            SettingsCvar* config_var = nullptr, QLabel* label = nullptr,
                             QWidget* parent = nullptr)
-      : SettingsWidget(config_name, parent) {
-    Initialize();
-  }
-
-  explicit SettingsCheckBox(const SettingsType& config_var,
-                            QWidget* parent = nullptr)
-      : SettingsWidget(config_var, parent) {
+      : SettingsWidget(config_var, label, text, parent) {
     Initialize();
   }
 

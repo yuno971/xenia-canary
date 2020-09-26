@@ -21,6 +21,7 @@
 
 #include <QApplication>
 #include <QFontDatabase>
+#include <QScreen>
 #include <QtPlugin>
 
 #include "discord/discord_presence.h"
@@ -47,6 +48,7 @@ DEFINE_path(
     "to use the path preferred for the OS, such as the documents folder, or "
     "the emulator executable directory if portable.txt is present in it.",
     "Storage");
+
 DEFINE_path(
     content_root, "",
     "Root path for guest content storage (saves, etc.), or empty to use the "
@@ -126,8 +128,10 @@ int xenia_main(const std::vector<std::string>& args) {
   main_wnd->Initialize();
   main_wnd->SetIcon(QIcon(":/resources/graphics/icon.ico"));
   main_wnd->Resize(1280, 720);
-
-  loop.on_quit.AddListener([](ui::UIEvent*) {
+  main_wnd->move(QApplication::primaryScreen()->geometry().center() -
+                 main_wnd->rect().center());
+  loop.on_quit.AddListener([](ui::UIEvent*)
+  {
     if (cvars::discord) {
       discord::DiscordPresence::Shutdown();
     }

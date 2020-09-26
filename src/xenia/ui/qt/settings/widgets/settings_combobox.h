@@ -1,3 +1,12 @@
+/**
+ ******************************************************************************
+ * Xenia : Xbox 360 Emulator Research Project                                 *
+ ******************************************************************************
+ * Copyright 2020 Ben Vanik. All rights reserved.                             *
+ * Released under the BSD license - see LICENSE in the root for more details. *
+ ******************************************************************************
+ */
+
 #ifndef XENIA_UI_QT_SETTINGS_SETTINGS_COMBOBOX_H_
 #define XENIA_UI_QT_SETTINGS_SETTINGS_COMBOBOX_H_
 
@@ -17,3 +26,5 @@ class SettingsComboBox : SettingsWidget<T, XComboBox> {
 }  // namespace qt
 }  // namespace ui
 }  // namespace xe
+
+#endif

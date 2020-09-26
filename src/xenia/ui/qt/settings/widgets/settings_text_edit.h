@@ -1,3 +1,12 @@
+/**
+ ******************************************************************************
+ * Xenia : Xbox 360 Emulator Research Project                                 *
+ ******************************************************************************
+ * Copyright 2020 Ben Vanik. All rights reserved.                             *
+ * Released under the BSD license - see LICENSE in the root for more details. *
+ ******************************************************************************
+ */
+
 #ifndef XENIA_UI_QT_SETTINGS_SETTINGS_TEXT_EDIT_H_
 #define XENIA_UI_QT_SETTINGS_SETTINGS_TEXT_EDIT_H_
 
@@ -10,14 +19,10 @@ namespace xe {
 namespace ui {
 namespace qt {
 
-template <typename T>
-class SettingsTextEdit : SettingsWidget<T, XRadioBox> {
-  static_assert(
-      std::is_same_v<T, std::string> ||
-          std::is_same_v<T, std::filesystem::path>,
-      "Settings TextEdit must use std::string or std::filesystem::path");
-};
+class SettingsTextEdit : SettingsWidget<std::string, XTextEdit> {};
 
 }  // namespace qt
 }  // namespace ui
 }  // namespace xe
+
+#endif

@@ -10,6 +10,9 @@
 #ifndef XENIA_UI_QT_SETTINGS_SETTINGS_WIDGET_H_
 #define XENIA_UI_QT_SETTINGS_SETTINGS_WIDGET_H_
 
+#include <QLabel>
+#include <QVBoxLayout>
+#include <functional>
 #include "xenia/base/cvar.h"
 #include "xenia/config.h"
 #include "xenia/ui/qt/themeable_widget.h"
@@ -18,34 +21,49 @@ namespace xe {
 namespace ui {
 namespace qt {
 
-template <typename T, typename Widget>
+template <typename T, typename Widget = QWidget>
 class SettingsWidget : public Widget {
+  static_assert(std::is_base_of_v<QWidget, Widget>,
+                "SettingsWidget base must be a derivative of QWidget");
+
  public:
   template <typename... Args>
-  SettingsWidget(const std::string& config_name, Args... args)
-      : Widget(args...), cvar_(nullptr) {
-    cvar_ = dynamic_cast<cvar::ConfigVar<T>*>(
-        Config::Instance().FindConfigVarByName(config_name));
+  SettingsWidget(cvar::ConfigVar<T>* config_var, QLabel* label = nullptr,
+                 Args... args)
+      : Widget(args...), cvar_(config_var), label_(label) {
+    // default config update function
+    update_config_fn_ = [](T val, cvar::ConfigVar<T>& cvar) {
+      cvar.set_config_value(val);
+    };
   }
 
-  template <typename... Args>
-  SettingsWidget(const T& config_ref, Args... args)
-      : Widget(args...), cvar_(nullptr) {
-    cvar_ = dynamic_cast<cvar::ConfigVar<T>*>(
-        Config::Instance().FindConfigVar(config_ref));
+  void UpdateLabel(const QString& text) {
+    if (label_) {
+      label_->setText(text);
+    }
+  }
+
+  cvar::ConfigVar<T>* config_var() const { return cvar_; }
+  void set_config_var(cvar::ConfigVar<T>* cvar) { cvar_ = cvar; }
+
+  void set_update_config_fn(
+      const std::function<void(T, cvar::ConfigVar<T>&)>& fn) {
+    update_config_fn_ = fn;
   }
 
   void UpdateValue(T val) {
     if (cvar_) {
-      cvar_->set_config_value(val);
+      update_config_fn_(val, *cvar_);
+      SaveToConfig();
     }
-    Config::Instance().SaveConfig();
   }
 
   void SaveToConfig() { Config::Instance().SaveConfig(); }
 
  protected:
   cvar::ConfigVar<T>* cvar_;
+  std::function<void(T, cvar::ConfigVar<T>&)> update_config_fn_;
+  QLabel* label_;
 };
 
 }  // namespace qt
