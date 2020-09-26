@@ -112,8 +112,7 @@ dword_result_t NtAllocateVirtualMemory(lpdword_t base_addr_ptr,
   } else {
     // Adjust size.
     page_size = 4 * 1024;
-    if (alloc_type & X_MEM_LARGE_PAGES ||
-        (alloc_type & X_MEM_RESERVE && !(alloc_type & X_MEM_COMMIT))) {
+    if (alloc_type & X_MEM_LARGE_PAGES) {
       page_size = 64 * 1024;
     }
   }
