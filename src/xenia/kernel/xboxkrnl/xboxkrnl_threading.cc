@@ -224,10 +224,18 @@ void KeSetCurrentStackPointers(lpvoid_t stack_ptr,
 }
 DECLARE_XBOXKRNL_EXPORT1(KeSetCurrentStackPointers, kThreading, kImplemented);
 
-dword_result_t KeSetAffinityThread(lpvoid_t thread_ptr, dword_t affinity) {
+dword_result_t KeSetAffinityThread(lpvoid_t thread_ptr, dword_t affinity,
+                                   lpdword_t previous_affinity_ptr) {
+  uint32_t previous_affinity = 0;
+
   auto thread = XObject::GetNativeObject<XThread>(kernel_state(), thread_ptr);
   if (thread) {
+    previous_affinity = thread->affinity();
     thread->SetAffinity(affinity);
+  }
+
+  if (previous_affinity_ptr) {
+    *previous_affinity_ptr = previous_affinity;
   }
 
   return (uint32_t)affinity;
