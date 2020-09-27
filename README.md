@@ -18,6 +18,8 @@ See current Pull Request status [here](https://github.com/xenia-canary/xenia-can
 **Interested in supporting the core contributors?** Visit
 [Xenia Project on Patreon](https://www.patreon.com/xenia_project).
 
+Come chat with us about **emulator-related topics** on [Discord](https://discord.gg/Q9mxZf9).
+
 Please check the [FAQ](https://github.com/xenia-canary/xenia-canary/wiki/FAQ) page before asking questions.
 We've got jobs/lives/etc, so don't expect instant answers.
 
