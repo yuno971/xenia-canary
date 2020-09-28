@@ -29,22 +29,32 @@ namespace d3d12 {
 #include "xenia/ui/d3d12/shaders/dxbc/immediate_vs.h"
 
 D3D12ImmediateDrawer::D3D12ImmediateTexture::D3D12ImmediateTexture(
-    uint32_t width, uint32_t height, ID3D12Resource* resource_if_exists,
-    ImmediateTextureFilter filter, bool is_repeated)
+    uint32_t width, uint32_t height, ID3D12Resource* resource,
+    SamplerIndex sampler_index, D3D12ImmediateDrawer* immediate_drawer,
+    size_t immediate_drawer_index)
     : ImmediateTexture(width, height),
-      resource_(resource_if_exists),
-      filter_(filter),
-      is_repeated_(is_repeated) {
+      resource_(resource),
+      sampler_index_(sampler_index),
+      immediate_drawer_(immediate_drawer),
+      immediate_drawer_index_(immediate_drawer_index) {
   if (resource_) {
     resource_->AddRef();
   }
-  handle = reinterpret_cast<uintptr_t>(this);
 }
 
 D3D12ImmediateDrawer::D3D12ImmediateTexture::~D3D12ImmediateTexture() {
+  if (immediate_drawer_) {
+    immediate_drawer_->OnImmediateTextureDestroyed(*this);
+  }
   if (resource_) {
     resource_->Release();
   }
+}
+
+void D3D12ImmediateDrawer::D3D12ImmediateTexture::OnImmediateDrawerShutdown() {
+  immediate_drawer_ = nullptr;
+  // Lifetime is not managed anymore, so don't keep the resource either.
+  util::ReleaseAndNull(resource_);
 }
 
 D3D12ImmediateDrawer::D3D12ImmediateDrawer(D3D12Context& graphics_context)
@@ -59,15 +69,6 @@ bool D3D12ImmediateDrawer::Initialize() {
   // Create the root signature.
   D3D12_ROOT_PARAMETER root_parameters[size_t(RootParameter::kCount)];
   D3D12_DESCRIPTOR_RANGE descriptor_range_texture, descriptor_range_sampler;
-  {
-    auto& root_parameter =
-        root_parameters[size_t(RootParameter::kRestrictTextureSamples)];
-    root_parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-    root_parameter.Constants.ShaderRegister = 0;
-    root_parameter.Constants.RegisterSpace = 0;
-    root_parameter.Constants.Num32BitValues = 1;
-    root_parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-  }
   {
     auto& root_parameter = root_parameters[size_t(RootParameter::kTexture)];
     root_parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
@@ -198,20 +199,12 @@ bool D3D12ImmediateDrawer::Initialize() {
   sampler_heap_gpu_start_ = sampler_heap_->GetGPUDescriptorHandleForHeapStart();
   uint32_t sampler_size = provider.GetSamplerDescriptorSize();
   // Nearest neighbor, clamp.
-  D3D12_SAMPLER_DESC sampler_desc;
+  D3D12_SAMPLER_DESC sampler_desc = {};
   sampler_desc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
   sampler_desc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
   sampler_desc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
   sampler_desc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-  sampler_desc.MipLODBias = 0.0f;
   sampler_desc.MaxAnisotropy = 1;
-  sampler_desc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
-  sampler_desc.BorderColor[0] = 0.0f;
-  sampler_desc.BorderColor[1] = 0.0f;
-  sampler_desc.BorderColor[2] = 0.0f;
-  sampler_desc.BorderColor[3] = 0.0f;
-  sampler_desc.MinLOD = 0.0f;
-  sampler_desc.MaxLOD = 0.0f;
   D3D12_CPU_DESCRIPTOR_HANDLE sampler_handle;
   sampler_handle.ptr = sampler_heap_cpu_start_.ptr +
                        uint32_t(SamplerIndex::kNearestClamp) * sampler_size;
@@ -221,18 +214,17 @@ bool D3D12ImmediateDrawer::Initialize() {
   sampler_handle.ptr = sampler_heap_cpu_start_.ptr +
                        uint32_t(SamplerIndex::kLinearClamp) * sampler_size;
   device->CreateSampler(&sampler_desc, sampler_handle);
-  // Nearest neighbor, repeat.
-  sampler_desc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+  // Bilinear, repeat.
   sampler_desc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
   sampler_desc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
   sampler_desc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
   sampler_handle.ptr = sampler_heap_cpu_start_.ptr +
-                       uint32_t(SamplerIndex::kNearestRepeat) * sampler_size;
-  device->CreateSampler(&sampler_desc, sampler_handle);
-  // Bilinear, repeat.
-  sampler_desc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-  sampler_handle.ptr = sampler_heap_cpu_start_.ptr +
                        uint32_t(SamplerIndex::kLinearRepeat) * sampler_size;
+  device->CreateSampler(&sampler_desc, sampler_handle);
+  // Nearest neighbor, repeat.
+  sampler_desc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+  sampler_handle.ptr = sampler_heap_cpu_start_.ptr +
+                       uint32_t(SamplerIndex::kNearestRepeat) * sampler_size;
   device->CreateSampler(&sampler_desc, sampler_handle);
 
   // Create pools for draws.
@@ -248,6 +240,11 @@ bool D3D12ImmediateDrawer::Initialize() {
 }
 
 void D3D12ImmediateDrawer::Shutdown() {
+  for (auto& deleted_texture : textures_deleted_) {
+    deleted_texture.first->Release();
+  }
+  textures_deleted_.clear();
+
   for (auto& texture_upload : texture_uploads_submitted_) {
     texture_upload.buffer->Release();
     texture_upload.texture->Release();
@@ -259,6 +256,11 @@ void D3D12ImmediateDrawer::Shutdown() {
     texture_upload.texture->Release();
   }
   texture_uploads_pending_.clear();
+
+  for (D3D12ImmediateTexture* texture : textures_) {
+    texture->OnImmediateDrawerShutdown();
+  }
+  textures_.clear();
 
   texture_descriptor_pool_.reset();
   vertex_buffer_pool_.reset();
@@ -272,8 +274,8 @@ void D3D12ImmediateDrawer::Shutdown() {
 }
 
 std::unique_ptr<ImmediateTexture> D3D12ImmediateDrawer::CreateTexture(
-    uint32_t width, uint32_t height, ImmediateTextureFilter filter, bool repeat,
-    const uint8_t* data) {
+    uint32_t width, uint32_t height, ImmediateTextureFilter filter,
+    bool is_repeated, const uint8_t* data) {
   const D3D12Provider& provider = context_.GetD3D12Provider();
   ID3D12Device* device = provider.GetDevice();
   D3D12_HEAP_FLAGS heap_flag_create_not_zeroed =
@@ -315,25 +317,30 @@ std::unique_ptr<ImmediateTexture> D3D12ImmediateDrawer::CreateTexture(
       void* upload_buffer_mapping;
       if (SUCCEEDED(upload_buffer->Map(0, &upload_buffer_read_range,
                                        &upload_buffer_mapping))) {
-        uint8_t* upload_buffer_row =
-            reinterpret_cast<uint8_t*>(upload_buffer_mapping) +
-            upload_footprint.Offset;
-        const uint8_t* data_row = data;
-        for (uint32_t i = 0; i < height; ++i) {
-          std::memcpy(upload_buffer_row, data_row, width * 4);
-          data_row += width * 4;
-          upload_buffer_row += upload_footprint.Footprint.RowPitch;
+        size_t data_row_length = sizeof(uint32_t) * width;
+        if (data_row_length == upload_footprint.Footprint.RowPitch) {
+          std::memcpy(upload_buffer_mapping, data, data_row_length * height);
+        } else {
+          uint8_t* upload_buffer_row =
+              reinterpret_cast<uint8_t*>(upload_buffer_mapping) +
+              upload_footprint.Offset;
+          const uint8_t* data_row = data;
+          for (uint32_t i = 0; i < height; ++i) {
+            std::memcpy(upload_buffer_row, data_row, data_row_length);
+            data_row += data_row_length;
+            upload_buffer_row += upload_footprint.Footprint.RowPitch;
+          }
         }
         upload_buffer->Unmap(0, nullptr);
         // Defer uploading and transition to the next draw.
-        PendingTextureUpload pending_upload;
+        PendingTextureUpload& pending_upload =
+            texture_uploads_pending_.emplace_back();
         // While the upload has not been yet completed, keep a reference to the
         // resource because its lifetime is not tied to that of the
         // ImmediateTexture (and thus to context's submissions) now.
         resource->AddRef();
         pending_upload.texture = resource;
         pending_upload.buffer = upload_buffer;
-        texture_uploads_pending_.push_back(pending_upload);
       } else {
         XELOGE(
             "Failed to map a Direct3D 12 upload buffer for a {}x{} texture for "
@@ -357,10 +364,22 @@ std::unique_ptr<ImmediateTexture> D3D12ImmediateDrawer::CreateTexture(
     resource = nullptr;
   }
 
+  SamplerIndex sampler_index;
+  if (filter == ImmediateTextureFilter::kLinear) {
+    sampler_index =
+        is_repeated ? SamplerIndex::kLinearRepeat : SamplerIndex::kLinearClamp;
+  } else {
+    sampler_index = is_repeated ? SamplerIndex::kNearestRepeat
+                                : SamplerIndex::kNearestClamp;
+  }
+
+  // Manage by this immediate drawer if successfully created a resource.
   std::unique_ptr<D3D12ImmediateTexture> texture =
-      std::make_unique<D3D12ImmediateTexture>(width, height, resource, filter,
-                                              repeat);
+      std::make_unique<D3D12ImmediateTexture>(
+          width, height, resource, sampler_index, resource ? this : nullptr,
+          textures_.size());
   if (resource) {
+    textures_.push_back(texture.get());
     // D3D12ImmediateTexture now holds a reference.
     resource->Release();
   }
@@ -378,14 +397,24 @@ void D3D12ImmediateDrawer::Begin(int render_target_width,
   current_command_list_ = context_.GetSwapCommandList();
 
   uint64_t completed_fence_value = context_.GetSwapCompletedFenceValue();
-  uint64_t current_fence_value = context_.GetSwapCurrentFenceValue();
+
+  // Release deleted textures.
+  for (auto it = textures_deleted_.begin(); it != textures_deleted_.end();) {
+    if (it->second > completed_fence_value) {
+      ++it;
+      continue;
+    }
+    it->first->Release();
+    if (std::next(it) != textures_deleted_.end()) {
+      *it = textures_deleted_.back();
+    }
+    textures_deleted_.pop_back();
+  }
 
   // Release upload buffers for completed texture uploads.
   auto erase_uploads_end = texture_uploads_submitted_.begin();
   while (erase_uploads_end != texture_uploads_submitted_.end()) {
-    uint64_t upload_fence_value = erase_uploads_end->fence_value;
-    if (upload_fence_value > completed_fence_value) {
-      ++erase_uploads_end;
+    if (erase_uploads_end->fence_value > completed_fence_value) {
       break;
     }
     erase_uploads_end->buffer->Release();
@@ -513,16 +542,19 @@ void D3D12ImmediateDrawer::Draw(const ImmediateDraw& draw) {
   // Bind the texture. If this is the first draw in a frame, the descriptor heap
   // index will be invalid initially, and the texture will be bound regardless
   // of what's in current_texture_.
-  auto texture = reinterpret_cast<D3D12ImmediateTexture*>(draw.texture_handle);
+  uint64_t current_fence_value = context_.GetSwapCurrentFenceValue();
+  auto texture = static_cast<D3D12ImmediateTexture*>(draw.texture);
   ID3D12Resource* texture_resource = texture ? texture->resource() : nullptr;
   bool bind_texture = current_texture_ != texture_resource;
   uint32_t texture_descriptor_index;
   uint64_t texture_heap_index = texture_descriptor_pool_->Request(
-      context_.GetSwapCurrentFenceValue(),
-      current_texture_descriptor_heap_index_, bind_texture ? 1 : 0, 1,
-      texture_descriptor_index);
+      current_fence_value, current_texture_descriptor_heap_index_,
+      bind_texture ? 1 : 0, 1, texture_descriptor_index);
   if (texture_heap_index == D3D12DescriptorHeapPool::kHeapIndexInvalid) {
     return;
+  }
+  if (texture_resource) {
+    texture->SetLastUsageFenceValue(current_fence_value);
   }
   if (current_texture_descriptor_heap_index_ != texture_heap_index) {
     current_texture_descriptor_heap_index_ = texture_heap_index;
@@ -567,19 +599,10 @@ void D3D12ImmediateDrawer::Draw(const ImmediateDraw& draw) {
             texture_descriptor_index));
   }
 
-  // Bind the sampler.
-  SamplerIndex sampler_index;
-  if (texture != nullptr) {
-    if (texture->filter() == ImmediateTextureFilter::kLinear) {
-      sampler_index = texture->is_repeated() ? SamplerIndex::kLinearRepeat
-                                             : SamplerIndex::kLinearClamp;
-    } else {
-      sampler_index = texture->is_repeated() ? SamplerIndex::kNearestRepeat
-                                             : SamplerIndex::kNearestClamp;
-    }
-  } else {
-    sampler_index = SamplerIndex::kNearestClamp;
-  }
+  // Bind the sampler. If the resource doesn't exist (solid color drawing), use
+  // nearest-neighbor and clamp so fetching is simpler.
+  SamplerIndex sampler_index =
+      texture_resource ? texture->sampler_index() : SamplerIndex::kNearestClamp;
   if (current_sampler_index_ != sampler_index) {
     current_sampler_index_ = sampler_index;
     current_command_list_->SetGraphicsRootDescriptorTable(
@@ -587,12 +610,6 @@ void D3D12ImmediateDrawer::Draw(const ImmediateDraw& draw) {
         provider.OffsetSamplerDescriptor(sampler_heap_gpu_start_,
                                          uint32_t(sampler_index)));
   }
-
-  // Set whether texture coordinates need to be restricted.
-  uint32_t restrict_texture_samples = draw.restrict_texture_samples ? 1 : 0;
-  current_command_list_->SetGraphicsRoot32BitConstants(
-      UINT(RootParameter::kRestrictTextureSamples), 1,
-      &restrict_texture_samples, 0);
 
   // Set the primitive type and the pipeline state for it.
   D3D_PRIMITIVE_TOPOLOGY primitive_topology;
@@ -636,6 +653,27 @@ void D3D12ImmediateDrawer::End() {
   }
 }
 
+void D3D12ImmediateDrawer::OnImmediateTextureDestroyed(
+    D3D12ImmediateTexture& texture) {
+  // Remove from the texture list.
+  size_t texture_index = texture.immediate_drawer_index();
+  assert_true(texture_index != SIZE_MAX);
+  D3D12ImmediateTexture*& texture_at_index = textures_[texture_index];
+  texture_at_index = textures_.back();
+  texture_at_index->SetImmediateDrawerIndex(texture_index);
+  textures_.pop_back();
+
+  // Queue for delayed release.
+  ID3D12Resource* resource = texture.resource();
+  uint64_t last_usage_fence_value = texture.last_usage_fence_value();
+  if (resource &&
+      last_usage_fence_value > context_.GetSwapCompletedFenceValue()) {
+    resource->AddRef();
+    textures_deleted_.push_back(
+        std::make_pair(resource, last_usage_fence_value));
+  }
+}
+
 void D3D12ImmediateDrawer::UploadTextures() {
   assert_not_null(current_command_list_);
   if (texture_uploads_pending_.empty()) {
@@ -650,9 +688,7 @@ void D3D12ImmediateDrawer::UploadTextures() {
   // pipeline barriers).
   std::vector<D3D12_RESOURCE_BARRIER> barriers;
   barriers.reserve(texture_uploads_pending_.size());
-  while (!texture_uploads_pending_.empty()) {
-    const PendingTextureUpload& pending_upload =
-        texture_uploads_pending_.back();
+  for (const PendingTextureUpload& pending_upload : texture_uploads_pending_) {
     ID3D12Resource* texture = pending_upload.texture;
 
     D3D12_RESOURCE_DESC texture_desc = texture->GetDesc();
@@ -676,15 +712,15 @@ void D3D12ImmediateDrawer::UploadTextures() {
     barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
     barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 
-    SubmittedTextureUpload submitted_upload;
+    SubmittedTextureUpload& submitted_upload =
+        texture_uploads_submitted_.emplace_back();
     // Transfer the reference to the texture - need to keep it until the upload
     // is completed.
     submitted_upload.texture = texture;
     submitted_upload.buffer = pending_upload.buffer;
     submitted_upload.fence_value = current_fence_value;
-    texture_uploads_submitted_.push_back(submitted_upload);
-    texture_uploads_pending_.pop_back();
   }
+  texture_uploads_pending_.clear();
   assert_false(barriers.empty());
   current_command_list_->ResourceBarrier(UINT(barriers.size()),
                                          barriers.data());
