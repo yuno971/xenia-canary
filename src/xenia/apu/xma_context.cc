@@ -292,6 +292,7 @@ void XmaContext::Decode(XMA_CONTEXT_DATA* data) {
 
   // No available data.
   if (!data->input_buffer_0_valid && !data->input_buffer_1_valid) {
+    data->output_buffer_valid = 0;
     return;
   }
 
