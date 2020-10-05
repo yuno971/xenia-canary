@@ -832,7 +832,7 @@ const TextureCache::LoadModeInfo TextureCache::load_mode_info_[] = {
 TextureCache::TextureCache(D3D12CommandProcessor& command_processor,
                            const RegisterFile& register_file,
                            bool bindless_resources_used,
-                           SharedMemory& shared_memory)
+                           D3D12SharedMemory& shared_memory)
     : command_processor_(command_processor),
       register_file_(register_file),
       bindless_resources_used_(bindless_resources_used),
@@ -1179,9 +1179,9 @@ void TextureCache::EndFrame() {
 void TextureCache::RequestTextures(uint32_t used_texture_mask) {
   const auto& regs = register_file_;
 
-#if FINE_GRAINED_DRAW_SCOPES
+#if XE_UI_D3D12_FINE_GRAINED_DRAW_SCOPES
   SCOPE_profile_cpu_f("gpu");
-#endif  // FINE_GRAINED_DRAW_SCOPES
+#endif  // XE_UI_D3D12_FINE_GRAINED_DRAW_SCOPES
 
   if (texture_invalidated_.exchange(false, std::memory_order_acquire)) {
     // Clear the bindings not only for this draw call, but entirely, because
@@ -1418,12 +1418,12 @@ void TextureCache::WriteActiveTextureBindfulSRV(
   }
   auto device = provider.GetDevice();
   {
-#if FINE_GRAINED_DRAW_SCOPES
+#if XE_UI_D3D12_FINE_GRAINED_DRAW_SCOPES
     SCOPE_profile_cpu_i(
         "gpu",
         "xe::gpu::d3d12::TextureCache::WriteActiveTextureBindfulSRV->"
         "CopyDescriptorsSimple");
-#endif  // FINE_GRAINED_DRAW_SCOPES
+#endif  // XE_UI_D3D12_FINE_GRAINED_DRAW_SCOPES
     device->CopyDescriptorsSimple(1, handle, source_handle,
                                   D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
   }
@@ -1604,7 +1604,7 @@ void TextureCache::MarkRangeAsResolved(uint32_t start_unscaled,
 
   // Invalidate textures. Toggling individual textures between scaled and
   // unscaled also relies on invalidation through shared memory.
-  shared_memory_.RangeWrittenByGPU(start_unscaled, length_unscaled);
+  shared_memory_.RangeWrittenByGpu(start_unscaled, length_unscaled);
 }
 
 bool TextureCache::EnsureScaledResolveBufferResident(uint32_t start_unscaled,
