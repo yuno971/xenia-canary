@@ -364,6 +364,8 @@ void XmaContext::Decode(XMA_CONTEXT_DATA* data) {
       break;
     }
 
+    xe::threading::MaybeYield();
+
     // assert_true(packets_skip_ == 0);
     // assert_true(split_frame_len_ == 0);
     // assert_true(split_frame_len_partial_ == 0);
@@ -809,6 +811,7 @@ bool XmaContext::ConvertFrame(const uint8_t** samples, int num_channels,
       int sample = static_cast<int>(scaled_sample);
       xe::store_and_swap<uint16_t>(&output_buffer[o++ * 2], sample & 0xFFFF);
     }
+    xe::threading::MaybeYield();
   }
 
   return true;
