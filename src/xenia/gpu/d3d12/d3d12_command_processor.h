@@ -221,7 +221,6 @@ class D3D12CommandProcessor : public CommandProcessor {
   bool IssueCopy() override;
 
   void InitializeTrace() override;
-  void FinalizeTrace() override;
 
  private:
   static constexpr uint32_t kQueueFrames = 3;
