@@ -29,6 +29,9 @@ namespace toml {
 std::string EscapeString(const std::string_view view);
 }
 
+template <typename T>
+class ConfigVar;
+
 class ICommandVar {
  public:
   virtual ~ICommandVar() = default;
@@ -47,6 +50,11 @@ class IConfigVar : virtual public ICommandVar {
   virtual std::string config_value() const = 0;
   virtual void LoadConfigValue(std::shared_ptr<cpptoml::base> result) = 0;
   virtual void LoadGameConfigValue(std::shared_ptr<cpptoml::base> result) = 0;
+
+  template <typename T>
+  ConfigVar<T>* as() {
+    return dynamic_cast<ConfigVar<T>*>(this);
+  }
 };
 
 template <class T>
