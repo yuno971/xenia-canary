@@ -17,6 +17,7 @@
 #include "xenia/base/exception_handler.h"
 #include "xenia/kernel/kernel_state.h"
 #include "xenia/memory.h"
+#include "xenia/patcher/patcher.h"
 #include "xenia/vfs/virtual_file_system.h"
 #include "xenia/patcher/patcher.h"
 #include "xenia/xbox.h"

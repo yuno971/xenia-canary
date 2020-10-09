@@ -551,10 +551,10 @@ void EmulatorWindow::UpdateTitle() {
         ")";
   }
 
-  auto patching_system = emulator()->patching_system();
+  patcher::PatchingSystem* patching_system = emulator()->patching_system();
   if (patching_system) {
     auto title_patched =
-        patching_system->isAnyPatchApplied() ? " [Patches Applied]" : "";
+        patching_system->IsAnyPatchApplied() ? " [Patches Applied]" : "";
     title += title_patched;
   }
   window_->set_title(title);

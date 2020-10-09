@@ -767,7 +767,8 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
         }
       }
 
-      patching_system_->applyPatchesForTitle(kernel_state()->memory(), module->title_id());
+      patching_system_->ApplyPatchesForTitle(
+          kernel_state()->memory(), module->title_id(), module->hash());
     }
   }
 
