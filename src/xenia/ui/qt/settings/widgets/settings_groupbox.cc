@@ -27,6 +27,7 @@ SettingsCheckBox* SettingsGroupBox::CreateCheckBox(const QString& text,
   auto font = widget_label->font();
   font.setPointSizeF(kSubLabelSize);
   widget_label->setFont(font);
+  widget_label->setVisible(false);
 
   auto checkbox = new SettingsCheckBox(text, target, widget_label);
   checkbox_layout->addWidget(checkbox);

@@ -40,6 +40,9 @@ class SettingsWidget : public Widget {
   void UpdateLabel(const QString& text) {
     if (label_) {
       label_->setText(text);
+      label_->setVisible(true);
+    } else {
+      label_->setVisible(false);
     }
   }
 
