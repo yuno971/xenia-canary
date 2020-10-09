@@ -41,7 +41,26 @@ SettingsCheckBox* SettingsGroupBox::CreateCheckBox(const QString& text,
 
 SettingsComboBox<int>* SettingsGroupBox::CreateComboBox(const QString& text,
     cvar::ConfigVar<int>* target) {
-  return nullptr;
+  auto combobox_layout = new QVBoxLayout();
+  combobox_layout->setContentsMargins(0, 0, 0, 0);
+  combobox_layout->setSpacing(0);
+
+  auto widget_label = new QLabel();
+  widget_label->setObjectName("subLabel");
+  widget_label->setProperty("type", "warning");
+  auto font = widget_label->font();
+  font.setPointSizeF(kSubLabelSize);
+  widget_label->setFont(font);
+  widget_label->setVisible(false);
+
+  auto combobox = new SettingsComboBox<int>();
+  combobox_layout->addWidget(combobox);
+
+  combobox_layout->addWidget(widget_label);
+
+  layout_->addLayout(combobox_layout);
+
+  return combobox;
 }
 
 SettingsComboBox<std::string>* SettingsGroupBox::CreateComboBox(

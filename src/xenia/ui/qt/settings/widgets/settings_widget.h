@@ -28,7 +28,7 @@ class SettingsWidget : public Widget {
 
  public:
   template <typename... Args>
-  SettingsWidget(cvar::ConfigVar<T>* config_var, QLabel* label = nullptr,
+  SettingsWidget(cvar::IConfigVar* config_var, QLabel* label = nullptr,
                  Args... args)
       : Widget(args...), cvar_(config_var), label_(label) {
     // default config update function
@@ -46,8 +46,8 @@ class SettingsWidget : public Widget {
     }
   }
 
-  cvar::ConfigVar<T>* config_var() const { return cvar_; }
-  void set_config_var(cvar::ConfigVar<T>* cvar) { cvar_ = cvar; }
+  cvar::IConfigVar* config_var() const { return cvar_; }
+  void set_config_var(cvar::IConfigVar* cvar) { cvar_ = cvar; }
 
   void set_update_config_fn(
       const std::function<void(T, cvar::ConfigVar<T>&)>& fn) {
@@ -56,15 +56,18 @@ class SettingsWidget : public Widget {
 
   void UpdateValue(T val) {
     if (cvar_) {
-      update_config_fn_(val, *cvar_);
-      SaveToConfig();
+      auto cvar = cvar_->as<T>();
+      if (cvar) {
+        update_config_fn_(val, *cvar);
+        SaveToConfig();
+      }
     }
   }
 
   void SaveToConfig() { Config::Instance().SaveConfig(); }
 
  protected:
-  cvar::ConfigVar<T>* cvar_;
+  cvar::IConfigVar* cvar_;
   std::function<void(T, cvar::ConfigVar<T>&)> update_config_fn_;
   QLabel* label_;
 };

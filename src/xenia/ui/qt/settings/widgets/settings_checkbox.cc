@@ -18,7 +18,12 @@ void SettingsCheckBox::Initialize() {
     return;
   }
 
-  setChecked(*cvar_->current_value());
+  auto cvar = cvar_->as<bool>();
+  if (!cvar) {
+    return;
+  }
+
+  setChecked(*cvar->current_value());
 
   connect(this, &SettingsCheckBox::stateChanged, [this](int state) {
     if (state == Qt::Checked) {

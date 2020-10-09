@@ -18,10 +18,57 @@ namespace ui {
 namespace qt {
 
 template <typename T>
-class SettingsComboBox : SettingsWidget<T, XComboBox> {
-  static_assert(std::is_same_v<T, std::string> || std::is_same_v<T, int>,
-                "Settings TextEdit must use std::string or int");
+class SettingsComboBox : public SettingsWidget<T, XComboBox> {
+  using SettingsCvar = cvar::ConfigVar<T>;
+
+ public:
+  SettingsComboBox(SettingsCvar* config_var = nullptr, QLabel* label = nullptr,
+                   QWidget* parent = nullptr)
+      : SettingsWidget(config_var, label, parent) {}
+
+  void Initialize();
 };
+
+template <>
+inline void SettingsComboBox<int>::Initialize() {
+  if (!cvar_) {
+    return;
+  }
+  if (!cvar_) {
+    return;
+  }
+
+  auto cvar = cvar_->as<int>();
+  if (!cvar) {
+    return;
+  }
+
+  setCurrentIndex(*cvar->current_value());
+
+  connect(this, QOverload<int>::of(&QComboBox::currentIndexChanged),
+          [this](int index) { UpdateValue(index); });
+}
+
+template <>
+inline void SettingsComboBox<std::string>::Initialize() {
+  if (!cvar_) {
+    return;
+  }
+  if (!cvar_) {
+    return;
+  }
+
+  auto cvar = cvar_->as<std::string>();
+  if (!cvar) {
+    return;
+  }
+
+  setCurrentText(QString(*cvar->current_value()->c_str()));
+
+  connect(this, &QComboBox::currentTextChanged, [this](const QString& text) {
+    UpdateValue(std::string(text.toUtf8()));
+  });
+}
 
 }  // namespace qt
 }  // namespace ui
