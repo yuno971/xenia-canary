@@ -110,15 +110,17 @@ void XmaContext::Enable() {
   auto context_ptr = memory()->TranslateVirtual(guest_ptr());
   XMA_CONTEXT_DATA data(context_ptr);
 
-  XELOGAPU("XmaContext: kicking context {} (buffer {} {}/{} bits)", id(),
-           data.current_buffer, data.input_buffer_read_offset,
-           (data.current_buffer == 0 ? data.input_buffer_0_packet_count
-                                     : data.input_buffer_1_packet_count) *
-               kBytesPerPacket * 8);
-
-  data.Store(context_ptr);
-
-  set_is_enabled(true);
+  XELOGD("XmaContext: kicking context {} (buffer {} {}/{} bits)", id(),
+         data.current_buffer, data.input_buffer_read_offset,
+         (data.current_buffer == 0 ? data.input_buffer_0_packet_count
+                                   : data.input_buffer_1_packet_count) *
+             kBytesPerPacket * 8);
+  if ((data.input_buffer_0_valid) || (data.input_buffer_1_valid)) {
+    data.Store(context_ptr);
+    set_is_enabled(true);
+  } else {
+    set_is_enabled(false);
+  }
 }
 
 bool XmaContext::Block(bool poll) {
@@ -360,11 +362,15 @@ void XmaContext::Decode(XMA_CONTEXT_DATA* data) {
   // Decode until we can't write any more data.
   while (output_remaining_bytes > 0) {
     if (!data->input_buffer_0_valid && !data->input_buffer_1_valid) {
+      data->output_buffer_valid = 0;
+      XELOGE("XmaContext ERROR Out of data");
       // Out of data.
       break;
     }
-
-    xe::threading::MaybeYield();
+    //testing maybe dont wait here at all, or just yield
+    //xe::threading::MaybeYield();
+    xe::threading::Sleep(std::chrono::microseconds(100)); //less than 100 micro uses maybeyield
+    //xe::threading::Sleep(std::chrono::milliseconds(1)); //less than 100 micro uses maybeyield
 
     // assert_true(packets_skip_ == 0);
     // assert_true(split_frame_len_ == 0);
