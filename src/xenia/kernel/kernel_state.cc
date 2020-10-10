@@ -228,8 +228,12 @@ object_ref<XModule> KernelState::GetModule(const std::string_view name,
     }
   }
 
-  // Module not found, try loading it
+  if (IsKernelModule(name)) {
   return nullptr;
+  } else {
+    // Module not found, try loading it
+    return LoadUserModule(name);
+  }
 }
 
 object_ref<XThread> KernelState::LaunchModule(object_ref<UserModule> module) {
