@@ -56,6 +56,7 @@ project("xenia-gpu-vulkan-trace-viewer")
     "xenia-ui-spirv",
     "xenia-ui-vulkan",
     "xenia-vfs",
+    "xenia-patcher",
     "xxhash",
   })
   defines({
@@ -123,6 +124,7 @@ project("xenia-gpu-vulkan-trace-dump")
     "xenia-ui-spirv",
     "xenia-ui-vulkan",
     "xenia-vfs",
+    "xenia-patcher",
     "xxhash",
   })
   defines({

@@ -2322,9 +2322,7 @@ void D3D12CommandProcessor::InitializeTrace() {
   if (!render_target_cache_submitted && !shared_memory_submitted) {
     return;
   }
-  if (!AwaitAllQueueOperationsCompletion()) {
-    return;
-  }
+  AwaitAllQueueOperationsCompletion();
   if (render_target_cache_submitted) {
     render_target_cache_->InitializeTraceCompleteDownloads();
   }
@@ -2332,8 +2330,6 @@ void D3D12CommandProcessor::InitializeTrace() {
     shared_memory_->InitializeTraceCompleteDownloads();
   }
 }
-
-void D3D12CommandProcessor::FinalizeTrace() {}
 
 bool D3D12CommandProcessor::IssueCopy() {
 #if XE_UI_D3D12_FINE_GRAINED_DRAW_SCOPES
