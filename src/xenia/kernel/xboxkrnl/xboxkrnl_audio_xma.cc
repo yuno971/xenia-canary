@@ -385,7 +385,10 @@ dword_result_t XMABlockWhileInUse(lpvoid_t context_ptr) {
     if (!context.input_buffer_0_valid && !context.input_buffer_1_valid) {
       break;
     }
-    xe::threading::Sleep(std::chrono::milliseconds(1));
+    //xe::threading::Sleep(std::chrono::milliseconds(1)); //default
+      xe::threading::Sleep(std::chrono::microseconds(100)); //less than 100 micro uses maybeyield
+    //xe::threading::Sleep(std::chrono::microseconds(250));
+    //xe::threading::MaybeYield(); //test
   } while (true);
   return 0;
 }

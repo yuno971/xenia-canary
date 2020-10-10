@@ -180,7 +180,8 @@ void XmaDecoder::WorkerThreadMain() {
     if (idle_loop_count > 500) {
       // Idle for an extended period. Introduce a 20ms wait.
       xe::threading::Wait(work_event_.get(), false,
-                          std::chrono::milliseconds(20));
+                          std::chrono::milliseconds(1));
+                          //std::chrono::milliseconds(20));
     }
 
     xe::threading::MaybeYield();
