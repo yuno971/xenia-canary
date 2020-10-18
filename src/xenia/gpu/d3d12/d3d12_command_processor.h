@@ -17,7 +17,6 @@
 #include <unordered_map>
 #include <utility>
 
-
 #include "xenia/base/cvar.h"
 #include "xenia/base/assert.h"
 #include "xenia/gpu/command_processor.h"
@@ -119,20 +118,23 @@ class D3D12CommandProcessor : public CommandProcessor {
     assert_true(bindless_resources_used_);
     return view_bindless_heap_gpu_start_;
   }
-  // Returns UINT32_MAX if no free descriptors.
+  // Returns UINT32_MAX if no free descriptors. If the unbounded SRV range for
+  // bindless resources is also used in the root signature of the draw /
+  // dispatch referencing this descriptor, this must only be used to allocate
+  // SRVs, otherwise it won't work on Nvidia Fermi (root signature creation will
+  // fail)!
   uint32_t RequestPersistentViewBindlessDescriptor();
   void ReleaseViewBindlessDescriptorImmediately(uint32_t descriptor_index);
-  // Request non-contiguous SRV/UAV descriptors for use only within the next
+  // Request non-contiguous CBV/SRV/UAV descriptors for use only within the next
   // draw or dispatch command done for internal purposes. May change the current
-  // descriptor heap.
+  // descriptor heap. If the unbounded SRV range for bindless resources is also
+  // used in the root signature of the draw / dispatch referencing these
+  // descriptors, this must only be used to allocate SRVs, otherwise it won't
+  // work on Nvidia Fermi (root signature creation will fail)!
   bool RequestOneUseSingleViewDescriptors(
       uint32_t count, ui::d3d12::util::DescriptorCPUGPUHandlePair* handles_out);
   // These are needed often, so they are always allocated.
   enum class SystemBindlessView : uint32_t {
-    kNullTexture2DArray,
-    kNullTexture3D,
-    kNullTextureCube,
-
     kSharedMemoryRawSRV,
     kSharedMemoryR32UintSRV,
     kSharedMemoryR32G32UintSRV,
@@ -152,6 +154,14 @@ class D3D12CommandProcessor : public CommandProcessor {
 
     kGammaRampNormalSRV,
     kGammaRampPWLSRV,
+
+    // Beyond this point, SRVs are accessible to shaders through an unbounded
+    // range - no descriptors of other types bound to shaders alongside
+    // unbounded ranges - must be located beyond this point.
+    kUnboundedSRVsStart,
+    kNullTexture2DArray = kUnboundedSRVsStart,
+    kNullTexture3D,
+    kNullTextureCube,
 
     kCount,
   };
