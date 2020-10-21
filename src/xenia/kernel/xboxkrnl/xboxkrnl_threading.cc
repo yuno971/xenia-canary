@@ -1175,6 +1175,7 @@ void ExInitializeReadWriteLock(pointer_t<X_ERWLOCK> lock_ptr) {
 DECLARE_XBOXKRNL_EXPORT1(ExInitializeReadWriteLock, kThreading, kImplemented);
 
 void ExAcquireReadWriteLockExclusive(pointer_t<X_ERWLOCK> lock_ptr) {
+  XELOGD("ExAcquireReadWriteLockExclusive"); // " lock_ptr:(%X)", lock_ptr);
   auto old_irql = xeKeKfAcquireSpinLock(&lock_ptr->spin_lock);
   lock_ptr->lock_count++;
   xeKeKfReleaseSpinLock(&lock_ptr->spin_lock, old_irql);
@@ -1189,7 +1190,43 @@ void ExAcquireReadWriteLockExclusive(pointer_t<X_ERWLOCK> lock_ptr) {
 DECLARE_XBOXKRNL_EXPORT3(ExAcquireReadWriteLockExclusive, kThreading,
                          kImplemented, kBlocking, kSketchy);
 
+void ExAcquireReadWriteLockShared(pointer_t<X_ERWLOCK> lock_ptr) {
+  XELOGD("ExAcquireReadWriteLockShared"); //  lock_ptr:(:X)", lock_ptr);
+  auto old_irql = xeKeKfAcquireSpinLock(&lock_ptr->spin_lock);
+  lock_ptr->lock_count++;
+  xeKeKfReleaseSpinLock(&lock_ptr->spin_lock, old_irql);
+
+  if (!lock_ptr->lock_count) {
+    return;
+  }
+
+  lock_ptr->writers_waiting_count++;
+  xeKeWaitForSingleObject(&lock_ptr->writer_event, 0, 0, 1, nullptr);
+
+}
+DECLARE_XBOXKRNL_EXPORT3(ExAcquireReadWriteLockShared, kThreading,
+                         kImplemented, kBlocking, kHighFrequency);
+
+void ExTryToAcquireReadWriteLockShared(pointer_t<X_ERWLOCK> lock_ptr) {
+  XELOGD("ExAcquireReadWriteLockShared"); //  lock_ptr:(:X)", lock_ptr);
+  auto old_irql = xeKeKfAcquireSpinLock(&lock_ptr->spin_lock);
+  lock_ptr->lock_count++;
+  xeKeKfReleaseSpinLock(&lock_ptr->spin_lock, old_irql);
+
+  if (!lock_ptr->lock_count) {
+    return;
+  }
+
+  lock_ptr->writers_waiting_count++;
+  xeKeWaitForSingleObject(&lock_ptr->writer_event, 0, 0, 1, nullptr);
+
+}
+DECLARE_XBOXKRNL_EXPORT3(ExTryToAcquireReadWriteLockShared, kThreading,
+                         kImplemented, kBlocking, kHighFrequency);
+ 
 void ExReleaseReadWriteLock(pointer_t<X_ERWLOCK> lock_ptr) {
+  
+  XELOGD("ExReleaseReadWriteLock"); // lock_ptr: (:X)", lock_ptr);
   auto old_irql = xeKeKfAcquireSpinLock(&lock_ptr->spin_lock);
   lock_ptr->lock_count--;
 
