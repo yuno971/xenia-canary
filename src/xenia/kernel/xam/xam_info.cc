@@ -8,6 +8,7 @@
  */
 
 #include "xenia/base/logging.h"
+#include "xenia/base/cvar.h"
 #include "xenia/kernel/kernel_state.h"
 #include "xenia/kernel/user_module.h"
 #include "xenia/kernel/util/shim_utils.h"
@@ -22,6 +23,8 @@
 #endif
 
 #include "third_party/fmt/include/fmt/format.h"
+
+DEFINE_int32(avpack, 8, "Video modes", "Video");
 
 namespace xe {
 namespace kernel {
@@ -193,12 +196,13 @@ void XCustomRegisterDynamicActions() {
 DECLARE_XAM_EXPORT1(XCustomRegisterDynamicActions, kNone, kStub);
 
 dword_result_t XGetAVPack() {
+  // Value from https://github.com/Free60Project/libxenon/blob/920146f/libxenon/drivers/xenos/xenos_videomodes.h
   // DWORD
   // Not sure what the values are for this, but 6 is VGA.
   // Other likely values are 3/4/8 for HDMI or something.
   // Games seem to use this as a PAL check - if the result is not 3/4/6/8
   // they explode with errors if not in PAL mode.
-  return 6;
+  return (cvars::avpack);
 }
 DECLARE_XAM_EXPORT1(XGetAVPack, kNone, kStub);
 
