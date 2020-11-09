@@ -153,14 +153,15 @@ XboxkrnlModule::XboxkrnlModule(Emulator* emulator, KernelState* kernel_state)
   // 0x00000000, 0x06, 0x00, 0x00, 0x00, 0x00000000, 0x0000, 0x0000
   // Games seem to check if bit 26 (0x20) is set, which at least for xbox1
   // was whether an HDD was present. Not sure what the other flags are.
-  //
+  // 360 kernel sets 0x20 if storage is present at startup from looking at
+  // disassembly.
   // aomega08 says the value is 0x02000817, bit 27: debug mode on.
   // When that is set, though, allocs crash in weird ways.
   uint32_t pXboxHardwareInfo = memory_->SystemHeapAlloc(16);
   auto lpXboxHardwareInfo = memory_->TranslateVirtual(pXboxHardwareInfo);
   export_resolver_->SetVariableMapping(
       "xboxkrnl.exe", ordinals::XboxHardwareInfo, pXboxHardwareInfo);
-  xe::store_and_swap<uint32_t>(lpXboxHardwareInfo + 0, 0);    // flags
+  xe::store_and_swap<uint32_t>(lpXboxHardwareInfo + 0, 0x20);    // flags //test
   xe::store_and_swap<uint8_t>(lpXboxHardwareInfo + 4, 0x06);  // cpu count
   // Remaining 11b are zeroes?
 

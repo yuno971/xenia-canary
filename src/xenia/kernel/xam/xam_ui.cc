@@ -315,22 +315,32 @@ dword_result_t XamShowDeviceSelectorUI(dword_t user_index, dword_t content_type,
                                        dword_t content_flags,
                                        qword_t total_requested,
                                        lpdword_t device_id_ptr,
-                                       pointer_t<XAM_OVERLAPPED> overlapped) {
+                                       pointer_t<XAM_OVERLAPPED> overlapped = NULL) {
   // NOTE: 0x00000001 is our dummy device ID from xam_content.cc
-  *device_id_ptr = 0x00000001;
 
-  // Broadcast XN_SYS_UI = true followed by XN_SYS_UI = false
-  kernel_state()->BroadcastNotification(0x9, true);
-  kernel_state()->BroadcastNotification(0x9, false);
+  std::function<void()> func = [device_id_ptr]() {
+    xe::threading::Sleep(std::chrono::milliseconds(100));
+    *device_id_ptr = 0x00000001;
+    xe::threading::Sleep(std::chrono::milliseconds(500));
+    //Broadcast SYS_UI true (UI open)
+    kernel_state()->BroadcastNotification(0x9, true);
+    // Broadcast XN_SYS_UI = false (closed)
+    kernel_state()->BroadcastNotification(0x9, false);
+  };
 
   if (overlapped) {
-    kernel_state()->CompleteOverlappedImmediate(overlapped, X_ERROR_SUCCESS);
+    // games may overwrite pointers if an overlap pointer is provided so
+    // we defer the overlap completion
+    kernel_state()->CompleteOverlappedDeferred(func, overlapped,
+                                               X_ERROR_SUCCESS);
+    //games check if the return is pending to see if it's an overlapped operation
     return X_ERROR_IO_PENDING;
   } else {
+    func();
     return X_ERROR_SUCCESS;
   }
 }
-DECLARE_XAM_EXPORT1(XamShowDeviceSelectorUI, kUI, kImplemented);
+DECLARE_XAM_EXPORT2(XamShowDeviceSelectorUI, kUI, kImplemented, kLogResult);
 
 void XamShowDirtyDiscErrorUI(dword_t user_index) {
   if (cvars::headless) {

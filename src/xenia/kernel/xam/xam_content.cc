@@ -38,6 +38,15 @@ struct DeviceInfo {
   char16_t name[28];
 };
 
+typedef struct {
+  xe::be<uint32_t> device_id;
+  xe::be<uint32_t> device_type;
+  xe::be<uint64_t> total_bytes;
+  xe::be<uint64_t> free_bytes;
+  xe::be<uint16_t> name[28];
+} X_CONTENT_DEVICE_DATA;
+//static_assert_size(X_CONTENT_DEVICE_DATA, 0x50);
+
 // TODO(gibbed): real information.
 //
 // Until we expose real information about a HDD device, we
@@ -48,13 +57,14 @@ struct DeviceInfo {
 // when it is a 64-bit value. Which means any size above ~4GB
 // will not be recognized properly.
 //
-// NOTE(randprint): you can use 120 GB and 42 GB 'fullness'
-// with the proper deviceID feel free to change at your discression
+// Rapala fishing only detected the hdd if the size was
+// raised to 20GB (the smallest xbox hdd)
 #define ONE_GB (1024ull * 1024ull * 1024ull)
 static const DeviceInfo dummy_device_info_ = {
-    0x00000001,    1,  // found from debugging / reversing UE3 engine titles
-    4ull * ONE_GB,     // 4GB
-    3ull * ONE_GB,     // 3GB, so it looks a little used.
+    0x00000001, // first device seems to be storage
+    1,        // hdd type
+    20ull * ONE_GB,     // 20GB
+    12ull * ONE_GB,     // 12GB, so it looks a little used.
     u"Dummy HDD",
 };
 #undef ONE_GB
@@ -80,6 +90,8 @@ dword_result_t XamContentGetDeviceName(dword_t device_id,
                                        lpu16string_t name_buffer,
                                        dword_t name_capacity) {
   if ((device_id & 0x0000000F) != dummy_device_info_.device_id) {
+    XELOGD("XamContentGetDeviceName ERROR device_id({}) mismatch",
+        device_id);
     return X_ERROR_DEVICE_NOT_CONNECTED;
   }
 
@@ -97,6 +109,8 @@ DECLARE_XAM_EXPORT1(XamContentGetDeviceName, kContent, kImplemented);
 dword_result_t XamContentGetDeviceState(dword_t device_id,
                                         lpunknown_t overlapped_ptr) {
   if ((device_id & 0x0000000F) != dummy_device_info_.device_id) {
+    XELOGD("XamContentGetDeviceState ERROR device_id({}) mismatch",
+        device_id);
     if (overlapped_ptr) {
       kernel_state()->CompleteOverlappedImmediateEx(
           overlapped_ptr, X_ERROR_FUNCTION_FAILED, X_ERROR_DEVICE_NOT_CONNECTED,
@@ -117,28 +131,22 @@ dword_result_t XamContentGetDeviceState(dword_t device_id,
 }
 DECLARE_XAM_EXPORT1(XamContentGetDeviceState, kContent, kStub);
 
-typedef struct {
-  xe::be<uint32_t> device_id;
-  xe::be<uint32_t> device_type;
-  xe::be<uint64_t> total_bytes;
-  xe::be<uint64_t> free_bytes;
-  xe::be<uint16_t> name[28];
-} X_CONTENT_DEVICE_DATA;
-static_assert_size(X_CONTENT_DEVICE_DATA, 0x50);
-
 dword_result_t XamContentGetDeviceData(
     dword_t device_id, pointer_t<X_CONTENT_DEVICE_DATA> device_data) {
   if ((device_id & 0x0000000F) != dummy_device_info_.device_id) {
+    XELOGD("XamContentGetDeviceData ERROR device_id({}) mismatch",
+        device_id);
+  //if (!(device_data)) {
     // TODO(benvanik): memset 0 the data?
     return X_ERROR_DEVICE_NOT_CONNECTED;
   }
 
   device_data.Zero();
   const auto& device_info = dummy_device_info_;
-  device_data->device_id = device_info.device_id;
-  device_data->device_type = device_info.device_type;
-  device_data->total_bytes = device_info.total_bytes;
-  device_data->free_bytes = device_info.free_bytes;
+  xe::store_and_swap(&device_data->device_id, device_info.device_id);
+  xe::store_and_swap(&device_data->device_type, device_info.device_type);
+  xe::store(&device_data->total_bytes, device_info.total_bytes);
+  xe::store(&device_data->free_bytes, device_info.free_bytes);
   xe::store_and_swap<std::u16string>(&device_data->name[0], device_info.name);
   return X_ERROR_SUCCESS;
 }
@@ -169,6 +177,8 @@ dword_result_t XamContentCreateEnumerator(dword_t user_index, dword_t device_id,
   assert_not_null(handle_out);
   if ((device_id && (device_id & 0x0000000F) != dummy_device_info_.device_id) ||
       !handle_out) {
+    XELOGD("XamContentCreateEnumerator ERROR device_id({}) mismatch"
+        " or no handle passed({})", device_id, bool(handle_out));
     if (buffer_size_ptr) {
       *buffer_size_ptr = 0;
     }
@@ -289,6 +299,7 @@ dword_result_t XamContentCreateEx(dword_t user_index, lpstring_t root_name,
       }
       break;
     default:
+    XELOGD("XamContentCreateEx ERROR unhandled case ({:X})", flags);
       assert_unhandled_case(flags & 0xF);
       break;
   }
