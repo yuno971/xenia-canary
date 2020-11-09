@@ -48,13 +48,13 @@ struct DeviceInfo {
 // when it is a 64-bit value. Which means any size above ~4GB
 // will not be recognized properly.
 //
-// NOTE(randprint): you can use 120 GB and 42 GB 'fullness'
-// with the proper deviceID feel free to change at your discression
+// Rapala fishing only detected the hdd if the size was
+// raised to 20GB (the smallest xbox hdd)
 #define ONE_GB (1024ull * 1024ull * 1024ull)
 static const DeviceInfo dummy_device_info_ = {
     0x00000001,    1,  // found from debugging / reversing UE3 engine titles
-    4ull * ONE_GB,     // 4GB
-    3ull * ONE_GB,     // 3GB, so it looks a little used.
+    20ull * ONE_GB,     // 20GB
+    12ull * ONE_GB,     // 12GB, so it looks a little used.
     u"Dummy HDD",
 };
 #undef ONE_GB
