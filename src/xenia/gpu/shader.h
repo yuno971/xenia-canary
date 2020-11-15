@@ -65,17 +65,17 @@ enum class InstructionStorageTarget {
 // disassembly (because oPts.x000 will be assembled, but oPts.x00_ has both
 // skipped components and zeros, which cannot be encoded, and therefore it will
 // not).
-constexpr uint32_t GetInstructionStorageTargetUsedComponents(
+constexpr uint32_t GetInstructionStorageTargetUsedComponentCount(
     InstructionStorageTarget target) {
   switch (target) {
     case InstructionStorageTarget::kNone:
-      return 0b0000;
+      return 0;
     case InstructionStorageTarget::kPointSizeEdgeFlagKillVertex:
-      return 0b0111;
+      return 3;
     case InstructionStorageTarget::kDepth:
-      return 0b0001;
+      return 1;
     default:
-      return 0b1111;
+      return 4;
   }
 }
 
@@ -136,8 +136,9 @@ struct InstructionResult {
   // Returns the write mask containing only components actually present in the
   // target.
   uint32_t GetUsedWriteMask() const {
-    return original_write_mask &
-           GetInstructionStorageTargetUsedComponents(storage_target);
+    uint32_t target_component_count =
+        GetInstructionStorageTargetUsedComponentCount(storage_target);
+    return original_write_mask & ((1 << target_component_count) - 1);
   }
   // True if the components are in their 'standard' swizzle arrangement (xyzw).
   bool IsStandardSwizzle() const {
@@ -160,6 +161,28 @@ struct InstructionResult {
       }
     }
     return used_components;
+  }
+  // Returns which components of the used write mask are constant, and what
+  // values they have.
+  uint32_t GetUsedConstantComponents(uint32_t& constant_values_out) const {
+    uint32_t constant_components = 0;
+    uint32_t constant_values = 0;
+    uint32_t used_write_mask = GetUsedWriteMask();
+    for (uint32_t i = 0; i < 4; ++i) {
+      if (!(used_write_mask & (1 << i))) {
+        continue;
+      }
+      SwizzleSource component = components[i];
+      if (component >= SwizzleSource::kX && component <= SwizzleSource::kW) {
+        continue;
+      }
+      constant_components |= 1 << i;
+      if (component == SwizzleSource::k1) {
+        constant_values |= 1 << i;
+      }
+    }
+    constant_values_out = constant_values;
+    return constant_components;
   }
 };
 
@@ -212,14 +235,18 @@ struct InstructionOperand {
     return false;
   }
 
-  // Returns which components of two operands are identical, but may have
-  // different signs (for simplicity of usage with GetComponent, treating the
-  // rightmost component as replicated).
-  uint32_t GetAbsoluteIdenticalComponents(
-      const InstructionOperand& other) const {
+  // Returns which components of two operands will always be bitwise equal
+  // (disregarding component_count for simplicity of usage with GetComponent,
+  // treating the rightmost component as replicated). This, strictly with all
+  // conditions, must be used when emulating Shader Model 3 +-0 * x = +0
+  // multiplication behavior with IEEE-compliant multiplication (because
+  // -0 * |-0|, or -0 * +0, is -0, while the result must be +0).
+  uint32_t GetIdenticalComponents(const InstructionOperand& other) const {
     if (storage_source != other.storage_source ||
         storage_index != other.storage_index ||
-        storage_addressing_mode != other.storage_addressing_mode) {
+        storage_addressing_mode != other.storage_addressing_mode ||
+        is_negated != other.is_negated ||
+        is_absolute_value != other.is_absolute_value) {
       return 0;
     }
     uint32_t identical_components = 0;
@@ -228,16 +255,6 @@ struct InstructionOperand {
                               << i;
     }
     return identical_components;
-  }
-  // Returns which components of two operands will always be bitwise equal, but
-  // may have different signs (disregarding component_count for simplicity of
-  // usage with GetComponent, treating the rightmost component as replicated).
-  uint32_t GetIdenticalComponents(const InstructionOperand& other) const {
-    if (is_negated != other.is_negated ||
-        is_absolute_value != other.is_absolute_value) {
-      return 0;
-    }
-    return GetAbsoluteIdenticalComponents(other);
   }
 };
 

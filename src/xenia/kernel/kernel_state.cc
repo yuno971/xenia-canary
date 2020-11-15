@@ -359,7 +359,7 @@ void KernelState::SetExecutableModule(object_ref<UserModule> module) {
           }
           return 0;
         }));
-    dispatch_thread_->set_name("Kernel Dispatch Thread");
+    dispatch_thread_->set_name("Kernel Dispatch");
     dispatch_thread_->Create();
   }
 }

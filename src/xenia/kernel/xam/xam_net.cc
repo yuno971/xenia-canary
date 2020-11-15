@@ -984,8 +984,7 @@ dword_result_t NetDll___WSAFDIsSet(dword_t socket_handle,
 DECLARE_XAM_EXPORT1(NetDll___WSAFDIsSet, kNetworking, kImplemented);
 
 void RegisterNetExports(xe::cpu::ExportResolver* export_resolver,
-                        KernelState* kernel_state) {
-}
+                        KernelState* kernel_state) {}
 
 }  // namespace xam
 }  // namespace kernel

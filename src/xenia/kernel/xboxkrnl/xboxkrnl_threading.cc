@@ -226,19 +226,21 @@ DECLARE_XBOXKRNL_EXPORT1(KeSetCurrentStackPointers, kThreading, kImplemented);
 
 dword_result_t KeSetAffinityThread(lpvoid_t thread_ptr, dword_t affinity,
                                    lpdword_t previous_affinity_ptr) {
-  uint32_t previous_affinity = 0;
-
+  // The Xbox 360, according to disassembly of KeSetAffinityThread, unlike
+  // Windows NT, stores the previous affinity via the pointer provided as an
+  // argument, not in the return value - the return value is used for the
+  // result.
+  if (!affinity) {
+    return X_STATUS_INVALID_PARAMETER;
+  }
   auto thread = XObject::GetNativeObject<XThread>(kernel_state(), thread_ptr);
   if (thread) {
-    previous_affinity = thread->affinity();
+    if (previous_affinity_ptr) {
+      *previous_affinity_ptr = uint32_t(1) << thread->active_cpu();
+    }
     thread->SetAffinity(affinity);
   }
-
-  if (previous_affinity_ptr) {
-    *previous_affinity_ptr = previous_affinity;
-  }
-
-  return (uint32_t)affinity;
+  return X_STATUS_SUCCESS;
 }
 DECLARE_XBOXKRNL_EXPORT1(KeSetAffinityThread, kThreading, kImplemented);
 

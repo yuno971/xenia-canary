@@ -9,6 +9,7 @@
 
 #include "xenia/base/logging.h"
 #include "xenia/base/cvar.h"
+#include "xenia/base/string_util.h"
 #include "xenia/kernel/kernel_state.h"
 #include "xenia/kernel/user_module.h"
 #include "xenia/kernel/util/shim_utils.h"
@@ -77,15 +78,15 @@ static SYSTEMTIME xeGetLocalSystemTime(uint64_t filetime) {
 
 void XamFormatDateString(dword_t unk, qword_t filetime, lpvoid_t output_buffer,
                          dword_t output_count) {
-  std::memset(output_buffer, 0, output_count * 2);
+  std::memset(output_buffer, 0, output_count * sizeof(char16_t));
 
 // TODO: implement this for other platforms
 #if XE_PLATFORM_WIN32
   auto st = xeGetLocalSystemTime(filetime);
   // TODO: format this depending on users locale?
   auto str = fmt::format(u"{:02d}/{:02d}/{}", st.wMonth, st.wDay, st.wYear);
-  auto copy_length = std::min(size_t(output_count), str.size()) * 2;
-  xe::copy_and_swap(output_buffer.as<char16_t*>(), str.c_str(), copy_length);
+  xe::string_util::copy_and_swap_truncating(output_buffer.as<char16_t*>(), str,
+                                            output_count);
 #else
   assert_always();
 #endif
@@ -94,15 +95,15 @@ DECLARE_XAM_EXPORT1(XamFormatDateString, kNone, kImplemented);
 
 void XamFormatTimeString(dword_t unk, qword_t filetime, lpvoid_t output_buffer,
                          dword_t output_count) {
-  std::memset(output_buffer, 0, output_count * 2);
+  std::memset(output_buffer, 0, output_count * sizeof(char16_t));
 
 // TODO: implement this for other platforms
 #if XE_PLATFORM_WIN32
   auto st = xeGetLocalSystemTime(filetime);
   // TODO: format this depending on users locale?
   auto str = fmt::format(u"{:02d}:{:02d}", st.wHour, st.wMinute);
-  auto copy_count = std::min(size_t(output_count), str.size());
-  xe::copy_and_swap(output_buffer.as<char16_t*>(), str.c_str(), copy_count);
+  xe::string_util::copy_and_swap_truncating(output_buffer.as<char16_t*>(), str,
+                                            output_count);
 #else
   assert_always();
 #endif
@@ -124,9 +125,8 @@ dword_result_t keXamBuildResourceLocator(uint64_t module,
     path = fmt::format(u"section://{:X},{}#{}", (uint32_t)module, container,
                        resource);
   }
-  auto copy_count = std::min(size_t(buffer_count), path.size());
-  xe::copy_and_swap(buffer_ptr.as<char16_t*>(), path.c_str(), copy_count);
-  (buffer_ptr.as<char16_t*>())[copy_count] = 0;
+  xe::string_util::copy_and_swap_truncating(buffer_ptr.as<char16_t*>(), path,
+                                            buffer_count);
   return 0;
 }
 

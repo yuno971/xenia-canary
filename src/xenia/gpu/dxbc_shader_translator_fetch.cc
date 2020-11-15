@@ -99,8 +99,8 @@ void DxbcShaderTranslator::ProcessVertexFetchInstruction(
     DxbcOpAnd(address_dest, fetch_constant_src.SelectFromSwizzled(0),
               DxbcSrc::LU(~uint32_t(3)));
   }
-  // Add the word offset from the instruction, plus the offset of the first
-  // needed word within the element.
+  // Add the word offset from the instruction (signed), plus the offset of the
+  // first needed word within the element.
   uint32_t first_word_index;
   xe::bit_scan_forward(needed_words, &first_word_index);
   int32_t first_word_buffer_offset =
@@ -1730,10 +1730,10 @@ void DxbcShaderTranslator::ProcessTextureFetchInstruction(
         }
         uint32_t texture_binding_index_unsigned =
             FindOrAddTextureBinding(tfetch_index, srv_dimension, false);
-        const TextureBinding& texture_binding_unsigned =
-            texture_bindings_[texture_binding_index_unsigned];
         uint32_t texture_binding_index_signed =
             FindOrAddTextureBinding(tfetch_index, srv_dimension, true);
+        const TextureBinding& texture_binding_unsigned =
+            texture_bindings_[texture_binding_index_unsigned];
         const TextureBinding& texture_binding_signed =
             texture_bindings_[texture_binding_index_signed];
         DxbcSrc srv_unsigned(DxbcSrc::LF(0.0f)), srv_signed(DxbcSrc::LF(0.0f));
