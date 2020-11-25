@@ -61,12 +61,10 @@ jobs:
         if-no-files-found: error
     - uses: softprops/action-gh-release@v1
       if: |
+        github.repository == 'xenia-canary/xenia-canary' &&
         github.event.action != 'pull_request' &&
+        contains(github.ref, 'refs/heads/canary') &&
         matrix.cpu_arch == 'AVX'
-#        github.repository == 'xenia-canary/xenia-canary' &&
-#        github.event.action != 'pull_request' &&
-#        contains(github.ref, 'refs/heads/canary') &&
-#        matrix.cpu_arch == 'AVX'
       with:
         files: '*.zip'
         tag_name: ${{ steps.prepare_artifacts.outputs.short_commit_sha }}
