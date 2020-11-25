@@ -11,6 +11,7 @@
 
 #include "xenia/base/assert.h"
 #include "xenia/base/logging.h"
+#include "xenia/base/platform.h"
 
 #include <pthread.h>
 #include <signal.h>
@@ -19,8 +20,17 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <array>
+#include <cstring>
 #include <ctime>
 #include <memory>
+
+#if XE_PLATFORM_ANDROID
+#include <sched.h>
+
+#include "xenia/base/platform_android.h"
+#include "xenia/base/string_util.h"
+#endif
 
 namespace xe {
 namespace threading {
@@ -43,6 +53,12 @@ enum class SignalType {
   kTimer,
   kThreadSuspend,
   kThreadUserCallback,
+#if XE_PLATFORM_ANDROID
+  // pthread_cancel is not available on Android, using a signal handler for
+  // simplified PTHREAD_CANCEL_ASYNCHRONOUS-like behavior - not disabling
+  // cancellation currently, so should be enough.
+  kThreadTerminate,
+#endif
   k_Count
 };
 
@@ -80,15 +96,12 @@ uint32_t current_thread_system_id() {
   return static_cast<uint32_t>(syscall(SYS_gettid));
 }
 
-void set_name(std::thread::native_handle_type handle,
-              const std::string_view name) {
-  pthread_setname_np(handle, std::string(name).c_str());
-}
-
-void set_name(const std::string_view name) { set_name(pthread_self(), name); }
-
 void MaybeYield() {
+#if XE_PLATFORM_ANDROID
+  sched_yield();
+#else
   pthread_yield();
+#endif
   __sync_synchronize();
 }
 
@@ -482,7 +495,11 @@ class PosixCondition<Thread> : public PosixConditionBase {
         signaled_(false),
         exit_code_(0),
         state_(State::kUninitialized),
-        suspend_count_(0) {}
+        suspend_count_(0) {
+#if XE_PLATFORM_ANDROID
+    android_pre_api_26_name_[0] = '\0';
+#endif
+  }
   bool Initialize(Thread::CreationParameters params,
                   ThreadStartData* start_data) {
     start_data->create_suspended = params.create_suspended;
@@ -505,6 +522,7 @@ class PosixCondition<Thread> : public PosixConditionBase {
       }
     }
     if (pthread_create(&thread_, &attr, ThreadStartRoutine, start_data) != 0) {
+      pthread_attr_destroy(&attr);
       return false;
     }
     pthread_attr_destroy(&attr);
@@ -517,13 +535,24 @@ class PosixCondition<Thread> : public PosixConditionBase {
       : thread_(thread),
         signaled_(false),
         exit_code_(0),
-        state_(State::kRunning) {}
+        state_(State::kRunning) {
+#if XE_PLATFORM_ANDROID
+    android_pre_api_26_name_[0] = '\0';
+#endif
+  }
 
   virtual ~PosixCondition() {
     if (thread_ && !signaled_) {
+#if XE_PLATFORM_ANDROID
+      if (pthread_kill(thread_,
+                       GetSystemSignal(SignalType::kThreadTerminate)) != 0) {
+        assert_always();
+      }
+#else
       if (pthread_cancel(thread_) != 0) {
         assert_always();
       }
+#endif
       if (pthread_join(thread_, nullptr) != 0) {
         assert_always();
       }
@@ -537,8 +566,24 @@ class PosixCondition<Thread> : public PosixConditionBase {
     auto result = std::array<char, 17>{'\0'};
     std::unique_lock<std::mutex> lock(state_mutex_);
     if (state_ != State::kUninitialized && state_ != State::kFinished) {
-      if (pthread_getname_np(thread_, result.data(), result.size() - 1) != 0)
+#if XE_PLATFORM_ANDROID
+      // pthread_getname_np was added in API 26 - below that, store the name in
+      // this object, which may be only modified through Xenia threading, but
+      // should be enough in most cases.
+      if (xe::platform::android::api_level() >= 26) {
+        if (xe::platform::android::api_functions().api_26.pthread_getname_np(
+                thread_, result.data(), result.size() - 1) != 0) {
+          assert_always();
+        }
+      } else {
+        std::lock_guard<std::mutex> lock(android_pre_api_26_name_mutex_);
+        std::strcpy(result.data(), android_pre_api_26_name_);
+      }
+#else
+      if (pthread_getname_np(thread_, result.data(), result.size() - 1) != 0) {
         assert_always();
+      }
+#endif
     }
     return std::string(result.data());
   }
@@ -547,18 +592,39 @@ class PosixCondition<Thread> : public PosixConditionBase {
     WaitStarted();
     std::unique_lock<std::mutex> lock(state_mutex_);
     if (state_ != State::kUninitialized && state_ != State::kFinished) {
-      threading::set_name(static_cast<std::thread::native_handle_type>(thread_),
-                          name);
+      pthread_setname_np(thread_, std::string(name).c_str());
+#if XE_PLATFORM_ANDROID
+      SetAndroidPreApi26Name(name);
+#endif
     }
   }
+
+#if XE_PLATFORM_ANDROID
+  void SetAndroidPreApi26Name(const std::string_view name) {
+    if (xe::platform::android::api_level() >= 26) {
+      return;
+    }
+    std::lock_guard<std::mutex> lock(android_pre_api_26_name_mutex_);
+    xe::string_util::copy_truncating(android_pre_api_26_name_, name,
+                                     xe::countof(android_pre_api_26_name_));
+  }
+#endif
 
   uint32_t system_id() const { return static_cast<uint32_t>(thread_); }
 
   uint64_t affinity_mask() {
     WaitStarted();
     cpu_set_t cpu_set;
-    if (pthread_getaffinity_np(thread_, sizeof(cpu_set_t), &cpu_set) != 0)
+#if XE_PLATFORM_ANDROID
+    if (sched_getaffinity(pthread_gettid_np(thread_), sizeof(cpu_set_t),
+                          &cpu_set) != 0) {
       assert_always();
+    }
+#else
+    if (pthread_getaffinity_np(thread_, sizeof(cpu_set_t), &cpu_set) != 0) {
+      assert_always();
+    }
+#endif
     uint64_t result = 0;
     auto cpu_count = std::min(CPU_SETSIZE, 64);
     for (auto i = 0u; i < cpu_count; i++) {
@@ -577,9 +643,16 @@ class PosixCondition<Thread> : public PosixConditionBase {
         CPU_SET(i, &cpu_set);
       }
     }
+#if XE_PLATFORM_ANDROID
+    if (sched_setaffinity(pthread_gettid_np(thread_), sizeof(cpu_set_t),
+                          &cpu_set) != 0) {
+      assert_always();
+    }
+#else
     if (pthread_setaffinity_np(thread_, sizeof(cpu_set_t), &cpu_set) != 0) {
       assert_always();
     }
+#endif
   }
 
   int priority() {
@@ -608,8 +681,13 @@ class PosixCondition<Thread> : public PosixConditionBase {
     user_callback_ = std::move(callback);
     sigval value{};
     value.sival_ptr = this;
+#if XE_PLATFORM_ANDROID
+    sigqueue(pthread_gettid_np(thread_),
+             GetSystemSignal(SignalType::kThreadUserCallback), value);
+#else
     pthread_sigqueue(thread_, GetSystemSignal(SignalType::kThreadUserCallback),
                      value);
+#endif
   }
 
   void CallUserCallback() {
@@ -665,7 +743,16 @@ class PosixCondition<Thread> : public PosixConditionBase {
     signaled_ = true;
     cond_.notify_all();
 
-    if (pthread_cancel(thread) != 0) assert_always();
+#ifdef XE_PLATFORM_ANDROID
+    if (pthread_kill(thread, GetSystemSignal(SignalType::kThreadTerminate)) !=
+        0) {
+      assert_always();
+    }
+#else
+    if (pthread_cancel(thread) != 0) {
+      assert_always();
+    }
+#endif
   }
 
   void WaitStarted() const {
@@ -703,6 +790,12 @@ class PosixCondition<Thread> : public PosixConditionBase {
   mutable std::mutex callback_mutex_;
   mutable std::condition_variable state_signal_;
   std::function<void()> user_callback_;
+#if XE_PLATFORM_ANDROID
+  // Name accessible via name() on Android before API 26 which added
+  // pthread_getname_np.
+  mutable std::mutex android_pre_api_26_name_mutex_;
+  char android_pre_api_26_name_[16];
+#endif
 };
 
 class PosixWaitHandle {
@@ -722,7 +815,7 @@ class PosixConditionHandle : public T, public PosixWaitHandle {
   PosixConditionHandle(uint32_t initial_count, uint32_t maximum_count);
   ~PosixConditionHandle() override = default;
 
-  PosixConditionBase& condition() override { return handle_; }
+  PosixCondition<T>& condition() override { return handle_; }
   void* native_handle() const override { return handle_.native_handle(); }
 
  protected:
@@ -941,9 +1034,11 @@ class PosixThread : public PosixConditionHandle<Thread> {
 thread_local PosixThread* current_thread_ = nullptr;
 
 void* PosixCondition<Thread>::ThreadStartRoutine(void* parameter) {
+#if !XE_PLATFORM_ANDROID
   if (pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, nullptr) != 0) {
     assert_always();
   }
+#endif
   threading::set_name("");
 
   auto start_data = static_cast<ThreadStartData*>(parameter);
@@ -990,6 +1085,9 @@ std::unique_ptr<Thread> Thread::Create(CreationParameters params,
                                        std::function<void()> start_routine) {
   install_signal_handler(SignalType::kThreadSuspend);
   install_signal_handler(SignalType::kThreadUserCallback);
+#if XE_PLATFORM_ANDROID
+  install_signal_handler(SignalType::kThreadTerminate);
+#endif
   auto thread = std::make_unique<PosixThread>();
   if (!thread->Initialize(params, std::move(start_routine))) return nullptr;
   assert_not_null(thread);
@@ -1006,7 +1104,10 @@ Thread* Thread::GetCurrentThread() {
   pthread_t handle = pthread_self();
 
   current_thread_ = new PosixThread(handle);
-  atexit([] { delete current_thread_; });
+  // TODO(bwrsandman): Disabling deleting thread_local current thread to prevent
+  //                   assert in destructor. Since this is thread local, the
+  //                   "memory leaking" is controlled.
+  // atexit([] { delete current_thread_; });
 
   return current_thread_;
 }
@@ -1021,6 +1122,15 @@ void Thread::Exit(int exit_code) {
     // Should only happen with the main thread
     pthread_exit(reinterpret_cast<void*>(exit_code));
   }
+}
+
+void set_name(const std::string_view name) {
+  pthread_setname_np(pthread_self(), std::string(name).c_str());
+#if XE_PLATFORM_ANDROID
+  if (xe::platform::android::api_level() < 26 && current_thread_) {
+    current_thread_->condition().SetAndroidPreApi26Name(name);
+  }
+#endif
 }
 
 static void signal_handler(int signal, siginfo_t* info, void* /*context*/) {
@@ -1049,6 +1159,11 @@ static void signal_handler(int signal, siginfo_t* info, void* /*context*/) {
         p_thread->CallUserCallback();
       }
     } break;
+#if XE_PLATFORM_ANDROID
+    case SignalType::kThreadTerminate: {
+      pthread_exit(reinterpret_cast<void*>(-1));
+    } break;
+#endif
     default:
       assert_always();
   }

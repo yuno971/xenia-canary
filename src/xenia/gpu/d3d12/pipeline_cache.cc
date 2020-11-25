@@ -1285,7 +1285,7 @@ bool PipelineCache::GetCurrentStateDescription(
         uint32_t(regs.Get<reg::VGT_HOS_CNTL>().tess_mode);
   }
 
-  bool primitive_two_faced = xenos::IsPrimitiveTwoFaced(
+  bool primitive_polygonal = xenos::IsPrimitivePolygonal(
       host_vertex_shader_type != Shader::HostVertexShaderType::kVertex,
       primitive_type);
 
@@ -1305,16 +1305,11 @@ bool PipelineCache::GetCurrentStateDescription(
   // Here we also assume that only one side is culled - if two sides are culled,
   // the D3D12 command processor will drop such draw early.
   bool cull_front, cull_back;
-  if (primitive_two_faced) {
+  float poly_offset = 0.0f, poly_offset_scale = 0.0f;
+  if (primitive_polygonal) {
+    description_out.front_counter_clockwise = pa_su_sc_mode_cntl.face == 0;
     cull_front = pa_su_sc_mode_cntl.cull_front != 0;
     cull_back = pa_su_sc_mode_cntl.cull_back != 0;
-  } else {
-    cull_front = false;
-    cull_back = false;
-  }
-  float poly_offset = 0.0f, poly_offset_scale = 0.0f;
-  if (primitive_two_faced) {
-    description_out.front_counter_clockwise = pa_su_sc_mode_cntl.face == 0;
     if (cull_front) {
       description_out.cull_mode = PipelineCullMode::kFront;
     } else if (cull_back) {
@@ -1354,9 +1349,9 @@ bool PipelineCache::GetCurrentStateDescription(
       description_out.fill_mode_wireframe = 0;
     }
   } else {
-    // Filled front faces only.
-    // Use front depth bias if POLY_OFFSET_PARA_ENABLED
-    // (POLY_OFFSET_FRONT_ENABLED is for two-sided primitives).
+    // Filled front faces only, without culling.
+    cull_front = false;
+    cull_back = false;
     if (!edram_rov_used_ && pa_su_sc_mode_cntl.poly_offset_para_enable) {
       poly_offset = regs[XE_GPU_REG_PA_SU_POLY_OFFSET_FRONT_OFFSET].f32;
       poly_offset_scale = regs[XE_GPU_REG_PA_SU_POLY_OFFSET_FRONT_SCALE].f32;
@@ -1413,7 +1408,7 @@ bool PipelineCache::GetCurrentStateDescription(
       if (rb_depthcontrol.stencil_enable) {
         description_out.stencil_enable = 1;
         bool stencil_backface_enable =
-            primitive_two_faced && rb_depthcontrol.backface_enable;
+            primitive_polygonal && rb_depthcontrol.backface_enable;
         // Per-face masks not supported by Direct3D 12, choose the back face
         // ones only if drawing only back faces.
         Register stencil_ref_mask_reg;

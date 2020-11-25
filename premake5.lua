@@ -1,6 +1,9 @@
 include("tools/build")
 require("third_party/premake-export-compile-commands/export-compile-commands")
 require("third_party/premake-cmake/cmake")
+-- gmake required for androidmk.
+require("gmake")
+require("third_party/premake-androidmk/androidmk")
 
 location(build_root)
 targetdir(build_bin)
@@ -26,6 +29,8 @@ defines({
 })
 
 cppdialect("C++17")
+exceptionhandling("On")
+rtti("On")
 symbols("On")
 
 -- TODO(DrChat): Find a way to disable this on other architectures.
@@ -81,10 +86,15 @@ filter("configurations:Release")
   })
   optimize("Speed")
   inlining("Auto")
-  floatingpoint("Fast")
   flags({
     "LinkTimeOptimization",
   })
+  -- Not using floatingpoint("Fast") - NaN checks are used in some places
+  -- (though rarely), overall preferable to avoid any functional differences
+  -- between debug and release builds, and to have calculations involved in GPU
+  -- (especially anything that may affect vertex position invariance) and CPU
+  -- (such as constant propagation) emulation as predictable as possible,
+  -- including handling of specials since games make assumptions about them.
 filter("platforms:Linux")
   system("linux")
   toolset("clang")
@@ -138,6 +148,13 @@ filter({"platforms:Linux", "language:C++", "toolset:clang", "files:*.cc or *.cpp
     "-stdlib=libstdc++",
   })
 
+filter("platforms:Android")
+  system("android")
+  links({
+    "android",
+    "dl",
+  })
+
 filter("platforms:Windows")
   system("windows")
   toolset("msc")
@@ -189,18 +206,24 @@ end
 solution("xenia")
   uuid("931ef4b0-6170-4f7a-aaf2-0fece7632747")
   startproject("xenia-app")
-  architecture("x86_64")
-  if os.istarget("linux") then
-    platforms({"Linux"})
-  elseif os.istarget("windows") then
-    platforms({"Windows"})
-    -- 10.0.15063.0: ID3D12GraphicsCommandList1::SetSamplePositions.
-    -- 10.0.19041.0: D3D12_HEAP_FLAG_CREATE_NOT_ZEROED.
-    filter("action:vs2017")
-      systemversion("10.0.19041.0")
-    filter("action:vs2019")
-      systemversion("10.0")
-    filter({})
+  if os.istarget("android") then
+    -- Not setting architecture as that's handled by ndk-build itself.
+    platforms({"Android"})
+    ndkstl("c++_static")
+  else
+    architecture("x86_64")
+    if os.istarget("linux") then
+      platforms({"Linux"})
+    elseif os.istarget("windows") then
+      platforms({"Windows"})
+      -- 10.0.15063.0: ID3D12GraphicsCommandList1::SetSamplePositions.
+      -- 10.0.19041.0: D3D12_HEAP_FLAG_CREATE_NOT_ZEROED.
+      filter("action:vs2017")
+        systemversion("10.0.19041.0")
+      filter("action:vs2019")
+        systemversion("10.0")
+      filter({})
+    end
   end
   configurations({"Checked", "Debug", "Release"})
 
@@ -215,18 +238,15 @@ solution("xenia")
   include("third_party/imgui.lua")
   include("third_party/libav.lua")
   include("third_party/mspack.lua")
-  include("third_party/SDL2.lua")
   include("third_party/snappy.lua")
   include("third_party/spirv-tools.lua")
   include("third_party/volk.lua")
   include("third_party/xxhash.lua")
 
   include("src/xenia")
-  include("src/xenia/app")
   include("src/xenia/app/discord")
   include("src/xenia/apu")
   include("src/xenia/apu/nop")
-  include("src/xenia/apu/sdl")
   include("src/xenia/base")
   include("src/xenia/cpu")
   include("src/xenia/cpu/backend/x64")
@@ -234,16 +254,32 @@ solution("xenia")
   include("src/xenia/gpu")
   include("src/xenia/gpu/null")
   include("src/xenia/gpu/vulkan")
-  include("src/xenia/helper/sdl")
   include("src/xenia/hid")
   include("src/xenia/hid/nop")
-  include("src/xenia/hid/sdl")
   include("src/xenia/kernel")
   include("src/xenia/patcher")
   include("src/xenia/ui")
   include("src/xenia/ui/spirv")
   include("src/xenia/ui/vulkan")
   include("src/xenia/vfs")
+
+  if not os.istarget("android") then
+    -- SDL2 requires sdl2-config, and as of November 2020 isn't high-quality on
+    -- Android yet, most importantly in game controllers - the keycode and axis
+    -- enums are being ruined during conversion to SDL2 enums resulting in only
+    -- one controller (Nvidia Shield) being supported, digital triggers are also
+    -- not supported; lifecycle management (especially surface loss) is also
+    -- complicated.
+    include("third_party/SDL2.lua")
+
+    include("src/xenia/apu/sdl")
+    include("src/xenia/helper/sdl")
+    include("src/xenia/hid/sdl")
+
+    -- TODO(Triang3l): src/xenia/app has a dependency on xenia-helper-sdl, bring
+    -- it back later.
+    include("src/xenia/app")
+  end
 
   if os.istarget("windows") then
     include("src/xenia/apu/xaudio2")
