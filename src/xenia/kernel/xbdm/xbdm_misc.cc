@@ -53,7 +53,8 @@ MAKE_DUMMY_STUB_STATUS(DmGetThreadInfoEx);
 MAKE_DUMMY_STUB_STATUS(DmSetProfilingOptions);
 
 dword_result_t DmWalkLoadedModules(lpdword_t unk0_ptr, lpdword_t unk1_ptr) {
-  return X_STATUS_INVALID_PARAMETER;
+  // Some games will loop forever unless this code is returned
+  return 0x82DA0104;
 }
 DECLARE_XBDM_EXPORT1(DmWalkLoadedModules, kDebug, kStub);
 
@@ -100,9 +101,11 @@ dword_result_t DmRegisterCommandProcessor(dword_t r3, dword_t r4) {
 }
 DECLARE_XBDM_EXPORT1(DmRegisterCommandProcessor, kDebug, kStub);
 
-dword_result_t DmRegisterCommandProcessorEx(dword_t r3, dword_t r4,
-                                            dword_t r5) {
-  return X_ERROR_SUCCESS;
+dword_result_t DmRegisterCommandProcessorEx(lpdword_t name_ptr,
+                                            lpdword_t handler_fn,
+                                            dword_t unk3) {
+  // Return success to prevent some games from stalling
+  return X_STATUS_SUCCESS;
 }
 DECLARE_XBDM_EXPORT1(DmRegisterCommandProcessorEx, kDebug, kStub);
 
