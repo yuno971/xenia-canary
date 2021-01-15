@@ -17,6 +17,7 @@
 #include "xenia/kernel/kernel_state.h"
 #include "xenia/kernel/user_module.h"
 #include "xenia/kernel/xam/content_package.h"
+#include "xenia/kernel/xfile.h"
 #include "xenia/kernel/xobject.h"
 #include "xenia/vfs/devices/host_path_device.h"
 #include "xenia/vfs/devices/stfs_container_device.h"
@@ -231,6 +232,7 @@ X_RESULT ContentManager::CloseContent(const std::string_view root_name) {
       return X_ERROR_SUCCESS;
     }
   }
+  CloseOpenedFilesFromContent(root_name);
 
   return X_ERROR_FILE_NOT_FOUND;
 }
@@ -287,6 +289,26 @@ std::filesystem::path ContentManager::ResolveGameUserContentPath() {
   // Per-game per-profile data location:
   // content_root/title_id/profile/user_name
   return root_path_ / title_id / kGameUserContentDirName / user_name;
+}
+
+void ContentManager::CloseOpenedFilesFromContent(
+    const std::string_view root_name) {
+  const std::vector<object_ref<XFile>> all_files_handles =
+      kernel_state_->object_table()->GetObjectsByType<XFile>(
+          XObject::Type::File);
+
+  std::string resolved_path = "";
+  kernel_state_->file_system()->FindSymbolicLink(std::string(root_name) + ':',
+                                                 resolved_path);
+
+  for (const object_ref<XFile>& file : all_files_handles) {
+    std::string file_path = file->entry()->absolute_path();
+    file_path = file_path.substr(0, file_path.find_last_of('\\') + 1);
+
+    if (file_path == resolved_path) {
+      file->ReleaseHandle();
+    }
+  }
 }
 
 }  // namespace xam

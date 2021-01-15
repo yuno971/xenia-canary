@@ -132,6 +132,7 @@ class ContentManager {
                                std::vector<uint8_t> buffer);
   X_RESULT DeleteContent(const XCONTENT_DATA& data);
   std::filesystem::path ResolveGameUserContentPath();
+  void CloseOpenedFilesFromContent(const std::string_view root_name);
 
   void SetTitleIdOverride(uint32_t title_id) { title_id_override_ = title_id; }
 
