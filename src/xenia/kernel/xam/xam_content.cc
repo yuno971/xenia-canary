@@ -202,11 +202,14 @@ dword_result_t xeXamContentCreate(dword_t user_index, lpstring_t root_name,
       *disposition_ptr = disposition;
     }
 
-    if (create) {
-      result = content_manager->CreateContent(root_name.value(), content_data);
-    } else if (open) {
-      result = content_manager->OpenContent(root_name.value(), content_data);
+  if (create) {
+    result = content_manager->CreateContent(root_name.value(), content_data);
+    if (XSUCCEEDED(result)) {
+      content_manager->WriteContentHeaderFile(&content_data);
     }
+  } else if (open) {
+    result = content_manager->OpenContent(root_name.value(), content_data);
+  }
 
     if (license_mask_ptr && XSUCCEEDED(result)) {
       *license_mask_ptr = 0;  // Stub!
