@@ -477,7 +477,8 @@ dword_result_t NtRemoveIoCompletion(
     status = X_STATUS_INVALID_HANDLE;
   }
 
-  uint64_t timeout_ticks = timeout ? static_cast<uint32_t>(*timeout) : 0u;
+  uint64_t timeout_ticks = timeout ? static_cast<uint32_t>(*timeout)
+                                   : std::numeric_limits<int64_t>::min();
   XIOCompletion::IONotification notification;
   if (port->WaitForNotification(timeout_ticks, &notification)) {
     if (key_context) {
@@ -492,12 +493,7 @@ dword_result_t NtRemoveIoCompletion(
       io_status_block->information = notification.num_bytes;
     }
   } else {
-    // TODO(Gliniak): We're returning X_STATUS_SUCCESS here instead of
-    // X_STATUS_TIMEOUT due to timing issues between threads when subthread
-    // execute NtRemoveIoCompletion before mainthread execute NtSetIoCompletion
-    // Returning X_STATUS_SUCCESS suprisingly doesn't bother titles that uses
-    // this function, but X_STATUS_TIMEOUT causes them to lock
-    status = X_STATUS_SUCCESS;
+    status = X_STATUS_TIMEOUT;
   }
 
   return status;
