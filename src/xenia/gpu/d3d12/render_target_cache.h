@@ -18,6 +18,7 @@
 #include "xenia/gpu/d3d12/d3d12_shared_memory.h"
 #include "xenia/gpu/d3d12/texture_cache.h"
 #include "xenia/gpu/draw_util.h"
+#include "xenia/gpu/gpu_flags.h"
 #include "xenia/gpu/register_file.h"
 #include "xenia/gpu/trace_writer.h"
 #include "xenia/gpu/xenos.h"
@@ -259,12 +260,16 @@ class RenderTargetCache {
   void Shutdown();
   void ClearCache();
 
+  flags::DepthFloat24Conversion depth_float24_conversion() const {
+    return depth_float24_conversion_;
+  }
+
   void CompletedSubmissionUpdated();
   void BeginSubmission();
   void EndFrame();
   // Called in the beginning of a draw call - may bind pipelines and change the
   // view descriptor heap.
-  bool UpdateRenderTargets(const D3D12Shader* pixel_shader);
+  bool UpdateRenderTargets(uint32_t shader_writes_color_targets);
   // Returns the host-to-guest mappings and host formats of currently bound
   // render targets for pipeline creation and remapping in shaders. They are
   // consecutive, and format DXGI_FORMAT_UNKNOWN terminates the list. Depth
@@ -272,17 +277,14 @@ class RenderTargetCache {
   const PipelineRenderTarget* GetCurrentPipelineRenderTargets() const {
     return current_pipeline_render_targets_;
   }
+
   // Performs the resolve to a shared memory area according to the current
   // register values, and also clears the EDRAM buffer if needed. Must be in a
   // frame for calling.
-
   bool Resolve(const Memory& memory, D3D12SharedMemory& shared_memory,
                TextureCache& texture_cache, uint32_t& written_address_out,
                uint32_t& written_length_out);
 
-  bool Resolve(D3D12SharedMemory* shared_memory, TextureCache* texture_cache,
-               Memory* memory, uint32_t& written_address_out,
-               uint32_t& written_length_out);
   // Flushes the render targets to EDRAM and unbinds them, for instance, when
   // the command processor takes over framebuffer bindings to draw something
   // special. May change the CBV/SRV/UAV descriptor heap.
@@ -321,6 +323,7 @@ class RenderTargetCache {
     kColor7e3,
     kDepthUnorm,
     kDepthFloat,
+    kDepthFloat24And32,
 
     kCount
   };
@@ -399,37 +402,6 @@ class RenderTargetCache {
     RenderTarget* render_target;
   };
 
-  // Converting resolve pipeline.
-  struct ResolvePipeline {
-    ID3D12PipelineState* pipeline;
-    DXGI_FORMAT dest_format;
-  };
-
-  union ResolveTargetKey {
-    struct {
-      // 2560 / 32 = 80 (7 bits), * 2 for 2x resolution scale = 160 (8 bits).
-      uint32_t width_div_32 : 8;
-      uint32_t height_div_32 : 8;
-      DXGI_FORMAT format : 16;
-    };
-    uint32_t value;
-  };
-
-  // Target for converting resolves.
-  struct ResolveTarget {
-    ID3D12Resource* resource;
-    D3D12_RESOURCE_STATES state;
-    D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle;
-    ResolveTargetKey key;
-#if 0
-    // The first 4 MB page in the heaps.
-    uint32_t heap_page_first;
-#endif
-    D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint;
-    // Buffer size needed to copy the resolve target to a linear buffer.
-    uint32_t copy_buffer_size;
-  };
-
   uint32_t GetEdramBufferSize() const;
 
   void TransitionEdramBuffer(D3D12_RESOURCE_STATES new_state);
@@ -458,7 +430,7 @@ class RenderTargetCache {
                                          uint32_t instance);
 #endif
 
-  static EdramLoadStoreMode GetLoadStoreMode(bool is_depth, uint32_t format);
+  EdramLoadStoreMode GetLoadStoreMode(bool is_depth, uint32_t format) const;
 
   // Must be in a frame to call. Stores the dirty areas of the currently bound
   // render targets and marks them as clean.
@@ -470,23 +442,14 @@ class RenderTargetCache {
                                   RenderTarget* const* render_targets,
                                   const uint32_t* edram_bases);
 
-  // Returns any available resolve target placed at least at
-  // min_heap_first_page, or tries to place it at the specified position (if not
-  // possible, will place it in the next heap).
-#if 0
-  ResolveTarget* FindOrCreateResolveTarget(uint32_t width, uint32_t height,
-                                           DXGI_FORMAT format,
-                                           uint32_t min_heap_first_page);
-#else
-  ResolveTarget* FindOrCreateResolveTarget(uint32_t width, uint32_t height,
-                                           DXGI_FORMAT format);
-#endif
-
   D3D12CommandProcessor& command_processor_;
   const RegisterFile& register_file_;
   TraceWriter& trace_writer_;
   bool bindless_resources_used_;
   bool edram_rov_used_;
+
+  // 20e4 depth conversion mode to use for non-ROV output.
+  flags::DepthFloat24Conversion depth_float24_conversion_;
 
   // Whether 1 guest pixel is rendered as 2x2 host pixels (currently only
   // supported with ROV).

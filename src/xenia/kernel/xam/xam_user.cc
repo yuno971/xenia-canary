@@ -37,14 +37,14 @@ dword_result_t XamProfileCreateEnumerator(dword_t device_id,
   auto e =
       new XStaticEnumerator(kernel_state(), 1, sizeof(X_PROFILEENUMRESULT));
 
-  e->Initialize();
+  e->Initialize(0xFF, 0xFF, 0x23001, 0x23003, 1);
 
   const auto& user_profile = kernel_state()->user_profile();
 
   X_PROFILEENUMRESULT* profile = (X_PROFILEENUMRESULT*)e->AppendItem();
   memset(profile, 0, sizeof(X_PROFILEENUMRESULT));
   profile->xuid_offline = user_profile->xuid();
-  profile->device_id = 0xF00D0000;
+  profile->device_id = 0x00000001;
 
   auto tag = to_utf16(user_profile->name());
   xe::copy_and_swap<char16_t>(profile->account.gamertag, tag.c_str(),
@@ -655,7 +655,7 @@ dword_result_t XamUserCreateAchievementEnumerator(dword_t title_id,
 
   auto e = new XStaticEnumerator(kernel_state(), count,
                                  sizeof(X_XACHIEVEMENT_DETAILS));
-  e->Initialize();
+  e->Initialize(user_index, 0xFB, 0xB000A, 0xB000B, 0);
 
   *handle_ptr = e->handle();
 

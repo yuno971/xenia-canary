@@ -15,8 +15,8 @@
 #include "xenia/base/filesystem.h"
 #include "xenia/base/string.h"
 #include "xenia/kernel/kernel_state.h"
-#include "xenia/kernel/xam/content_package.h"
 #include "xenia/kernel/user_module.h"
+#include "xenia/kernel/xam/content_package.h"
 #include "xenia/kernel/xobject.h"
 #include "xenia/vfs/devices/host_path_device.h"
 #include "xenia/vfs/devices/stfs_container_device.h"
@@ -67,8 +67,8 @@ std::filesystem::path ContentManager::ResolvePackagePath(
 
   if (!std::filesystem::exists(package_path) ||
       entry.type == filesystem::FileInfo::Type::kDirectory) {
-  // Add slash to end of path if this is a folder
-  // (or package doesn't exist, meaning we're creating a new folder)
+    // Add slash to end of path if this is a folder
+    // (or package doesn't exist, meaning we're creating a new folder)
     package_path += xe::kPathSeparator;
   }
   return package_path;

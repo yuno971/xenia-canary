@@ -32,7 +32,7 @@ struct patchDataEntry {
 
 struct patchInfoEntry {
   uint32_t id;
-  XXH64_state_t hash_state;  // Unsupported. For now.
+  //XXH64_state_t hash_state;  // Unsupported. For now.
   std::string patch_name;
   std::string patch_desc;
   std::string patch_author;

@@ -62,13 +62,15 @@ namespace xe {
 
 Emulator::Emulator(const std::filesystem::path& command_line,
                    const std::filesystem::path& storage_root,
-                   const std::filesystem::path& content_root)
+                   const std::filesystem::path& content_root,
+                   const std::filesystem::path& cache_root)
     : on_launch(),
       on_terminate(),
       on_exit(),
       command_line_(command_line),
       storage_root_(storage_root),
       content_root_(content_root),
+      cache_root_(cache_root),
       game_title_(),
       display_window_(nullptr),
       memory_(),
@@ -187,7 +189,10 @@ X_STATUS Emulator::Setup(
   if (input_driver_factory) {
     auto input_drivers = input_driver_factory(display_window_);
     for (size_t i = 0; i < input_drivers.size(); ++i) {
-      input_system_->AddDriver(std::move(input_drivers[i]));
+      auto& input_driver = input_drivers[i];
+      input_driver->set_is_active_callback(
+          []() -> bool { return !xe::kernel::xam::xeXamIsUIActive(); });
+      input_system_->AddDriver(std::move(input_driver));
     }
   }
 
@@ -771,7 +776,7 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
   // playing before the video can be seen if doing this in parallel with the
   // main thread.
   on_shader_storage_initialization(true);
-  graphics_system_->InitializeShaderStorage(storage_root_, title_id_, true);
+  graphics_system_->InitializeShaderStorage(cache_root_, title_id_, true);
   on_shader_storage_initialization(false);
 
   auto main_thread = kernel_state_->LaunchModule(module);

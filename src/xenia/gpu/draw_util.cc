@@ -111,9 +111,82 @@ int32_t FloatToD3D11Fixed16p8(float f32) {
   return result.s;
 }
 
+bool IsRasterizationPotentiallyDone(const RegisterFile& regs,
+                                    bool primitive_polygonal) {
+  // TODO(Triang3l): Investigate ModeControl::kIgnore better, with respect to
+  // sample counting. Let's assume sample counting is a part of depth / stencil,
+  // thus disabled too.
+  xenos::ModeControl edram_mode = regs.Get<reg::RB_MODECONTROL>().edram_mode;
+  if (edram_mode != xenos::ModeControl::kColorDepth &&
+      edram_mode != xenos::ModeControl::kDepth) {
+    return false;
+  }
+  if (regs.Get<reg::SQ_PROGRAM_CNTL>().vs_export_mode ==
+          xenos::VertexShaderExportMode::kMultipass ||
+      !regs.Get<reg::RB_SURFACE_INFO>().surface_pitch) {
+    return false;
+  }
+  if (primitive_polygonal) {
+    auto pa_su_sc_mode_cntl = regs.Get<reg::PA_SU_SC_MODE_CNTL>();
+    if (pa_su_sc_mode_cntl.cull_front && pa_su_sc_mode_cntl.cull_back) {
+      // Both faces are culled.
+      return false;
+    }
+  }
+  return true;
+}
+
+bool IsPixelShaderNeededWithRasterization(const Shader& shader,
+                                          const RegisterFile& regs) {
+  assert_true(shader.type() == xenos::ShaderType::kPixel);
+  assert_true(shader.is_ucode_analyzed());
+
+  // See xenos::ModeControl for explanation why the pixel shader is only used
+  // when it's kColorDepth here.
+  if (regs.Get<reg::RB_MODECONTROL>().edram_mode !=
+      xenos::ModeControl::kColorDepth) {
+    return false;
+  }
+
+  // Discarding (explicitly or through alphatest or alpha to coverage) has side
+  // effects on pixel counting.
+  //
+  // Depth output only really matters if depth test is active, but it's used
+  // extremely rarely, and pretty much always intentionally - for simplicity,
+  // consider it as always mattering.
+  //
+  // Memory export is an obvious intentional side effect.
+  if (shader.kills_pixels() || shader.writes_depth() ||
+      !shader.memexport_stream_constants().empty() ||
+      (shader.writes_color_target(0) &&
+       DoesCoverageDependOnAlpha(regs.Get<reg::RB_COLORCONTROL>()))) {
+    return true;
+  }
+
+  // Check if a color target is actually written.
+  uint32_t rb_color_mask = regs[XE_GPU_REG_RB_COLOR_MASK].u32;
+  uint32_t rts_remaining = shader.writes_color_targets();
+  uint32_t rt_index;
+  while (xe::bit_scan_forward(rts_remaining, &rt_index)) {
+    rts_remaining &= ~(uint32_t(1) << rt_index);
+    uint32_t format_component_count = GetColorRenderTargetFormatComponentCount(
+        regs.Get<reg::RB_COLOR_INFO>(
+                reg::RB_COLOR_INFO::rt_register_indices[rt_index])
+            .color_format);
+    if ((rb_color_mask >> (rt_index * 4)) &
+        ((uint32_t(1) << format_component_count) - 1)) {
+      return true;
+    }
+  }
+
+  // Only depth / stencil passthrough potentially.
+  return false;
+}
+
 void GetHostViewportInfo(const RegisterFile& regs, float pixel_size_x,
                          float pixel_size_y, bool origin_bottom_left,
                          float x_max, float y_max, bool allow_reverse_z,
+                         bool convert_z_to_float24,
                          ViewportInfo& viewport_info_out) {
   assert_true(pixel_size_x >= 1.0f);
   assert_true(pixel_size_y >= 1.0f);
@@ -227,6 +300,7 @@ void GetHostViewportInfo(const RegisterFile& regs, float pixel_size_x,
       ndc_offset_y = 0.0f;
     }
   } else {
+    viewport_top = 0.0f;
     viewport_height = std::min(
         float(xenos::kTexture2DCubeMaxWidthHeight) * pixel_size_y, y_max);
     ndc_scale_y = (2.0f * pixel_size_y) / viewport_height;
@@ -269,6 +343,18 @@ void GetHostViewportInfo(const RegisterFile& regs, float pixel_size_x,
     ndc_scale_z = -ndc_scale_z;
     ndc_offset_z = 1.0f - ndc_offset_z;
   }
+  if (convert_z_to_float24 &&
+      GetDepthControlForCurrentEdramMode(regs).z_enable &&
+      regs.Get<reg::RB_DEPTH_INFO>().depth_format ==
+          xenos::DepthRenderTargetFormat::kD24FS8) {
+    // Need to adjust the bounds that the resulting depth values will be clamped
+    // to after the pixel shader. Preferring adding some error to interpolated Z
+    // instead if conversion can't be done exactly, without modifying clipping
+    // bounds by adjusting Z in vertex shaders, as that may cause polygons
+    // placed explicitly at Z = 0 or Z = W to be clipped.
+    viewport_z_min = xenos::Float20e4To32(xenos::Float32To20e4(viewport_z_min));
+    viewport_z_max = xenos::Float20e4To32(xenos::Float32To20e4(viewport_z_max));
+  }
 
   viewport_info_out.left = viewport_left;
   viewport_info_out.top = viewport_top;
@@ -304,6 +390,20 @@ void GetScissor(const RegisterFile& regs, Scissor& scissor_out) {
     br_y = uint32_t(std::max(
         int32_t(br_y) + pa_sc_window_offset.window_y_offset, int32_t(0)));
   }
+  // Clamp the horizontal scissor to surface_pitch for safety, in case that's
+  // not done by the guest for some reason (it's not when doing draws completely
+  // without a viewport, for instance), to prevent overflow - this is important
+  // for host implementations, both based on target-indepedent rasterization
+  // without render target width at all (pixel shader interlocks-based custom RB
+  // implementations) and using conventional render targets, but padded to EDRAM
+  // tiles.
+  uint32_t surface_pitch = regs.Get<reg::RB_SURFACE_INFO>().surface_pitch;
+  tl_x = std::min(tl_x, surface_pitch);
+  br_x = std::min(br_x, surface_pitch);
+  // Ensure the rectangle is non-negative, by collapsing it into a 0-sized one
+  // (not by reordering the bounds preserving the width / height, which would
+  // reveal samples not meant to be covered, unless TL > BR does that on a real
+  // console, but no evidence of such has ever been seen).
   br_x = std::max(br_x, tl_x);
   br_y = std::max(br_y, tl_y);
   scissor_out.left = tl_x;
