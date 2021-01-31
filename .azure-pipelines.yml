@@ -27,18 +27,10 @@ pool:
   vmImage: windows-latest
 variables:
   POWERSHELL_TELEMETRY_OPTOUT: 1
-strategy:
-  matrix:
-    AVX:
-      cpu_arch: AVX
-    AVX2:
-      cpu_arch: AVX2
-    AVX512:
-      cpu_arch: AVX512
 steps:
 - pwsh: .\xb setup
   displayName: Setup
-- pwsh: .\xb build --cpu_arch=$(cpu_arch) --target=src\xenia-app --target=src\xenia-vfs-dump
+- pwsh: .\xb build --target=src\xenia-app --target=src\xenia-vfs-dump
   displayName: Build
 - pwsh: |-
     robocopy . build\bin\Windows\Release                                                                                               LICENSE /r:0 /w:0
@@ -47,9 +39,8 @@ steps:
     If ($LastExitCode -le 7) { echo "LastExitCode = $LastExitCode";$LastExitCode = 0 }
   displayName: Prepare artifacts
 - publish: $(Build.ArtifactStagingDirectory)\xenia_canary
-  artifact: xenia_canary_$(cpu_arch)
+  artifact: xenia_canary
   displayName: Publish xenia_canary artifacts
 - publish: $(Build.ArtifactStagingDirectory)\xenia-vfs-dump_canary
-  condition: and(succeeded(), eq(variables['Agent.JobName'], 'AVX'))
   artifact: xenia-vfs-dump_canary
   displayName: Publish xenia-vfs-dump_canary artifacts
