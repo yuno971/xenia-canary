@@ -24,13 +24,19 @@ dword_result_t XamPartyGetUserList(dword_t player_count, lpdword_t party_list) {
 }
 DECLARE_XAM_EXPORT1(XamPartyGetUserList, kNone, kStub);
 
-dword_result_t XamPartySendGameInvites() { return X_ERROR_FUNCTION_FAILED; }
+dword_result_t XamPartySendGameInvites(dword_t r3, dword_t r4, dword_t r5) {
+  return X_ERROR_FUNCTION_FAILED;
+}
 DECLARE_XAM_EXPORT1(XamPartySendGameInvites, kNone, kStub);
 
-dword_result_t XamPartySetCustomData() { return X_ERROR_FUNCTION_FAILED; }
+dword_result_t XamPartySetCustomData(dword_t r3, dword_t r4, dword_t r5) {
+  return X_ERROR_FUNCTION_FAILED;
+}
 DECLARE_XAM_EXPORT1(XamPartySetCustomData, kNone, kStub);
 
-dword_result_t XamPartyGetBandwidth() { return X_ERROR_FUNCTION_FAILED; }
+dword_result_t XamPartyGetBandwidth(dword_t r3, dword_t r4) {
+  return X_ERROR_FUNCTION_FAILED;
+}
 DECLARE_XAM_EXPORT1(XamPartyGetBandwidth, kNone, kStub);
 
 void RegisterPartyExports(xe::cpu::ExportResolver* export_resolver,
