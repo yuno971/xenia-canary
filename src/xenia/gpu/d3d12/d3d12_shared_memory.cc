@@ -427,6 +427,15 @@ bool D3D12SharedMemory::UploadRanges(
       }
       MakeRangeValid(upload_range_start << page_size_log2(),
                      uint32_t(upload_buffer_size), false, false);
+
+      // I know this is asking for problems, however as a temporary solution it is good enough.
+      // Xenia goes brrr randomly
+      if (IsBadHugeReadPtr(memory().TranslatePhysical(upload_range_start
+                                                      << page_size_log2()),
+                           upload_buffer_size)) {
+        return true;
+      }
+
       std::memcpy(
           upload_buffer_mapping,
           memory().TranslatePhysical(upload_range_start << page_size_log2()),
