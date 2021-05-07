@@ -183,12 +183,9 @@ dword_result_t XamContentCreateEx(dword_t user_index, lpstring_t root_name,
   // 2 = opened
   uint32_t disposition = create ? 1 : 2;
   if (disposition_ptr) {
-    if (overlapped_ptr) {
-      // If async always set to zero, but don't set to a real value.
-      *disposition_ptr = 0;
-    } else {
-      *disposition_ptr = disposition;
-    }
+    // In case when overlapped_ptr exist we should clear disposition_ptr first
+    // however we're executing it immediately, so it's not required
+    *disposition_ptr = disposition;
   }
 
   if (create) {
@@ -202,8 +199,12 @@ dword_result_t XamContentCreateEx(dword_t user_index, lpstring_t root_name,
   }
 
   if (overlapped_ptr) {
-    kernel_state()->CompleteOverlappedImmediateEx(overlapped_ptr, result, 0,
-                                                  disposition);
+    X_RESULT extended_error = X_HRESULT_FROM_WIN32(result);
+    if (int32_t(extended_error) < 0) {
+      result = X_ERROR_FUNCTION_FAILED;
+    }
+    kernel_state()->CompleteOverlappedImmediateEx(overlapped_ptr, result,
+                                                  extended_error, disposition);
     return X_ERROR_IO_PENDING;
   } else {
     return result;
