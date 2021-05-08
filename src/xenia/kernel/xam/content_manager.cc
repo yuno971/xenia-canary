@@ -37,6 +37,7 @@ ContentPackage::ContentPackage(KernelState* kernel_state,
                                const std::filesystem::path& package_path)
     : kernel_state_(kernel_state), root_name_(root_name) {
   device_path_ = fmt::format("\\Device\\Content\\{0}\\", ++content_device_id_);
+  content_data_ = data;
 
   auto fs = kernel_state_->file_system();
   auto device =
@@ -311,6 +312,11 @@ X_RESULT ContentManager::SetContentThumbnail(const ContentData& data,
 X_RESULT ContentManager::DeleteContent(const ContentData& data) {
   auto global_lock = global_critical_region_.Acquire();
 
+  if (IsContentOpen(data)) {
+    // TODO(Gliniak): Get real error code for this case.
+    return X_ERROR_ACCESS_DENIED;
+  }
+
   auto package_path = ResolvePackagePath(data);
   if (std::filesystem::remove_all(package_path) > 0) {
     return X_ERROR_SUCCESS;
@@ -346,6 +352,13 @@ void ContentManager::CloseOpenedFilesFromContent(
       file->ReleaseHandle();
     }
   }
+}
+
+bool ContentManager::IsContentOpen(const ContentData& data) const {
+  return std::any_of(open_packages_.cbegin(), open_packages_.cend(),
+                     [data](std::pair<string_key, ContentPackage*> content) {
+                       return data == content.second->GetPackageContentData();
+                     });
 }
 
 }  // namespace xam
