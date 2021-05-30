@@ -716,6 +716,10 @@ void BaseHeap::DumpMap() {
   }
 }
 
+uint32_t BaseHeap::GetUsedPageCount() {
+  return GetTotalPageCount() - GetUnreservedPageCount();
+}
+
 uint32_t BaseHeap::GetTotalPageCount() { return uint32_t(page_table_.size()); }
 
 uint32_t BaseHeap::GetUnreservedPageCount() {
@@ -741,6 +745,19 @@ uint32_t BaseHeap::GetUnreservedPageCount() {
   }
   if (is_empty_span) {
     count += size - empty_span_start;
+  }
+  return count;
+}
+
+uint32_t BaseHeap::GetReservedPageCount() {
+  auto global_lock = global_critical_region_.Acquire();
+  uint32_t count = 0;
+  uint32_t size = uint32_t(page_table_.size());
+  for (uint32_t i = 0; i < size; ++i) {
+    auto& page = page_table_[i];
+    if (page.state & kMemoryAllocationReserve) {
+      count++;
+    }
   }
   return count;
 }
