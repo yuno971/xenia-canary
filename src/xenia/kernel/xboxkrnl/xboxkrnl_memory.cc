@@ -495,33 +495,24 @@ dword_result_t MmQueryStatistics(
   stats_ptr->total_physical_pages = 0x00020000;  // 512mb / 4kb pages
   stats_ptr->kernel_pages = 0x00000300;
 
-  // TODO(gibbed): maybe use LookupHeapByType instead?
-  auto heap_a = kernel_memory()->LookupHeap(0xA0000000);
-  auto heap_c = kernel_memory()->LookupHeap(0xC0000000);
-  auto heap_e = kernel_memory()->LookupHeap(0xE0000000);
-
-  assert_not_null(heap_a);
-  assert_not_null(heap_c);
-  assert_not_null(heap_e);
-
-#define GET_USED_PAGE_COUNT(x) \
-  (x->GetTotalPageCount() - x->GetUnreservedPageCount())
-#define GET_USED_PAGE_SIZE(x) ((GET_USED_PAGE_COUNT(x) * x->page_size()) / 4096)
+  constexpr uint32_t heap_page_sizes[3] = {0x1000, 0x10000, 0x1000000};
   uint32_t used_pages = 0;
-  used_pages += GET_USED_PAGE_SIZE(heap_a);
-  used_pages += GET_USED_PAGE_SIZE(heap_c);
-  used_pages += GET_USED_PAGE_SIZE(heap_e);
-#undef GET_USED_PAGE_SIZE
-#undef GET_USED_PAGE_COUNT
+  uint32_t reserved_pages_bytes = 0;
+
+  for (size_t i = 0; i < std::size(heap_page_sizes); i++) {
+    xe::BaseHeap* heap =
+        kernel_memory()->LookupHeapByType(true, heap_page_sizes[i]);
+    assert_not_null(heap);
+
+    used_pages += (heap->GetUsedPageCount() * heap->page_size()) / 4096;
+    reserved_pages_bytes += heap->GetReservedPageCount() * heap->page_size();
+  }
 
   assert_true(used_pages < stats_ptr->total_physical_pages);
-
   stats_ptr->title.available_pages =
-      stats_ptr->total_physical_pages - used_pages;
-  stats_ptr->title.total_virtual_memory_bytes =
-      0x2FFF0000;  // TODO(gibbed): FIXME
-  stats_ptr->title.reserved_virtual_memory_bytes =
-      0x00160000;                                // TODO(gibbed): FIXME
+      stats_ptr->total_physical_pages - stats_ptr->kernel_pages - used_pages;
+  stats_ptr->title.total_virtual_memory_bytes = 0x2FFE0000;
+  stats_ptr->title.reserved_virtual_memory_bytes = reserved_pages_bytes;
   stats_ptr->title.physical_pages = 0x00001000;  // TODO(gibbed): FIXME
   stats_ptr->title.pool_pages = 0x00000010;
   stats_ptr->title.stack_pages = 0x00000100;
