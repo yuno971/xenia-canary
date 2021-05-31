@@ -593,7 +593,7 @@ std::string find_name_from_path(const std::string_view path,
   }
 
   // path is just separator
-  if (it == begin) {
+  if (it == begin && *it == uint32_t(separator)) {
     return std::string();
   }
 
