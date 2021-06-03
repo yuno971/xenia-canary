@@ -45,6 +45,8 @@ class Window;
 
 namespace xe {
 
+constexpr fourcc_t kEmulatorSaveSignature = make_fourcc("XSAV");
+
 // The main type that runs the whole emulator.
 // This is responsible for initializing and managing all the various subsystems.
 class Emulator {

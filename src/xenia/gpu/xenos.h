@@ -15,6 +15,7 @@
 #include "xenia/base/assert.h"
 #include "xenia/base/byte_order.h"
 #include "xenia/base/math.h"
+#include "xenia/base/memory.h"
 #include "xenia/base/platform.h"
 
 namespace xe {
@@ -26,6 +27,8 @@ namespace xenos {
 // different alignment than the previous one, so only 32-bit types must be used
 // in bit fields (registers are 32-bit, and the microcode consists of triples of
 // 32-bit words).
+
+constexpr fourcc_t kSwapSignature = make_fourcc("SWAP");
 
 enum class ShaderType : uint32_t {
   kVertex = 0,
@@ -476,8 +479,6 @@ enum class TextureFormat : uint32_t {
   k_DXT3A_AS_1_1_1_1 = 61,
   k_8_8_8_8_GAMMA_EDRAM = 62,
   k_2_10_10_10_FLOAT_EDRAM = 63,
-
-  kUnknown = 0xFFFFFFFFu,
 };
 
 // Subset of a2xx_sq_surfaceformat - formats that RTs can be resolved to.
@@ -1228,14 +1229,14 @@ struct alignas(uint32_t) xe_gpu_depth_sample_counts {
   // This is little endian as it is swapped in D3D code.
   // Corresponding A and B values are summed up by D3D.
   // Occlusion there is calculated by substracting begin from end struct.
-  uint32_t Total_A;
-  uint32_t Total_B;
-  uint32_t ZFail_A;
-  uint32_t ZFail_B;
-  uint32_t ZPass_A;
-  uint32_t ZPass_B;
-  uint32_t StencilFail_A;
-  uint32_t StencilFail_B;
+  le<uint32_t> Total_A;
+  le<uint32_t> Total_B;
+  le<uint32_t> ZFail_A;
+  le<uint32_t> ZFail_B;
+  le<uint32_t> ZPass_A;
+  le<uint32_t> ZPass_B;
+  le<uint32_t> StencilFail_A;
+  le<uint32_t> StencilFail_B;
 };
 static_assert_size(xe_gpu_depth_sample_counts, sizeof(uint32_t) * 8);
 

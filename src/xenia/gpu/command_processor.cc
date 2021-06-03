@@ -824,8 +824,8 @@ bool CommandProcessor::ExecutePacketType3_XE_SWAP(RingBuffer* reader,
   // VdSwap will post this to tell us we need to swap the screen/fire an
   // interrupt.
   // 63 words here, but only the first has any data.
-  uint32_t magic = reader->ReadAndSwap<uint32_t>();
-  assert_true(magic == 'SWAP');
+  uint32_t magic = reader->ReadAndSwap<fourcc_t>();
+  assert_true(magic == kSwapSignature);
 
   // TODO(benvanik): only swap frontbuffer ptr.
   uint32_t frontbuffer_ptr = reader->ReadAndSwap<uint32_t>();
@@ -1145,6 +1145,7 @@ bool CommandProcessor::ExecutePacketType3_EVENT_WRITE_EXT(RingBuffer* reader,
 bool CommandProcessor::ExecutePacketType3_EVENT_WRITE_ZPD(RingBuffer* reader,
                                                           uint32_t packet,
                                                           uint32_t count) {
+  // Set by D3D as BE but struct ABI is LE
   const uint32_t kQueryFinished = xe::byte_swap(0xFFFFFEED);
   assert_true(count == 1);
   uint32_t initiator = reader->ReadAndSwap<uint32_t>();
