@@ -334,26 +334,6 @@ std::filesystem::path ContentManager::ResolveGameUserContentPath() {
   return root_path_ / title_id / kGameUserContentDirName / user_name;
 }
 
-void ContentManager::CloseOpenedFilesFromContent(
-    const std::string_view root_name) {
-  const std::vector<object_ref<XFile>> all_files_handles =
-      kernel_state_->object_table()->GetObjectsByType<XFile>(
-          XObject::Type::File);
-
-  std::string resolved_path = "";
-  kernel_state_->file_system()->FindSymbolicLink(std::string(root_name) + ':',
-                                                 resolved_path);
-
-  for (const object_ref<XFile>& file : all_files_handles) {
-    std::string file_path = file->entry()->absolute_path();
-    file_path = file_path.substr(0, file_path.find_last_of('\\') + 1);
-
-    if (file_path == resolved_path) {
-      file->ReleaseHandle();
-    }
-  }
-}
-
 bool ContentManager::IsContentOpen(const ContentData& data) const {
   return std::any_of(open_packages_.cbegin(), open_packages_.cend(),
                      [data](std::pair<string_key, ContentPackage*> content) {
