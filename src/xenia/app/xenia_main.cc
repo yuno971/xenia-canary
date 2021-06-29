@@ -194,11 +194,9 @@ std::vector<std::unique_ptr<hid::InputDriver>> CreateInputDrivers(
     drivers.emplace_back(xe::hid::nop::Create(window));
   } else {
     Factory<hid::InputDriver, ui::Window*> factory;
-#if XE_PLATFORM_WIN32
-    factory.Add("xinput", xe::hid::xinput::Create);
-#endif  // XE_PLATFORM_WIN32
     factory.Add("sdl", xe::hid::sdl::Create);
 #if XE_PLATFORM_WIN32
+    factory.Add("xinput", xe::hid::xinput::Create);
     // WinKey input driver should always be the last input driver added!
     factory.Add("winkey", xe::hid::winkey::Create);
 #endif  // XE_PLATFORM_WIN32
