@@ -386,6 +386,11 @@ dword_result_t MmAllocatePhysicalMemoryEx(dword_t flags, dword_t region_size,
     // Failed - assume no memory available.
     return 0;
   }
+  if (min_addr_range.value() - heap_physical_address_offset ==
+      (base_address & 0x1FFFFFFF)) {
+    base_address += heap_physical_address_offset;
+  }
+
   XELOGD("MmAllocatePhysicalMemoryEx = {:08X}", base_address);
 
   return base_address;
