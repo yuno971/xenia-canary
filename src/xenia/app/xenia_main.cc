@@ -203,7 +203,7 @@ std::vector<std::unique_ptr<hid::InputDriver>> CreateInputDrivers(
     factory.Add("winkey", xe::hid::winkey::Create);
 #endif  // XE_PLATFORM_WIN32
     for (auto& driver : factory.CreateAll(cvars::hid, window)) {
-      if (XSUCCEEDED(driver->Setup())) {
+      if (XSUCCEEDED(driver->Setup(drivers))) {
         drivers.emplace_back(std::move(driver));
       }
     }
