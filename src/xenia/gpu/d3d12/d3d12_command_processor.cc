@@ -2018,7 +2018,7 @@ bool D3D12CommandProcessor::IssueDraw(xenos::PrimitiveType primitive_type,
       case xenos::FetchConstantType::kVertex:
         break;
       case xenos::FetchConstantType::kTexture:
-        break;
+        continue;
       case xenos::FetchConstantType::kInvalidVertex:
         if (cvars::gpu_allow_invalid_fetch_constants) {
           break;
@@ -2036,10 +2036,8 @@ bool D3D12CommandProcessor::IssueDraw(xenos::PrimitiveType primitive_type,
             vfetch_index, vfetch_constant.dword_0, vfetch_constant.dword_1);
         return false;
     }
-    if (!shared_memory_->RequestRange(
-            (vfetch_constant.address << 2) &
-                (xe::gpu::SharedMemory::kBufferSize - 1),
-            vfetch_constant.size << 2)) {
+    if (!shared_memory_->RequestRange(vfetch_constant.address << 2,
+                                      vfetch_constant.size << 2)) {
       XELOGE(
           "Failed to request vertex buffer at 0x{:08X} (size {}) in the shared "
           "memory",
