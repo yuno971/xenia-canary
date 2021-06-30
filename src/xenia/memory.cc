@@ -534,7 +534,7 @@ uint32_t Memory::SystemHeapAlloc(uint32_t size, uint32_t alignment,
   uint32_t address;
   if (!heap->Alloc(size, alignment,
                    kMemoryAllocationReserve | kMemoryAllocationCommit,
-                   kMemoryProtectRead | kMemoryProtectWrite, false, &address)) {
+                   kMemoryProtectRead | kMemoryProtectWrite, true, &address)) {
     return 0;
   }
   Zero(address, size);
