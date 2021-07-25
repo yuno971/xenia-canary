@@ -133,13 +133,15 @@ dword_result_t xeXamContentCreate(dword_t user_index, lpstring_t root_name,
     return X_ERROR_INVALID_PARAMETER;
   }
 
+  auto root_name_str = root_name.value();
   auto content_manager = kernel_state()->content_manager();
 
   if (overlapped_ptr && disposition_ptr) {
     *disposition_ptr = 0;
   }
 
-  auto run = [content_manager, root_name, flags, content_data, disposition_ptr,
+  auto run = [content_manager, root_name_str, flags, content_data,
+              disposition_ptr,
               license_mask_ptr](uint32_t& extended_error,
                                 uint32_t& length) -> X_RESULT {
     X_RESULT result = X_ERROR_INVALID_PARAMETER;
@@ -202,14 +204,16 @@ dword_result_t xeXamContentCreate(dword_t user_index, lpstring_t root_name,
       *disposition_ptr = disposition;
     }
 
-  if (create) {
-    result = content_manager->CreateContent(root_name.value(), content_data);
-    if (XSUCCEEDED(result)) {
-      content_manager->WriteContentHeaderFile(&content_data);
+    if (create) {
+      result =
+          content_manager->CreateContent(root_name_str, content_data);
+      if (XSUCCEEDED(result)) {
+        content_manager->WriteContentHeaderFile(&content_data);
+      }
+    } else if (open) {
+      result =
+          content_manager->OpenContent(root_name_str, content_data);
     }
-  } else if (open) {
-    result = content_manager->OpenContent(root_name.value(), content_data);
-  }
 
     if (license_mask_ptr && XSUCCEEDED(result)) {
       *license_mask_ptr = 0;  // Stub!
