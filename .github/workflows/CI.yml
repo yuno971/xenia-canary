@@ -26,8 +26,6 @@ jobs:
     runs-on: windows-latest
     env:
       POWERSHELL_TELEMETRY_OPTOUT: 1
-    strategy:
-      fail-fast: false
     steps:
     - uses: actions/checkout@v2
       with:
