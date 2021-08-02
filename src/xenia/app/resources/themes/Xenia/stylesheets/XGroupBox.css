@@ -3,7 +3,7 @@ QGroupBox {
   border: transparent;
   border-radius: 2px;
   /* leave space at the top for the title */
-  margin: 20px 4px 4px 4px;
+  margin: 24px 4px 4px 4px;
   color: $primary;
   font-family: "Segoe UI Semibold";
   font-size: 14px;
