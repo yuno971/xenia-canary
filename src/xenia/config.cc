@@ -37,7 +37,7 @@ Config& Config::Instance() {
   return config;
 }
 
-Config::Config() : options_("xenia", "Xbox 30 Emulator") {
+Config::Config() : options_("xenia", "Xbox 360 Emulator") {
   
 }
 
