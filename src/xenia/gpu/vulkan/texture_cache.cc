@@ -968,7 +968,7 @@ void TextureCache::FlushPendingCommands(VkCommandBuffer command_buffer,
         vkQueueSubmit(device_queue_, 1, &submit_info, completion_fence);
     CheckResult(status, "vkQueueSubmit");
   } else {
-    std::lock_guard<std::mutex>(device_->primary_queue_mutex());
+    std::lock_guard<std::mutex> lock(device_->primary_queue_mutex());
 
     auto status = vkQueueSubmit(device_->primary_queue(), 1, &submit_info,
                                 completion_fence);
@@ -1351,7 +1351,7 @@ void TextureCache::WritebackTexture(Texture* texture) {
   // Submit the command buffer.
   // Submit commands and wait.
   {
-    std::lock_guard<std::mutex>(device_->primary_queue_mutex());
+    std::lock_guard<std::mutex> lock(device_->primary_queue_mutex());
     VkSubmitInfo submit_info = {
         VK_STRUCTURE_TYPE_SUBMIT_INFO,
         nullptr,
