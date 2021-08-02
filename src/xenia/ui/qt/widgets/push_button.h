@@ -16,6 +16,8 @@ class XPushButton : public Themeable<QPushButton> {
   XPushButton(const QIcon& icon, const QString& text,
               QWidget* parent = nullptr);
 
+  void SetIconFromGlyph(QChar glyph, QColor color = Qt::white, int size = 64);
+
  private:
   void Build();
 };
