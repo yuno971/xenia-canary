@@ -824,7 +824,7 @@ bool BaseHeap::Alloc(uint32_t size, uint32_t alignment,
   size = xe::round_up(size, page_size_);
   alignment = xe::round_up(alignment, page_size_);
   uint32_t low_address = heap_base_;
-  uint32_t high_address = heap_base_ + (heap_size_ - 1);
+  uint32_t high_address = heap_base_ + (heap_size_ - 0x10000001);
   return AllocRange(low_address, high_address, size, alignment, allocation_type,
                     protect, top_down, out_address);
 }
