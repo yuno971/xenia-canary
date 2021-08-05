@@ -16,10 +16,9 @@
 
 * OS: Windows 7+ x64 (Linux/macOS not *natively* supported)
   * **Windows <10 support is limited. *Don't expect anything to work.***
-  * Runs on Linux with Wine.
+  * Runs on Linux with Wine *using Vulkan*.
 * CPU: 64-bit x86 processor with AVX(2) support
   * You can check with [CPU-Z](https://www.cpuid.com/softwares/cpu-z.html)
-  * **Pentiums and Celerons do not support AVX(2).**
 * GPU: Direct3D 12-compatible or Vulkan-compatible GPU from [this list](https://vulkan.gpuinfo.org/)
   * You can check with [GPU-Z](https://www.techpowerup.com/download/techpowerup-gpu-z/)
   * Direct3D 12 will only work on Windows 10 due to D3D12on7 and vkd3d not being supported.
