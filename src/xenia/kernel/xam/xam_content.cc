@@ -133,6 +133,10 @@ dword_result_t xeXamContentCreate(dword_t user_index, lpstring_t root_name,
     return X_ERROR_INVALID_PARAMETER;
   }
 
+  if (content_data.title_id == -1) {
+    content_data.title_id = kernel_state()->title_id();
+  }
+
   auto root_name_str = root_name.value();
   auto content_manager = kernel_state()->content_manager();
 
