@@ -277,16 +277,19 @@ uint32_t xeXamUserReadProfileSettingsEx(uint32_t title_id, uint32_t user_index,
     auto setting = user_profile->GetSetting(setting_id);
 
     std::memset(out_setting, 0, sizeof(X_USER_READ_PROFILE_SETTING));
-    out_setting->from = !setting || !setting->is_set   ? 0
-                        : setting->is_title_specific() ? 2
-                                                       : 1;
+
+    out_setting->from = 0;
     out_setting->user_index = static_cast<uint32_t>(user_index);
     out_setting->setting_id = setting_id;
 
-    if (setting && setting->is_set) {
-      buffer_offset =
-          setting->Append(&out_setting->setting_data[0], buffer_ptr,
-                          buffer_ptr.guest_address(), buffer_offset);
+    if (setting) {
+      out_setting->from = 1;
+      if (setting->is_set) {
+        out_setting->from = setting->is_title_specific() ? 2 : 1;
+        buffer_offset =
+            setting->Append(&out_setting->setting_data[0], buffer_ptr,
+                            buffer_ptr.guest_address(), buffer_offset);
+      }
     }
     // TODO(benvanik): why did I do this?
     /*else {
