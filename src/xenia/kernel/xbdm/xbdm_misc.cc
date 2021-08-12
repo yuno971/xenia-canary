@@ -45,10 +45,15 @@ MAKE_DUMMY_STUB_STATUS(DmGetXboxName);
 dword_result_t DmIsDebuggerPresent() { return 0; }
 DECLARE_XBDM_EXPORT1(DmIsDebuggerPresent, kDebug, kStub);
 
-MAKE_DUMMY_STUB_STATUS(DmRegisterCommandProcessor);
-
 void DmSendNotificationString(lpdword_t unk0_ptr) {}
 DECLARE_XBDM_EXPORT1(DmSendNotificationString, kDebug, kStub);
+
+dword_result_t DmRegisterCommandProcessor(lpdword_t name_ptr,
+                                          lpdword_t handler_fn) {
+  // Return success to prevent some games from crashing
+  return X_STATUS_SUCCESS;
+}
+DECLARE_XBDM_EXPORT1(DmRegisterCommandProcessor, kDebug, kStub);
 
 dword_result_t DmRegisterCommandProcessorEx(lpdword_t name_ptr,
                                             lpdword_t handler_fn,
