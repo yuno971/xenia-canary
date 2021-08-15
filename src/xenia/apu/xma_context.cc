@@ -320,7 +320,7 @@ void XmaContext::Decode(XMA_CONTEXT_DATA* data) {
 
   // No available data.
   if (!data->input_buffer_0_valid && !data->input_buffer_1_valid) {
-    data->output_buffer_valid = 0;
+    data->input_buffer_read_offset = 0x20;
     return;
   }
 
@@ -387,6 +387,7 @@ void XmaContext::Decode(XMA_CONTEXT_DATA* data) {
   // Decode until we can't write any more data.
   while (output_remaining_bytes > 0) {
     if (!data->input_buffer_0_valid && !data->input_buffer_1_valid) {
+      data->input_buffer_read_offset += 0x20;
       // Out of data.
       break;
     }
