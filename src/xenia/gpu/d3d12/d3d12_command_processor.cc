@@ -46,6 +46,11 @@ DEFINE_bool(d3d12_submit_on_primary_buffer_end, true,
             "Submit the command list when a PM4 primary buffer ends if it's "
             "possible to submit immediately to try to reduce frame latency.",
             "D3D12");
+DEFINE_uint32(d3d12_clear_shared_memory_cache_every_nth_frame, 0,
+              "Allows game to clear shared memory cache to enable character "
+              "models refresh in specific games.\n0 = Disabled\n1 or more = "
+              "Refresh every n-th frame",
+              "D3D12");
 
 namespace xe {
 namespace gpu {
@@ -2501,6 +2506,8 @@ void D3D12CommandProcessor::CheckSubmissionFence(uint64_t await_submission) {
   render_target_cache_->CompletedSubmissionUpdated();
 }
 
+static uint32_t frame_per_cache_clear = 0;
+
 void D3D12CommandProcessor::BeginSubmission(bool is_guest_command) {
 #if XE_UI_D3D12_FINE_GRAINED_DRAW_SCOPES
   SCOPE_profile_cpu_f("gpu");
@@ -2711,6 +2718,15 @@ bool D3D12CommandProcessor::EndSubmission(bool is_swap) {
     // Submission already closed now, so minus 1.
     closed_frame_submissions_[(frame_current_++) % kQueueFrames] =
         submission_current_ - 1;
+
+    if (cvars::d3d12_clear_shared_memory_cache_every_nth_frame) {
+      if (++frame_per_cache_clear >=
+              cvars::d3d12_clear_shared_memory_cache_every_nth_frame &&
+          AwaitAllQueueOperationsCompletion()) {
+        frame_per_cache_clear = 0;
+        shared_memory_->ClearCache();
+      }
+    }
 
     if (cache_clear_requested_ && AwaitAllQueueOperationsCompletion()) {
       cache_clear_requested_ = false;
