@@ -5,13 +5,10 @@
 
 #include "xenia/base/cvar.h"
 #include "xenia/config.h"
+#include "xenia/app/settings/settings.h"
 #include "xenia/ui/qt/themeable_widget.h"
+#include "xenia/ui/qt/settings/settings_widget_factory.h"
 #include "xenia/config.h"
-#include "xenia/ui/qt/settings/widgets/settings_widget.h"
-#include "xenia/ui/qt/settings/widgets/settings_radio_button.h"
-#include "xenia/ui/qt/settings/widgets/settings_combobox.h"
-#include "xenia/ui/qt/settings/widgets/settings_text_edit.h"
-#include "xenia/ui/qt/settings/widgets/settings_checkbox.h"
 
 namespace xe {
 namespace ui {
@@ -19,6 +16,9 @@ namespace qt {
 
 class SettingsPane : public Themeable<QWidget> {
   Q_OBJECT
+
+  using SettingsGroup = xe::app::settings::SettingsGroup;
+
  public:
   explicit SettingsPane(QChar glyph, const QString& title,
                         QWidget* parent = nullptr)
@@ -37,7 +37,6 @@ class SettingsPane : public Themeable<QWidget> {
 
  protected:
   void set_widget(QWidget* widget) { widget_ = widget; }
-
 
  private:
   QChar glyph_;

@@ -15,12 +15,6 @@ class GeneralPane : public SettingsPane {
   explicit GeneralPane() : SettingsPane(0xE713, "General") {}
 
   void Build() override;
-
- private:
-  XGroupBox* CreateGeneralGroupBox();
-  XGroupBox* CreateUpdateGroupBox();
-  XGroupBox* CreateWindowGroupBox();
-  XGroupBox* CreateLogGroupBox();
 };
 
 }  // namespace qt

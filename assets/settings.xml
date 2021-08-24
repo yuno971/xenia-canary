@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Sets>
+    <Set name="General" icon="">
+        <Group name="General Settings">
+            <MultiChoiceSetting>
+                <title>Game Language</title>
+                <description>Choose the language for launched games (does not apply to the UI)</description>
+                <type>int</type>
+                <cvar>user_language</cvar>
+                <options>
+                    <option>
+                        <title>English</title>
+                        <value>1</value>
+                    </option>
+                    <option>
+                        <title>Japanese</title>
+                        <value>2</value>
+                    </option>
+                    <option>
+                        <title>German</title>
+                        <value>3</value>
+                    </option>
+                    <option>
+                        <title>French</title>
+                        <value>4</value>
+                    </option>
+                    <option>
+                        <title>Spanish</title>
+                        <value>5</value>
+                    </option>
+                    <option>
+                        <title>Italian</title>
+                        <value>6</value>
+                    </option>
+                    <option>
+                        <title>Korean</title>
+                        <value>7</value>
+                    </option>
+                    <option>
+                        <title>Chinese (Traditional)</title>
+                        <value>8</value>
+                    </option>
+                    <option>
+                        <title>Portuguese</title>
+                        <value>9</value>
+                    </option>
+                    <option>
+                        <title>Polish</title>
+                        <value>11</value>
+                    </option>
+                    <option>
+                        <title>Russian</title>
+                        <value>12</value>
+                    </option>
+                    <option>
+                        <title>Slovenian</title>
+                        <value>13</value>
+                    </option>
+                    <option>
+                        <title>Turkish</title>
+                        <value>14</value>
+                    </option>
+                    <option>
+                        <title>Norwegian</title>
+                        <value>15</value>
+                    </option>
+                    <option>
+                        <title>Dutch</title>
+                        <value>16</value>
+                    </option>
+                    <option>
+                        <title>Chinese (Simplified)</title>
+                        <value>17</value>
+                    </option>
+                </options>
+            </MultiChoiceSetting>
+            <BooleanSetting>
+                <title>Discord Rich Presence</title>
+                <description>Enable Discord Rich Presence in Xenia</description>
+                <cvar>discord</cvar>
+            </BooleanSetting>
+            <BooleanSetting>
+                <title>Show game Icon in Taskbar</title>
+                <description>Show the currently loaded game's icon in the Taskbar</description>
+                <cvar>taskbar_show_game_icon</cvar>
+            </BooleanSetting>
+            <BooleanSetting>
+                <title>Launch Games in New Window</title>
+                <description>Launch games in their own separate window</description>
+                <cvar>launch_external_window</cvar>
+            </BooleanSetting>
+            <BooleanSetting>
+                <title>Launch Games Fullscreen</title>
+                <description>Launched games start in fullscreen mode</description>
+                <cvar>fullscreen</cvar>
+            </BooleanSetting>
+        </Group>
+        <Group name="Logging">
+            <BooleanSetting>
+                <title>Enable Logging</title>
+                <description>Disable or enable logging</description>
+                <cvar>logging</cvar>
+            </BooleanSetting>
+            <BooleanSetting>
+                <title>Show Log Window</title>
+                <description>Enable to show a new log window</description>
+                <cvar>log_window</cvar>
+            </BooleanSetting>
+            <MultiChoiceSetting>
+                <title>Log Level</title>
+                <description>Choose the level of logging to record to the log file</description>
+                <cvar>log_level</cvar>
+                <type>int</type>
+                <options>
+                    <option>
+                        <title>Error</title>
+                        <value>0</value>
+                    </option>
+                    <option>
+                        <title>Warning</title>
+                        <value>1</value>
+                    </option>
+                    <option>
+                        <title>Info</title>
+                        <value>2</value>
+                    </option>
+                    <option>
+                        <title>Debug</title>
+                        <value>3</value>
+                    </option>
+                </options>
+            </MultiChoiceSetting>
+            <PathInputSetting>
+                <title>Log Location</title>
+                <description>Enter the directory to write log files to</description>
+                <cvar>log_file</cvar>
+            </PathInputSetting>
+        </Group>
+    </Set>
+    <Set name="CPU" icon="">
+
+    </Set>
+    <Set name="Graphics" icon="">
+        
+    </Set>
+    <Set name="Audio" icon="">
+        
+    </Set>
+    <Set name="Library" icon="">
+        
+    </Set>
+    <Set name="Interface" icon="">
+        
+    </Set>
+    <Set name="Controls" icon="">
+        
+    </Set>
+    <Set name="Advanced" icon="">
+        
+    </Set>
+</Sets>

@@ -3,8 +3,6 @@
 #include <QLabel>
 #include <QVBoxLayout>
 
-#include "xenia/ui/qt/settings/widgets/settings_checkbox.h"
-#include "xenia/ui/qt/settings/widgets/settings_groupbox.h"
 #include "xenia/ui/qt/widgets/combobox.h"
 #include "xenia/ui/qt/widgets/groupbox.h"
 #include "xenia/ui/qt/widgets/scroll_area.h"
@@ -39,44 +37,16 @@ void GeneralPane::Build() {
   layout->setSpacing(16);
   layout->setContentsMargins(32, 16, 32, 16);
 
-  // Add settings groupboxes to layout
-  layout->addWidget(CreateGeneralGroupBox());
-  layout->addWidget(CreateUpdateGroupBox());
-  layout->addWidget(CreateWindowGroupBox());
-  layout->addWidget(CreateLogGroupBox());
+  auto settings_factory = SettingsWidgetFactory();
+  auto settings_widget = settings_factory.BuildSettingsWidget("General");
+
+  layout->addWidget(settings_widget);
+
   layout->addStretch();
 
   set_widget(scroll_area);
 }
 
-XGroupBox* GeneralPane::CreateGeneralGroupBox() {
-  auto groupbox = new SettingsGroupBox("General Settings");
-
-  auto& config = Config::Instance();
-  auto discord_cvar = config.FindConfigVar(cvars::discord);
-  auto discord_checkbox = groupbox->CreateCheckBox("Discord Rich Presence", discord_cvar);
-
-  discord_checkbox->set_update_config_fn(
-      [discord_checkbox](bool value, cvar::ConfigVar<bool>& cvar) {
-        cvar.set_config_value(value);
-        discord_checkbox->UpdateLabel(
-            tr("Please restart xenia for this change to take effect."));
-      });
-
-  return groupbox;
-}
-
-XGroupBox* GeneralPane::CreateUpdateGroupBox() {
-  return new XGroupBox("Update Settings");
-}
-
-XGroupBox* GeneralPane::CreateWindowGroupBox() {
-  return new XGroupBox("Window Settings");
-}
-
-XGroupBox* GeneralPane::CreateLogGroupBox() {
-  return new XGroupBox("Log Settings");
-}
 
 }  // namespace qt
 }  // namespace ui

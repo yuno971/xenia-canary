@@ -28,6 +28,7 @@
 #include "xenia/base/logging.h"
 #include "xenia/config.h"
 #include "xenia/ui/qt/loop_qt.h"
+#include "xenia/app/settings/settings.h"
 
 #if XE_PLATFORM_WIN32 && QT_STATIC
 Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin);
@@ -105,6 +106,17 @@ int xenia_main(const std::vector<std::string>& args) {
   XELOGI("Storage root: {}", xe::path_to_utf8(storage_root));
 
   Config::Instance().SetupConfig(storage_root);
+
+  auto& settings = settings::Settings::Instance();
+  settings.LoadSettingsItems(); // required to be called in main() as requires cvars to be loaded already
+
+  for (const auto& set : settings.settings()) {
+    XELOGI("Found settings set {}", set.title);
+
+    for (const auto& group : set.groups) {
+      XELOGI("Found settings group {0} in set {1}", group.title, set.title);
+    }
+  }
 
   if (cvars::discord) {
     discord::DiscordPresence::Initialize();

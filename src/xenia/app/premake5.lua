@@ -23,6 +23,8 @@ project("xenia-app")
     "spirv-tools",
     "volk",
     "xenia-app-discord",
+    "xenia-app-library",
+    "xenia-app-settings",
     "xenia-apu",
     "xenia-apu-nop",
     "xenia-apu-sdl",
@@ -130,7 +132,7 @@ project("xenia-app")
     "XBYAK_NO_OP_NAMES",
     "XBYAK_ENABLE_OMITTED_OPERAND",
   })
-  recursive_platform_files()
+  local_platform_files()
   files({
     "xenia_main.cc",
     "../base/main_"..platform_suffix..".cc",

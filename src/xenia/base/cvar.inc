@@ -83,7 +83,7 @@ void CommandVar<T>::UpdateValue() {
 template <class T>
 void ConfigVar<T>::UpdateValue() {
   if (this->command_line_value()) {
-    return this->set_config_value(*this->command_line_value());
+    return this->set_current_value(*this->command_line_value());
   }
   if (game_config_value_) return this->set_current_value(*game_config_value_);
   if (config_value_) return this->set_current_value(*config_value_);

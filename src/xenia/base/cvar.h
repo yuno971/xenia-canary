@@ -218,17 +218,18 @@ CommandVar<T>* register_commandvar(std::string_view name, T* default_value,
                     requires_restart, type)                                   \
   namespace xe::cvars {                                                       \
   type name = default_value;                                                  \
-  static auto cv_##name = xe::cvar::register_configvar<type>(                 \
-      #name, &cvars::name, description, category, is_transient,               \
-      requires_restart);                                                      \
+  extern "C" xe::cvar::ConfigVar<type>* cv_##name =                               \
+      xe::cvar::register_configvar<type>(#name, &cvars::name, description,    \
+                                         category, is_transient,              \
+                                         requires_restart);                   \
   }  // namespace cvars
 
 // CmdVars can only be strings for now, we don't need any others
-#define CmdVar(name, default_value, description)                          \
-  namespace xe::cvars {                                                   \
-  std::string name = default_value;                                       \
-  static auto cmdvar_##name = xe::cvar::register_commandvar<std::string>( \
-      #name, &cvars::name, description);                                  \
+#define CmdVar(name, default_value, description)                   \
+  namespace xe::cvars {                                            \
+  std::string name = default_value;                                \
+  auto cmdvar_##name = xe::cvar::register_commandvar<std::string>( \
+      #name, &cvars::name, description);                           \
   }  // namespace cvars
 
 #define DECLARE_bool(name) DECLARE_CVar(name, bool)
@@ -243,9 +244,10 @@ CommandVar<T>* register_commandvar(std::string_view name, T* default_value,
 
 #define DECLARE_path(name) DECLARE_CVar(name, std::filesystem::path)
 
-#define DECLARE_CVar(name, type) \
-  namespace xe::cvars {          \
-  extern type name;              \
+#define DECLARE_CVar(name, type)               \
+  namespace xe::cvars {                        \
+  extern type name;                            \
+  extern "C" xe::cvar::ConfigVar<type>* cv_##name; \
   }
 
 // load template implementations

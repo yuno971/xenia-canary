@@ -15,6 +15,7 @@ import re
 import shutil
 import subprocess
 import sys
+from functools import partial
 
 __author__ = 'ben.vanik@gmail.com (Ben Vanik)'
 
@@ -263,6 +264,33 @@ def generate_version_h():
     with open('build/version.h', 'w') as f:
         f.write(contents)
 
+def generate_embedded_file_h(out_file, in_file, data_name):
+    n = 0
+    with open(in_file, "rb") as in_file:
+        c_file = open(out_file, "w")
+        static_content = '''
+#ifndef XENIA_EMBEDDED_{0}_H_
+#define XENIA_EMBEDDED_{0}_H_
+ 
+namespace xe {{
+namespace embedded {{
+unsigned char {1}_data[] = {{'''.format(data_name.upper(), data_name)
+        array_content = ""
+        for c in iter(partial(in_file.read, 1), b''):
+            array_content += ("0x%02X," % ord(c))
+            n += 1
+            if n % 16 == 0:
+                array_content += "\n"
+        array_content = array_content[:len(array_content)-1]
+        final_content = static_content + "\n" + array_content + "\n" + '''
+};
+}  // embedded
+}  // xe
+#endif  // XENIA_EMBEDDED_{0}_H_'''
+        c_file.write(final_content)
+
+def embed_settings():
+    generate_embedded_file_h("build/settings.h", "assets/settings.xml", "settings")
 
 def git_submodule_update():
     """Runs a full recursive git submodule init and update.
@@ -346,6 +374,7 @@ def run_premake(target_os, action, cc=None):
 
     if ret == 0:
         generate_version_h()
+        embed_settings()
 
     return ret
 
