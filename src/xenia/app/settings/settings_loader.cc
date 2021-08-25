@@ -27,62 +27,6 @@ static std::string_view valid_node_types[] = {
 static std::string_view valid_multi_choice_types[] = {
     "int", "int32", "int64", "uint", "uint32", "uint64", "double", "string"};
 
-template <>
-SettingsLoader::Option<int32_t> SettingsLoader::LoadMultiChoiceOption<int32_t>(
-    const pugi::xml_node& node) {
-  std::string title = node.child("title").text().as_string();
-  int32_t value = node.child("value").text().as_int();
-  return Option<int32_t>{title, value};
-}
-
-template <>
-SettingsLoader::Option<int64_t> SettingsLoader::LoadMultiChoiceOption<int64_t>(
-    const pugi::xml_node& node) {
-  std::string title = node.child("title").text().as_string();
-  int64_t value = node.child("value").text().as_llong();
-  return Option<int64_t>{title, value};
-}
-
-template <>
-SettingsLoader::Option<uint32_t>
-SettingsLoader::LoadMultiChoiceOption<uint32_t>(const pugi::xml_node& node) {
-  std::string title = node.child("title").text().as_string();
-  uint32_t value = node.child("value").text().as_uint();
-  return Option<uint32_t>{title, value};
-}
-
-template <>
-SettingsLoader::Option<uint64_t>
-SettingsLoader::LoadMultiChoiceOption<uint64_t>(const pugi::xml_node& node) {
-  std::string title = node.child("title").text().as_string();
-  uint64_t value = node.child("value").text().as_ullong();
-  return Option<uint64_t>{title, value};
-}
-
-template <>
-SettingsLoader::Option<double> SettingsLoader::LoadMultiChoiceOption<double>(
-    const pugi::xml_node& node) {
-  std::string title = node.child("title").text().as_string();
-  double value = node.child("value").text().as_double();
-  return Option<double>{title, value};
-}
-
-template <>
-SettingsLoader::Option<std::string>
-SettingsLoader::LoadMultiChoiceOption<std::string>(const pugi::xml_node& node) {
-  std::string title = node.child("title").text().as_string();
-  std::string value = node.child("value").text().as_string();
-  return Option<std::string>{title, value};
-}
-
-void SettingsLoader::AddSetting(std::unique_ptr<ISettingsItem>&& item,
-                                const std::string& group,
-                                const std::string& set) {
-  auto& settings_set = settings_.FindOrCreateSettingsSet(set);
-  auto& settings_group = settings_set.FindOrCreateSettingsGroup(group);
-  settings_group.AddItem(std::move(item));
-}
-
 bool SettingsLoader::LoadSettingsFromEmbeddedXml() {
   constexpr size_t size = sizeof(xe::embedded::settings_data);
   std::array<uint8_t, size> settings_buf;
@@ -174,16 +118,23 @@ std::unique_ptr<ISettingsItem> SettingsLoader::LoadSettingsItemFromXmlNode(
       std::string_view multi_choice_type = *node_found;
 
       if (multi_choice_type == "int" || multi_choice_type == "int32") {
-        std::vector<Option<int32_t>> values;
-        for (const auto& option_node : node.child("options").children()) {
-          values.push_back(LoadMultiChoiceOption<int32_t>(option_node));
-        }
+        return LoadMultiChoiceSetting<int32_t>(title, description, cvar, node);
       }
       if (multi_choice_type == "int64") {
-        std::vector<Option<int64_t>> values;
-        for (const auto& option_node : node.child("options").children()) {
-          values.push_back(LoadMultiChoiceOption<int64_t>(option_node));
-        }
+        return LoadMultiChoiceSetting<int64_t>(title, description, cvar, node);
+      }
+      if (multi_choice_type == "uint" || multi_choice_type == "uint64") {
+        return LoadMultiChoiceSetting<uint32_t>(title, description, cvar, node);
+      }
+      if (multi_choice_type == "uint64") {
+        return LoadMultiChoiceSetting<uint64_t>(title, description, cvar, node);
+      }
+      if (multi_choice_type == "double") {
+        return LoadMultiChoiceSetting<double>(title, description, cvar, node);
+      }
+      if (multi_choice_type == "string") {
+        return LoadMultiChoiceSetting<std::string>(title, description, cvar,
+                                                   node);
       }
     }
   } else {
@@ -191,6 +142,14 @@ std::unique_ptr<ISettingsItem> SettingsLoader::LoadSettingsItemFromXmlNode(
   }
 
   return nullptr;
+}
+
+void SettingsLoader::AddSetting(std::unique_ptr<ISettingsItem>&& item,
+                                const std::string& group,
+                                const std::string& set) {
+  settings_.FindOrCreateSettingsSet(set)
+      .FindOrCreateSettingsGroup(group)
+      .AddItem(std::move(item));
 }
 
 void SettingsLoader::AddBooleanInputSetting(std::string title,

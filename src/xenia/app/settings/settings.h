@@ -203,7 +203,7 @@ class IMultiChoiceSettingsItem : public ISettingsItem {
       : ISettingsItem(SettingsType::MultiChoice, title, description) {}
 
   virtual bool UpdateIndex(int index) = 0;
-  virtual const std::vector<std::string>& option_names() const = 0;
+  virtual std::vector<std::string> option_names() const = 0;
 };
 
 template <typename T>
@@ -239,6 +239,14 @@ class MultiChoiceSettingsItem : public IMultiChoiceSettingsItem {
       }
     }
     return false;
+  }
+
+  std::vector<std::string> option_names() const override {
+    std::vector<std::string> names;
+    std::transform(options_.begin(), options_.end(),
+                          std::back_inserter(names),
+                          [](const Option& opt) { return opt.title; });
+    return names;
   }
 
  private:

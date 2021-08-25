@@ -87,7 +87,12 @@ class SettingsLoader {
       const pugi::xml_node& node);
 
   template <typename T>
-  Option<T> LoadMultiChoiceOption(const pugi::xml_node& option_node);
+  std::unique_ptr<MultiChoiceSettingsItem<T>> LoadMultiChoiceSetting(
+      const std::string& title, const std::string& description,
+      IConfigVar* cvar, const pugi::xml_node& node);
+
+  template <typename T>
+  std::vector<Option<T>> LoadMultiChoiceOptions(const pugi::xml_node& node);
 
   Settings& settings_;
 };
@@ -116,6 +121,46 @@ void SettingsLoader::AddMultiChoiceInputSetting(
   } else {
     XELOGE("Could not find cvar named {}", cvar_name);
   }
+}
+
+template <typename T>
+std::unique_ptr<MultiChoiceSettingsItem<T>>
+SettingsLoader::LoadMultiChoiceSetting(const std::string& title,
+                                       const std::string& description,
+                                       IConfigVar* cvar,
+                                       const pugi::xml_node& node) {
+  std::vector<Option<T>> options =
+      SettingsLoader::LoadMultiChoiceOptions<T>(node);
+  return std::make_unique<MultiChoiceSettingsItem<T>>(
+      title, description, options, dynamic_cast<ConfigVar<T>*>(cvar));
+}
+
+template <typename T>
+std::vector<SettingsLoader::Option<T>> SettingsLoader::LoadMultiChoiceOptions(
+    const pugi::xml_node& node) {
+  std::vector<SettingsLoader::Option<T>> vector;
+  for (const auto& option_node : node.child("options").children()) {
+    std::string title = option_node.child("title").text().as_string();
+    T value;
+    if constexpr (std::is_same_v<T, int32_t>) {
+      value = option_node.child("value").text().as_int();
+    } else if constexpr (std::is_same_v<T, uint32_t>) {
+      value = option_node.child("value").text().as_uint();
+    } else if constexpr (std::is_same_v<T, int64_t>) {
+      value = option_node.child("value").text().as_llong();
+    } else if constexpr (std::is_same_v<T, uint64_t>) {
+      value = option_node.child("value").text().as_ullong();
+    } else if constexpr (std::is_same_v<T, double>) {
+      value = option_node.child("value").text().as_double();
+    } else if constexpr (std::is_same_v<T, std::string>) {
+      value = option_node.child("value").text().as_string();
+    } else {
+      static_assert(false, "Type for multi choice option not valid")
+    }
+    vector.push_back(Option<T>{title, value});
+  }
+
+  return vector;
 }
 
 }  // namespace settings
