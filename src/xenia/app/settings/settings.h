@@ -204,6 +204,7 @@ class IMultiChoiceSettingsItem : public ISettingsItem {
 
   virtual bool UpdateIndex(int index) = 0;
   virtual std::vector<std::string> option_names() const = 0;
+  virtual int current_index() const = 0;
 };
 
 template <typename T>
@@ -241,11 +242,34 @@ class MultiChoiceSettingsItem : public IMultiChoiceSettingsItem {
     return false;
   }
 
+  const Option& current_option() const {
+    T* value = cvar_->current_value();
+    for (const auto& option : options_) {
+      if (option.value == *value) {
+        return option;
+      }
+    }
+
+    throw std::runtime_error("Could not find option for current cvar value");
+  }
+
+  int current_index() const override {
+    try {
+      auto it = std::find_if(options_.begin(), options_.end(),
+                             [this](const Option& opt) {
+                               return opt.title == current_option().title &&
+                                      opt.value == current_option().value;
+                             });
+      return static_cast<int>(std::distance(options_.begin(), it));
+    } catch (const std::runtime_error&) {
+      return -1;
+    }
+  }
+
   std::vector<std::string> option_names() const override {
     std::vector<std::string> names;
-    std::transform(options_.begin(), options_.end(),
-                          std::back_inserter(names),
-                          [](const Option& opt) { return opt.title; });
+    std::transform(options_.begin(), options_.end(), std::back_inserter(names),
+                   [](const Option& opt) { return opt.title; });
     return names;
   }
 
