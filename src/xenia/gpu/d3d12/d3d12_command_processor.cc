@@ -2698,6 +2698,8 @@ bool D3D12CommandProcessor::EndSubmission(bool is_swap) {
     queue_operations_done_since_submission_signal_ = false;
   }
 
+  shared_memory_->SetSystemPageBlocksValidWithGpuDataWritten();
+
   if (is_closing_frame) {
     // Close the capture after submitting.
     if (pix_capturing_) {

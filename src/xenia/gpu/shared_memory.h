@@ -31,6 +31,7 @@ class SharedMemory {
   virtual ~SharedMemory();
   // Call in the implementation-specific ClearCache.
   virtual void ClearCache();
+  virtual void SetSystemPageBlocksValidWithGpuDataWritten();
 
   typedef void (*GlobalWatchCallback)(void* context, uint32_t address_first,
                                       uint32_t address_last,
