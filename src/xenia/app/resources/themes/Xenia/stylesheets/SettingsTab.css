@@ -33,3 +33,7 @@ QWidget#navigationContainer {
 QLabel#subLabel[type="warning"] {
   color: $warning;
 }
+
+QWidget#SettingsTab QWidget#settingsContainer QLabel#titleLabel {
+  color: $light2;
+}

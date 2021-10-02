@@ -9,12 +9,13 @@
 
 #include "settings_widget_factory.h"
 #include <QHBoxLayout>
-#include "xenia/ui/qt/widgets/checkbox.h"
+#include "xenia/ui/qt/settings/widgets/settings_checkbox.h"
+#include "xenia/ui/qt/settings/widgets/settings_combobox.h"
+#include "xenia/ui/qt/settings/widgets/settings_line_edit.h"
+#include "xenia/ui/qt/settings/widgets/settings_slider.h"
 #include "xenia/ui/qt/widgets/groupbox.h"
-#include "xenia/ui/qt/widgets/line_edit.h"
 #include "xenia/ui/qt/widgets/push_button.h"
 #include "xenia/ui/qt/widgets/scroll_area.h"
-#include "xenia/ui/qt/widgets/slider.h"
 
 namespace xe {
 namespace ui {
@@ -22,6 +23,12 @@ namespace qt {
 
 const double kSubLabelSize = 6.5;
 const int kLineEditMaxWidth = 420;
+
+QLabel* create_title_label(const std::string& title) {
+  auto label = new QLabel(title.c_str());
+  label->setObjectName("titleLabel");
+  return label;
+}
 
 QWidget* SettingsWidgetFactory::BuildSettingsWidget(
     const std::string& set_name) {
@@ -53,6 +60,8 @@ QWidget* SettingsWidgetFactory::BuildSettingsWidget(
     layout->addWidget(group_box);
   }
 
+  base_widget->setObjectName("settingsContainer");
+
   return base_widget;
 }
 
@@ -81,7 +90,8 @@ QWidget* SettingsWidgetFactory::CreateWidgetForSettingsItem(
         break;
       }
       case settings::SettingsType::MultiChoice: {
-        return nullptr;  // TODO:
+        return CreateMultiChoiceWidget(
+            dynamic_cast<settings::IMultiChoiceSettingsItem&>(item));
         break;
       }
       case settings::SettingsType::Range: {
@@ -109,20 +119,7 @@ QWidget* SettingsWidgetFactory::CreateWidgetForSettingsItem(
 
 QWidget* SettingsWidgetFactory::CreateCheckBoxWidget(
     settings::BooleanSettingsItem& item) {
-  XCheckBox* checkbox = new XCheckBox();
-  checkbox->setText(item.title().c_str());
-  checkbox->setCheckState(*item.cvar()->current_value() ? Qt::Checked
-                                                        : Qt::Unchecked);
-
-  XCheckBox::connect(checkbox, &XCheckBox::stateChanged, [&](int state) {
-    if (state == Qt::Checked) {
-      item.UpdateValue(true);
-    } else if (state == Qt::Unchecked) {
-      item.UpdateValue(false);
-    } else {
-      XELOGW("PartiallyChecked state not supported for SettingsCheckBox");
-    }
-  });
+  SettingsCheckBox* checkbox = new SettingsCheckBox(item);
 
   return CreateWidgetContainer(checkbox);
 }
@@ -133,19 +130,9 @@ QWidget* SettingsWidgetFactory::CreateTextInputWidget(
   QVBoxLayout* ctr_layout = new QVBoxLayout();
   ctr->setLayout(ctr_layout);
 
-  QLabel* title_label = new QLabel(item.title().c_str());
+  QLabel* title_label = create_title_label(item.title());
 
-  XLineEdit* line_edit = new XLineEdit();
-  line_edit->setPlaceholderText(item.description().c_str());
-  line_edit->setMaximumWidth(kLineEditMaxWidth);
-
-  const auto& current_text = *item.cvar()->current_value();
-  line_edit->setText(QString(current_text.c_str()));
-
-  XLineEdit::connect(line_edit, &XLineEdit::textChanged,
-                     [&](const QString& text) {
-                       item.UpdateValue(std::string(text.toUtf8()));
-                     });
+  SettingsLineEdit* line_edit = new SettingsLineEdit(item);
 
   ctr_layout->addWidget(title_label);
   ctr_layout->addWidget(line_edit);
@@ -161,31 +148,19 @@ QWidget* SettingsWidgetFactory::CreatePathInputWidget(
   ctr_layout->setContentsMargins(0, 0, 0, 0);
   ctr_layout->setSpacing(8);
 
-  QLabel* title_label = new QLabel(item.title().c_str());
+  QLabel* title_label = create_title_label(item.title());
 
   QHBoxLayout* control_layout = new QHBoxLayout();
   control_layout->setSpacing(8);
 
-  XLineEdit* line_edit = new XLineEdit();
-  line_edit->setPlaceholderText(item.description().c_str());
-  line_edit->setMaximumWidth(kLineEditMaxWidth);
-
-  const auto& current_path = *item.cvar()->current_value();
-  std::string current_path_str = std::string(current_path.u8string());
-  line_edit->setText(QString(current_path_str.c_str()));
-
+  SettingsLineEdit* line_edit = new SettingsLineEdit(item);
   XPushButton* browse_btn = new XPushButton();
   browse_btn->SetIconFromGlyph(0xE838);
+  // TODO: Setup browse button logic
 
   control_layout->addWidget(line_edit);
   control_layout->addWidget(browse_btn);
   control_layout->addStretch();
-
-  XLineEdit::connect(line_edit, &XLineEdit::textChanged,
-                     [&](const QString& text) {
-                       auto path = std::string(text.toUtf8());
-                       item.UpdateValue(std::filesystem::path(path));
-                     });
 
   ctr_layout->addWidget(title_label);
   ctr_layout->addLayout(control_layout);
@@ -201,20 +176,45 @@ QWidget* SettingsWidgetFactory::CreateNumberInputWidget(
 
 QWidget* SettingsWidgetFactory::CreateRangeInputWidget(
     settings::RangeInputSettingsItem& item) {
-    using xe::app::settings::ValueType;
+  using xe::app::settings::ValueType;
 
   QWidget* ctr = new QWidget();
-  QVBoxLayout* ctr_layout = new QVBoxLayout();
+  QHBoxLayout* ctr_layout = new QHBoxLayout();
+  ctr_layout->setContentsMargins(0, 0, 0, 0);
+  ctr_layout->setSpacing(20);
   ctr->setLayout(ctr_layout);
 
-  QLabel* title_label = new QLabel(item.title().c_str());
+  QLabel* title_label = create_title_label(item.title());
 
-  XSlider* slider = new XSlider();
+  SettingsSlider* slider = new SettingsSlider(item);
   int min = xe::app::settings::number_value_to_int(item.min());
   int max = xe::app::settings::number_value_to_int(item.max());
 
+  SettingsSlider::connect(slider, &SettingsSlider::valueChanged,
+                          [&](int value) { item.UpdateValue(value); });
+
   ctr_layout->addWidget(title_label);
   ctr_layout->addWidget(slider);
+  ctr_layout->addStretch();
+
+  return CreateWidgetContainer(ctr);
+}
+
+QWidget* SettingsWidgetFactory::CreateMultiChoiceWidget(
+    settings::IMultiChoiceSettingsItem& item) {
+  QWidget* ctr = new QWidget();
+  QHBoxLayout* ctr_layout = new QHBoxLayout();
+  ctr_layout->setContentsMargins(0, 0, 0, 0);
+  ctr_layout->setSpacing(20);
+  ctr->setLayout(ctr_layout);
+
+  QLabel* title_label = create_title_label(item.title());
+
+  SettingsComboBox* combobox = new SettingsComboBox(item);
+
+  ctr_layout->addWidget(title_label);
+  ctr_layout->addWidget(combobox);
+  ctr_layout->addStretch();
 
   return CreateWidgetContainer(ctr);
 }
