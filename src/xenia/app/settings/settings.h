@@ -115,9 +115,8 @@ inline int number_value_to_int(NumberValue v) {
 
 template <SettingsType settings_type>
 class NumberSettingsItem : public ISettingsItem {
- public:
-  struct ValueVisitor {
-    ValueVisitor(NumberSettingsItem* item) : item(item) {}
+  struct ValueUpdater {
+    ValueUpdater(NumberSettingsItem* item) : item(item) {}
 
     bool operator()(int8_t value) { return update(ValueType::Int8, value); }
     bool operator()(int16_t value) { return update(ValueType::Int16, value); }
@@ -144,6 +143,7 @@ class NumberSettingsItem : public ISettingsItem {
     NumberSettingsItem* item;
   };
 
+ public:
   NumberSettingsItem(ValueType value_type, const std::string& title,
                      const std::string& description, IConfigVar* cvar = nullptr)
       : ISettingsItem(settings_type, title, description),
@@ -154,8 +154,44 @@ class NumberSettingsItem : public ISettingsItem {
 
   IConfigVar* cvar() const { return cvar_; }
 
+  NumberValue current_value() const {
+    switch (value_type()) {
+      case ValueType::Int8: {
+        return *cvar()->as<int8_t>()->current_value();
+      }
+      case ValueType::Int16: {
+        return *cvar()->as<int16_t>()->current_value();
+      }
+      case ValueType::Int32: {
+        return *cvar()->as<int32_t>()->current_value();
+      }
+      case ValueType::Int64: {
+        return *cvar()->as<int64_t>()->current_value();
+      }
+      case ValueType::UInt8: {
+        return *cvar()->as<uint8_t>()->current_value();
+      }
+      case ValueType::UInt16: {
+        return *cvar()->as<uint16_t>()->current_value();
+      }
+      case ValueType::UInt32: {
+        return *cvar()->as<uint32_t>()->current_value();
+      }
+      case ValueType::UInt64: {
+        return *cvar()->as<uint64_t>()->current_value();
+      }
+      case ValueType::Double: {
+        return *cvar()->as<double>()->current_value();
+      }
+      default: {
+        assert_always("Invalid number type provided");
+        return 0;
+      }
+    }
+  }
+
   virtual bool UpdateValue(NumberValue value) {
-    auto res = std::visit(ValueVisitor(this), value);
+    auto res = std::visit(ValueUpdater(this), value);
     if (!res) {
       XELOGE("Could not update value for {0}. Incorrect value type provided",
              cvar_->name());
@@ -172,9 +208,8 @@ class NumberSettingsItem : public ISettingsItem {
 class RangeInputSettingsItem : public NumberSettingsItem<SettingsType::Range> {
  public:
   RangeInputSettingsItem(ValueType value_type, std::string title,
-                         NumberValue min, NumberValue max,
-                         std::string description = "",
-                         IConfigVar* cvar = nullptr)
+                         std::string description, NumberValue min,
+                         NumberValue max, IConfigVar* cvar = nullptr)
       : NumberSettingsItem(value_type, title, description, cvar),
         min_(min),
         max_(max) {}
@@ -205,6 +240,7 @@ class IMultiChoiceSettingsItem : public ISettingsItem {
   virtual bool UpdateIndex(int index) = 0;
   virtual std::vector<std::string> option_names() const = 0;
   virtual int current_index() const = 0;
+  virtual IConfigVar* cvar() const = 0;
 };
 
 template <typename T>
@@ -272,6 +308,8 @@ class MultiChoiceSettingsItem : public IMultiChoiceSettingsItem {
                    [](const Option& opt) { return opt.title; });
     return names;
   }
+
+  IConfigVar* cvar() const override { return cvar_; }
 
  private:
   ConfigVar<T>* cvar_;

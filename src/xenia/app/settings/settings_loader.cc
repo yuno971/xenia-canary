@@ -14,6 +14,17 @@
 #include "xenia/base/logging.h"
 #include "xenia/config.h"
 
+#ifdef DEBUG
+
+DEFINE_bool(test_bool, false, "test bool", "General");
+DEFINE_int32(test_int, 0, "test bool", "General");
+DEFINE_path(test_path, "C:\\", "test path", "General");
+DEFINE_string(test_string, "C:\\", "test string", "General");
+DEFINE_uint64(test_uint64, 0, "test uint64", "General");
+DEFINE_double(test_double, 0, "test double", "General");
+
+#endif  // DEBUG
+
 namespace xe {
 namespace app {
 namespace settings {
@@ -136,6 +147,35 @@ std::unique_ptr<ISettingsItem> SettingsLoader::LoadSettingsItemFromXmlNode(
         return LoadMultiChoiceSetting<std::string>(title, description, cvar,
                                                    node);
       }
+    } else if (node_type == "RangeInputSetting") {
+      std::string_view value_type_str = node.child_value("type");
+      ValueType value_type;
+      if (value_type_str == "int8") {
+        value_type = ValueType::Int8;
+      } else if (value_type_str == "int16") {
+        value_type = ValueType::Int16;
+      } else if (value_type_str == "int32") {
+        value_type = ValueType::Int32;
+      } else if (value_type_str == "int64") {
+        value_type = ValueType::Int64;
+      } else if (value_type_str == "uint8") {
+        value_type = ValueType::UInt8;
+      } else if (value_type_str == "uint16") {
+        value_type = ValueType::UInt16;
+      } else if (value_type_str == "uint32") {
+        value_type = ValueType::UInt32;
+      } else if (value_type_str == "uint64") {
+        value_type = ValueType::UInt64;
+      } else if (value_type_str == "double") {
+        XELOGE("Floating point types are not supported for slider");
+        return nullptr;
+      }
+
+      int min = node.child("min").text().as_int();
+      int max = node.child("max").text().as_int();
+
+      return std::make_unique<RangeInputSettingsItem>(
+          value_type, title, description, min, max, cvar);
     }
   } else {
     XELOGE("Unknown settings node type {}", node.name());
@@ -251,7 +291,7 @@ void SettingsLoader::AddRangeInputSetting(std::string title,
                                           NumberValue max) {
   if (cvar) {
     auto setting_item = std::make_unique<RangeInputSettingsItem>(
-        value_type, title, min, max, description, cvar);
+        value_type, title, description, min, max, cvar);
     AddSetting(std::move(setting_item), group, set);
   } else {
     XELOGE("Could not find cvar for setting with title {}", title);

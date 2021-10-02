@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="settings_schema.xsd"?>
 <Sets>
     <Set name="General" icon="">
         <Group name="General Settings">
@@ -80,6 +81,11 @@
                 <cvar>discord</cvar>
             </BooleanSetting>
             <BooleanSetting>
+                <title>Discord Rich Presence 2</title>
+                <description>Enable Discord Rich Presence in Xenia</description>
+                <cvar>discord</cvar>
+            </BooleanSetting>
+            <BooleanSetting>
                 <title>Show game Icon in Taskbar</title>
                 <description>Show the currently loaded game's icon in the Taskbar</description>
                 <cvar>taskbar_show_game_icon</cvar>
@@ -136,12 +142,28 @@
                 <cvar>log_file</cvar>
             </PathInputSetting>
         </Group>
+        <Group name="Test Settings">
+            <RangeInputSetting>
+                <title>Test int32</title>
+                <description>A test int slider</description>
+                <cvar>test_int</cvar>
+                <type>int32</type>
+                <min>0</min>
+                <max>100</max>
+            </RangeInputSetting>
+        </Group>
     </Set>
     <Set name="CPU" icon="">
 
     </Set>
     <Set name="Graphics" icon="">
-        
+        <Group name="D3D12 Settings">
+            <MultiChoiceSetting>
+                <title>Resolution scale</title>
+                <description>Renders the game at native resolution or higher resolutions. Very GPU intensive. May cause issues in some games.</description>
+                
+            </MultiChoiceSetting>
+        </Group>
     </Set>
     <Set name="Audio" icon="">
         
