@@ -18,6 +18,7 @@
 #include "cpptoml/include/cpptoml.h"
 #include "cxxopts/include/cxxopts.hpp"
 
+#include "xenia/base/delegate.h"
 #include "xenia/base/filesystem.h"
 #include "xenia/base/string_util.h"
 #include "xenia/config.h"
@@ -29,8 +30,15 @@ namespace toml {
 std::string EscapeString(const std::string_view view);
 }
 
+class ICommandVar;
+
 template <typename T>
 class ConfigVar;
+
+class ICommandVarListener {
+ public:
+  virtual void OnValueUpdated(const ICommandVar& var) = 0;
+};
 
 class ICommandVar {
  public:
@@ -40,6 +48,8 @@ class ICommandVar {
   virtual void UpdateValue() = 0;
   virtual void AddToLaunchOptions(cxxopts::Options* options) = 0;
   virtual void LoadFromLaunchOptions(cxxopts::ParseResult* result) = 0;
+  virtual void RegisterListener(ICommandVarListener* listener) = 0;
+  virtual void RemoveListener(ICommandVarListener* listener) = 0;
 };
 
 class IConfigVar : virtual public ICommandVar {
@@ -69,12 +79,18 @@ class CommandVar : virtual public ICommandVar {
   void AddToLaunchOptions(cxxopts::Options* options) override;
   void LoadFromLaunchOptions(cxxopts::ParseResult* result) override;
 
+  void RegisterListener(ICommandVarListener* listener) override;
+  void RemoveListener(ICommandVarListener* listener) override;
+
   T* current_value() { return current_value_; }
   T* command_line_value() { return commandline_value_.get(); }
   const T& default_value() const { return default_value_; }
 
  protected:
-  void set_current_value(const T& val) { *current_value_ = val; }
+  void set_current_value(const T& val) {
+    *current_value_ = val;
+    for (const auto& listener : listeners_) listener->OnValueUpdated(*this);
+  }
 
   void set_command_line_value(const T& val) {
     commandline_value_ = std::make_unique<T>(val);
@@ -93,6 +109,8 @@ class CommandVar : virtual public ICommandVar {
   T* current_value_;
   std::unique_ptr<T> commandline_value_;
   std::string description_;
+  std::mutex listener_mtx_;
+  std::vector<ICommandVarListener*> listeners_;
 };
 #pragma warning(push)
 #pragma warning(disable : 4250)
@@ -218,7 +236,7 @@ CommandVar<T>* register_commandvar(std::string_view name, T* default_value,
                     requires_restart, type)                                   \
   namespace xe::cvars {                                                       \
   type name = default_value;                                                  \
-  extern "C" xe::cvar::ConfigVar<type>* cv_##name =                               \
+  extern "C" xe::cvar::ConfigVar<type>* cv_##name =                           \
       xe::cvar::register_configvar<type>(#name, &cvars::name, description,    \
                                          category, is_transient,              \
                                          requires_restart);                   \
@@ -244,9 +262,9 @@ CommandVar<T>* register_commandvar(std::string_view name, T* default_value,
 
 #define DECLARE_path(name) DECLARE_CVar(name, std::filesystem::path)
 
-#define DECLARE_CVar(name, type)               \
-  namespace xe::cvars {                        \
-  extern type name;                            \
+#define DECLARE_CVar(name, type)                   \
+  namespace xe::cvars {                            \
+  extern type name;                                \
   extern "C" xe::cvar::ConfigVar<type>* cv_##name; \
   }
 

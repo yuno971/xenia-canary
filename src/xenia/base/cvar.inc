@@ -81,6 +81,26 @@ void CommandVar<T>::UpdateValue() {
   return set_current_value(default_value_);
 }
 template <class T>
+void CommandVar<T>::RegisterListener(ICommandVarListener* listener) {
+  std::lock_guard guard(listener_mtx_);
+  assert_true(listener != nullptr, "null pointer provided to RegisterListener");
+  listeners_.push_back(listener);
+}
+
+template <class T>
+void CommandVar<T>::RemoveListener(ICommandVarListener* listener) {
+  std::lock_guard guard(listener_mtx_);
+  auto it = std::find_if(listeners_.begin(), listeners_.end(), [listener](ICommandVarListener* l2) {
+    if (l2 == listener) return true;
+    return false;
+  });
+  if (it != listeners_.end()) {
+    listeners_.erase(it);
+  }
+}
+
+
+template <class T>
 void ConfigVar<T>::UpdateValue() {
   if (this->command_line_value()) {
     return this->set_current_value(*this->command_line_value());
