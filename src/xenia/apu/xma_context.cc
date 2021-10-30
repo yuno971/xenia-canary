@@ -320,12 +320,9 @@ void XmaContext::Decode(XMA_CONTEXT_DATA* data) {
 
   // No available data.
   if (!data->input_buffer_0_valid && !data->input_buffer_1_valid) {
-    if (!data->current_buffer && data->input_buffer_0_packet_count ||
-        data->current_buffer && data->input_buffer_1_packet_count) {
-      data->input_buffer_read_offset = 0x20;
-    } else {
-      data->input_buffer_read_offset = 0;
-    }
+    // 4156081D checks specifically for offset 0x20 when both input buffers
+    // are invalid.
+    data->input_buffer_read_offset = kBitsPerHeader;
     return;
   }
 
