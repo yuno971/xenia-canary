@@ -667,7 +667,6 @@ void KernelState::CompleteOverlappedEx(uint32_t overlapped_ptr, X_RESULT result,
                                        uint32_t extended_error,
                                        uint32_t length) {
   auto ptr = memory()->TranslateVirtual(overlapped_ptr);
-  result = result ? X_ERROR_FUNCTION_FAILED : result;
   XOverlappedSetResult(ptr, result);
   XOverlappedSetExtendedError(ptr, extended_error);
   XOverlappedSetLength(ptr, length);
