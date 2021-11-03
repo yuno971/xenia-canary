@@ -284,6 +284,7 @@ uint32_t xeXamUserReadProfileSettingsEx(uint32_t title_id, uint32_t user_index,
 
     if (setting) {
       out_setting->from = 1;
+      out_setting->setting_data[0] = uint8_t(setting->type);
       if (setting->is_set) {
         out_setting->from = setting->is_title_specific() ? 2 : 1;
         buffer_offset =
