@@ -280,6 +280,7 @@ uint32_t xeXamUserReadProfileSettingsEx(uint32_t title_id, uint32_t user_index,
 
     out_setting->from = 0;
     out_setting->user_index = static_cast<uint32_t>(user_index);
+    out_setting->unk0C = static_cast<uint32_t>(-1);
     out_setting->setting_id = setting_id;
 
     if (setting) {
