@@ -210,13 +210,13 @@ dword_result_t NetDll_XNetGetOpt(dword_t one, dword_t option_id,
     case 1:
       if (*buffer_size < sizeof(XNetStartupParams)) {
         *buffer_size = sizeof(XNetStartupParams);
-        return 0x2738;  // WSAEMSGSIZE
+        return uint32_t(X_WSAError::X_WSAEMSGSIZE);
       }
       std::memcpy(buffer_ptr, &xnet_startup_params, sizeof(XNetStartupParams));
       return 0;
     default:
       XELOGE("NetDll_XNetGetOpt: option {} unimplemented", option_id);
-      return 0x2726;  // WSAEINVAL
+      return uint32_t(X_WSAError::X_WSAEINVAL);
   }
 }
 DECLARE_XAM_EXPORT1(NetDll_XNetGetOpt, kNetworking, kSketchy);
@@ -326,8 +326,7 @@ dword_result_t NetDll_WSASendTo(dword_t caller, dword_t socket_handle,
   auto socket =
       kernel_state()->object_table()->LookupObject<XSocket>(socket_handle);
   if (!socket) {
-    // WSAENOTSOCK
-    XThread::SetLastError(0x2736);
+    XThread::SetLastError(uint32_t(X_WSAError::X_WSAENOTSOCK));
     return -1;
   }
 
@@ -363,7 +362,7 @@ dword_result_t NetDll_WSAWaitForMultipleEvents(dword_t num_events,
                                                dword_t timeout,
                                                dword_t alertable) {
   if (num_events > 64) {
-    XThread::SetLastError(87);  // ERROR_INVALID_PARAMETER
+    XThread::SetLastError(uint32_t(X_WSAError::X_WSA_INVALID_PARAMETER));
     return ~0u;
   }
 
@@ -638,8 +637,7 @@ dword_result_t NetDll_closesocket(dword_t caller, dword_t socket_handle) {
   auto socket =
       kernel_state()->object_table()->LookupObject<XSocket>(socket_handle);
   if (!socket) {
-    // WSAENOTSOCK
-    XThread::SetLastError(0x2736);
+    XThread::SetLastError(uint32_t(X_WSAError::X_WSAENOTSOCK));
     return -1;
   }
 
@@ -655,8 +653,7 @@ int_result_t NetDll_shutdown(dword_t caller, dword_t socket_handle, int_t how) {
   auto socket =
       kernel_state()->object_table()->LookupObject<XSocket>(socket_handle);
   if (!socket) {
-    // WSAENOTSOCK
-    XThread::SetLastError(0x2736);
+    XThread::SetLastError(uint32_t(X_WSAError::X_WSAENOTSOCK));
     return -1;
   }
 
@@ -674,8 +671,7 @@ dword_result_t NetDll_setsockopt(dword_t caller, dword_t socket_handle,
   auto socket =
       kernel_state()->object_table()->LookupObject<XSocket>(socket_handle);
   if (!socket) {
-    // WSAENOTSOCK
-    XThread::SetLastError(0x2736);
+    XThread::SetLastError(uint32_t(X_WSAError::X_WSAENOTSOCK));
     return -1;
   }
 
@@ -689,8 +685,7 @@ dword_result_t NetDll_ioctlsocket(dword_t caller, dword_t socket_handle,
   auto socket =
       kernel_state()->object_table()->LookupObject<XSocket>(socket_handle);
   if (!socket) {
-    // WSAENOTSOCK
-    XThread::SetLastError(0x2736);
+    XThread::SetLastError(uint32_t(X_WSAError::X_WSAENOTSOCK));
     return -1;
   }
 
@@ -710,8 +705,7 @@ dword_result_t NetDll_bind(dword_t caller, dword_t socket_handle,
   auto socket =
       kernel_state()->object_table()->LookupObject<XSocket>(socket_handle);
   if (!socket) {
-    // WSAENOTSOCK
-    XThread::SetLastError(0x2736);
+    XThread::SetLastError(uint32_t(X_WSAError::X_WSAENOTSOCK));
     return -1;
   }
 
@@ -731,8 +725,7 @@ dword_result_t NetDll_connect(dword_t caller, dword_t socket_handle,
   auto socket =
       kernel_state()->object_table()->LookupObject<XSocket>(socket_handle);
   if (!socket) {
-    // WSAENOTSOCK
-    XThread::SetLastError(0x2736);
+    XThread::SetLastError(uint32_t(X_WSAError::X_WSAENOTSOCK));
     return -1;
   }
 
@@ -752,8 +745,7 @@ dword_result_t NetDll_listen(dword_t caller, dword_t socket_handle,
   auto socket =
       kernel_state()->object_table()->LookupObject<XSocket>(socket_handle);
   if (!socket) {
-    // WSAENOTSOCK
-    XThread::SetLastError(0x2736);
+    XThread::SetLastError(uint32_t(X_WSAError::X_WSAENOTSOCK));
     return -1;
   }
 
@@ -771,16 +763,14 @@ dword_result_t NetDll_accept(dword_t caller, dword_t socket_handle,
                              pointer_t<XSOCKADDR> addr_ptr,
                              lpdword_t addrlen_ptr) {
   if (!addr_ptr) {
-    // WSAEFAULT
-    XThread::SetLastError(0x271E);
+    XThread::SetLastError(uint32_t(X_WSAError::X_WSAEFAULT));
     return -1;
   }
 
   auto socket =
       kernel_state()->object_table()->LookupObject<XSocket>(socket_handle);
   if (!socket) {
-    // WSAENOTSOCK
-    XThread::SetLastError(0x2736);
+    XThread::SetLastError(uint32_t(X_WSAError::X_WSAENOTSOCK));
     return -1;
   }
 
@@ -911,8 +901,7 @@ dword_result_t NetDll_recv(dword_t caller, dword_t socket_handle,
   auto socket =
       kernel_state()->object_table()->LookupObject<XSocket>(socket_handle);
   if (!socket) {
-    // WSAENOTSOCK
-    XThread::SetLastError(0x2736);
+    XThread::SetLastError(uint32_t(X_WSAError::X_WSAENOTSOCK));
     return -1;
   }
 
@@ -927,8 +916,7 @@ dword_result_t NetDll_recvfrom(dword_t caller, dword_t socket_handle,
   auto socket =
       kernel_state()->object_table()->LookupObject<XSocket>(socket_handle);
   if (!socket) {
-    // WSAENOTSOCK
-    XThread::SetLastError(0x2736);
+    XThread::SetLastError(uint32_t(X_WSAError::X_WSAENOTSOCK));
     return -1;
   }
 
@@ -963,8 +951,7 @@ dword_result_t NetDll_send(dword_t caller, dword_t socket_handle,
   auto socket =
       kernel_state()->object_table()->LookupObject<XSocket>(socket_handle);
   if (!socket) {
-    // WSAENOTSOCK
-    XThread::SetLastError(0x2736);
+    XThread::SetLastError(uint32_t(X_WSAError::X_WSAENOTSOCK));
     return -1;
   }
 
@@ -978,8 +965,7 @@ dword_result_t NetDll_sendto(dword_t caller, dword_t socket_handle,
   auto socket =
       kernel_state()->object_table()->LookupObject<XSocket>(socket_handle);
   if (!socket) {
-    // WSAENOTSOCK
-    XThread::SetLastError(0x2736);
+    XThread::SetLastError(uint32_t(X_WSAError::X_WSAENOTSOCK));
     return -1;
   }
 
@@ -1009,8 +995,7 @@ dword_result_t NetDll_getsockname(dword_t caller, dword_t socket_handle,
   auto socket =
       kernel_state()->object_table()->LookupObject<XSocket>(socket_handle);
   if (!socket) {
-    // WSAENOTSOCK
-    XThread::SetLastError(0x2736);
+    XThread::SetLastError(uint32_t(X_WSAError::X_WSAENOTSOCK));
     return -1;
   }
 
