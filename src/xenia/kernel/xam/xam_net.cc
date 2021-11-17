@@ -1016,6 +1016,29 @@ void NetDll_WSASetLastError(dword_t error_code) {
 }
 DECLARE_XAM_EXPORT1(NetDll_WSASetLastError, kNetworking, kImplemented);
 
+dword_result_t NetDll_getsockname(dword_t caller, dword_t socket_handle,
+                                  lpvoid_t buf_ptr, lpdword_t len_ptr) {
+  auto socket =
+      kernel_state()->object_table()->LookupObject<XSocket>(socket_handle);
+  if (!socket) {
+    // WSAENOTSOCK
+    XThread::SetLastError(0x2736);
+    return -1;
+  }
+
+  int buffer_len = *len_ptr;
+
+  X_STATUS status = socket->GetSockName(buf_ptr, &buffer_len);
+  if (XFAILED(status)) {
+    XThread::SetLastError(xboxkrnl::xeRtlNtStatusToDosError(status));
+    return -1;
+  }
+
+  *len_ptr = buffer_len;
+  return 0;
+}
+DECLARE_XAM_EXPORT1(NetDll_getsockname, kNetworking, kImplemented);
+
 void RegisterNetExports(xe::cpu::ExportResolver* export_resolver,
                         KernelState* kernel_state) {}
 
