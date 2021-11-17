@@ -287,6 +287,9 @@ dword_result_t NetDll_WSACleanup(dword_t caller) {
 }
 DECLARE_XAM_EXPORT1(NetDll_WSACleanup, kNetworking, kImplemented);
 
+// Instead of using dedicated storage for WSA error like on OS.
+// Xbox shares space between normal error codes and WSA errors.
+// This under the hood returns directly value received from RtlGetLastError.
 dword_result_t NetDll_WSAGetLastError() { return XThread::GetLastError(); }
 DECLARE_XAM_EXPORT1(NetDll_WSAGetLastError, kNetworking, kImplemented);
 
