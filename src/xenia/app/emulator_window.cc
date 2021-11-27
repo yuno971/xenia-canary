@@ -267,7 +267,7 @@ bool EmulatorWindow::Initialize() {
     help_menu->AddChild(MenuItem::Create(
         MenuItem::Type::kString, "Recent changes on GitHub...", [this]() {
           LaunchWebBrowser(
-              "https://github.com/xenia-project/xenia/compare/" XE_BUILD_COMMIT
+              "https://github.com/xenia-canary/xenia-canary/compare/" XE_BUILD_COMMIT
               "..." XE_BUILD_BRANCH);
         }));
     help_menu->AddChild(MenuItem::Create(MenuItem::Type::kSeparator));
@@ -426,10 +426,10 @@ void EmulatorWindow::ShowHelpWebsite() { LaunchWebBrowser("https://xenia.jp"); }
 void EmulatorWindow::ShowCommitID() {
 #ifdef XE_BUILD_IS_PR
   LaunchWebBrowser(
-      "https://github.com/xenia-project/xenia/pull/" XE_BUILD_PR_NUMBER);
+      "https://github.com/xenia-canary/xenia-canary/pull/" XE_BUILD_PR_NUMBER);
 #else
   LaunchWebBrowser(
-      "https://github.com/xenia-project/xenia/commit/" XE_BUILD_COMMIT);
+      "https://github.com/xenia-canary/xenia-canary/commit/" XE_BUILD_COMMIT);
 #endif
 }
 
