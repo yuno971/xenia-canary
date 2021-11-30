@@ -52,3 +52,7 @@ Figure that out :)
 
 Implement the system APIs for friend's list, leaderboards, etc. Reusing Steam or
 some other service would be ideal.
+
+### Kinect Support
+
+It's hard to emulate and we need your help to do it.
