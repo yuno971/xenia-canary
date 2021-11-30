@@ -50,5 +50,4 @@ Figure that out :)
 
 ### Simulated Xbox Live Network
 
-Implement the system APIs for friend's list, leaderboards, etc. Reusing Steam or
-some other service would be ideal.
+Implement the system APIs for friend's list, leaderboards, etc. 
