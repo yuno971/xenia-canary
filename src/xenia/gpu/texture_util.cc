@@ -24,36 +24,43 @@ void GetSubresourcesFromFetchConstant(
     uint32_t* height_out, uint32_t* depth_or_faces_out, uint32_t* base_page_out,
     uint32_t* mip_page_out, uint32_t* mip_min_level_out,
     uint32_t* mip_max_level_out, xenos::TextureFilter sampler_mip_filter) {
-  uint32_t width = 0, height = 0, depth_or_faces = 0;
+  uint32_t width = 1, height = 1, depth_or_faces = 1;
   switch (fetch.dimension) {
     case xenos::DataDimension::k1D:
       assert_false(fetch.stacked);
       assert_false(fetch.tiled);
       assert_false(fetch.packed_mips);
-      width = fetch.size_1d.width;
+      width =
+          std::min(width + fetch.size_1d.width, xenos::kTexture1DMaxWidth - 1);
       break;
     case xenos::DataDimension::k2DOrStacked:
-      width = fetch.size_2d.width;
-      height = fetch.size_2d.height;
-      depth_or_faces = fetch.stacked ? fetch.size_2d.stack_depth : 0;
+      width = std::min(width + fetch.size_2d.width,
+                       xenos::kTexture2DCubeMaxWidthHeight - 1);
+      height = std::min(height + fetch.size_2d.height,
+                        xenos::kTexture2DCubeMaxWidthHeight - 1);
+      depth_or_faces += fetch.stacked ? fetch.size_2d.stack_depth : 0;
       break;
     case xenos::DataDimension::k3D:
       assert_false(fetch.stacked);
-      width = fetch.size_3d.width;
-      height = fetch.size_3d.height;
-      depth_or_faces = fetch.size_3d.depth;
+      width = std::min(width + fetch.size_3d.width,
+                       xenos::kTexture3DMaxWidthHeight - 1);
+      height = std::min(height + fetch.size_3d.height,
+                        xenos::kTexture3DMaxWidthHeight - 1);
+
+      depth_or_faces = std::min(depth_or_faces + fetch.size_3d.depth,
+                                xenos::kTexture3DMaxDepth);
       break;
     case xenos::DataDimension::kCube:
       assert_false(fetch.stacked);
       assert_true(fetch.size_2d.stack_depth == 5);
-      width = fetch.size_2d.width;
-      height = fetch.size_2d.height;
-      depth_or_faces = 5;
+      width = std::min(width + fetch.size_2d.width,
+                       xenos::kTexture2DCubeMaxWidthHeight - 1);
+      height = std::min(height + fetch.size_2d.height,
+                        xenos::kTexture2DCubeMaxWidthHeight - 1);
+      depth_or_faces += 5;
       break;
   }
-  ++width;
-  ++height;
-  ++depth_or_faces;
+
   if (width_out) {
     *width_out = width;
   }
