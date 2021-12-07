@@ -431,7 +431,10 @@ DECLARE_XBOXKRNL_EXPORT2(MmQueryAddressProtect, kMemory, kImplemented,
 
 void MmSetAddressProtect(lpvoid_t base_address, dword_t region_size,
                          dword_t protect_bits) {
-  if (!protect_bits) {
+  const uint32_t required_protect_bits =
+      X_PAGE_NOACCESS | X_PAGE_READONLY | X_PAGE_READWRITE |
+      X_PAGE_EXECUTE_READ | X_PAGE_EXECUTE_READWRITE;
+  if (!(protect_bits & required_protect_bits)) {
     XELOGE("MmSetAddressProtect: Failed due to incorrect protect_bits");
     return;
   }
