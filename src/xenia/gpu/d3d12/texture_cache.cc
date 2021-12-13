@@ -2154,8 +2154,8 @@ void TextureCache::BindingInfoFromFetchConstant(
   key_out.base_page = base_page;
   key_out.mip_page = mip_page;
   key_out.dimension = fetch.dimension;
-  key_out.width = width;
-  key_out.height = height;
+  key_out.width = std::min(width, uint32_t(0x1FFF));
+  key_out.height = std::min(height, uint32_t(0x1FFF));
   key_out.depth = depth_or_faces;
   key_out.pitch = fetch.pitch;
   key_out.mip_max_level = mip_max_level;
