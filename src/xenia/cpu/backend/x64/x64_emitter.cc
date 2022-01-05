@@ -18,6 +18,7 @@
 #include "xenia/base/assert.h"
 #include "xenia/base/atomic.h"
 #include "xenia/base/debugging.h"
+#include "xenia/base/literals.h"
 #include "xenia/base/logging.h"
 #include "xenia/base/math.h"
 #include "xenia/base/memory.h"
@@ -50,8 +51,9 @@ namespace x64 {
 
 using xe::cpu::hir::HIRBuilder;
 using xe::cpu::hir::Instr;
+using namespace xe::literals;
 
-static const size_t kMaxCodeSize = 1 * 1024 * 1024;
+static const size_t kMaxCodeSize = 1_MiB;
 
 static const size_t kStashOffset = 32;
 // static const size_t kStashOffsetHigh = 32 + 32;
@@ -76,9 +78,18 @@ X64Emitter::X64Emitter(X64Backend* backend, XbyakAllocator* allocator)
     feature_flags_ |= cpu_.has(Xbyak::util::Cpu::tAVX2) ? kX64EmitAVX2 : 0;
     feature_flags_ |= cpu_.has(Xbyak::util::Cpu::tFMA) ? kX64EmitFMA : 0;
     feature_flags_ |= cpu_.has(Xbyak::util::Cpu::tLZCNT) ? kX64EmitLZCNT : 0;
+    feature_flags_ |= cpu_.has(Xbyak::util::Cpu::tBMI1) ? kX64EmitBMI1 : 0;
     feature_flags_ |= cpu_.has(Xbyak::util::Cpu::tBMI2) ? kX64EmitBMI2 : 0;
     feature_flags_ |= cpu_.has(Xbyak::util::Cpu::tF16C) ? kX64EmitF16C : 0;
     feature_flags_ |= cpu_.has(Xbyak::util::Cpu::tMOVBE) ? kX64EmitMovbe : 0;
+    feature_flags_ |=
+        cpu_.has(Xbyak::util::Cpu::tAVX512F) ? kX64EmitAVX512F : 0;
+    feature_flags_ |=
+        cpu_.has(Xbyak::util::Cpu::tAVX512VL) ? kX64EmitAVX512VL : 0;
+    feature_flags_ |=
+        cpu_.has(Xbyak::util::Cpu::tAVX512BW) ? kX64EmitAVX512BW : 0;
+    feature_flags_ |=
+        cpu_.has(Xbyak::util::Cpu::tAVX512DQ) ? kX64EmitAVX512DQ : 0;
   }
 
   if (!cpu_.has(Xbyak::util::Cpu::tAVX)) {

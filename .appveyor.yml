@@ -11,7 +11,6 @@ skip_commits:
   files:
     - .azure-pipelines.yml
     - .github/**
-    - .travis.yml
     - docs/**
     - src/**/*_posix.*
     - src/**/*_linux.*
@@ -37,5 +36,6 @@ after_build:
   - |
       7z a xenia_canary.zip          ".\build\bin\Windows\Release\xenia_canary.exe"   ".\build\bin\Windows\Release\xenia_canary.pdb"   LICENSE
       7z a xenia-vfs-dump_canary.zip ".\build\bin\Windows\Release\xenia-vfs-dump.exe" ".\build\bin\Windows\Release\xenia-vfs-dump.pdb" LICENSE
+
 artifacts:
   - path: '*.zip'
