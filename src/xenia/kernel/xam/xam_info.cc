@@ -26,6 +26,7 @@
 #include "third_party/fmt/include/fmt/format.h"
 
 DEFINE_int32(avpack, 8, "Video modes", "Video");
+DECLARE_int32(user_language);
 
 namespace xe {
 namespace kernel {
@@ -209,13 +210,13 @@ dword_result_t XGetGameRegion() { return xeXGetGameRegion(); }
 DECLARE_XAM_EXPORT1(XGetGameRegion, kNone, kStub);
 
 dword_result_t XGetLanguage() {
-  auto desired_language = XLanguage::kEnglish;
+  auto desired_language = static_cast<XLanguage>(cvars::user_language);
 
   // Switch the language based on game region.
   // TODO(benvanik): pull from xex header.
   uint32_t game_region = XEX_REGION_NTSCU;
   if (game_region & XEX_REGION_NTSCU) {
-    desired_language = XLanguage::kEnglish;
+    //desired_language = XLanguage::kEnglish;
   } else if (game_region & XEX_REGION_NTSCJ) {
     desired_language = XLanguage::kJapanese;
   }
