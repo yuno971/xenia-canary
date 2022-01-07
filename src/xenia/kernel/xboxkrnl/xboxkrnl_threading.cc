@@ -1184,24 +1184,85 @@ DECLARE_XBOXKRNL_EXPORT1(ExInitializeReadWriteLock, kThreading, kImplemented);
 
 void ExAcquireReadWriteLockExclusive(pointer_t<X_ERWLOCK> lock_ptr) {
   auto old_irql = xeKeKfAcquireSpinLock(&lock_ptr->spin_lock);
-  lock_ptr->lock_count++;
-  xeKeKfReleaseSpinLock(&lock_ptr->spin_lock, old_irql);
 
-  if (!lock_ptr->lock_count) {
+  int32_t lock_count = ++lock_ptr->lock_count;
+  if (!lock_count) {
+    xeKeKfReleaseSpinLock(&lock_ptr->spin_lock, old_irql);
     return;
   }
 
   lock_ptr->writers_waiting_count++;
-  xeKeWaitForSingleObject(&lock_ptr->writer_event, 0, 0, 0, nullptr);
+
+  xeKeKfReleaseSpinLock(&lock_ptr->spin_lock, old_irql);
+  xeKeWaitForSingleObject(&lock_ptr->writer_event, 7, 0, 0, nullptr);
 }
-DECLARE_XBOXKRNL_EXPORT3(ExAcquireReadWriteLockExclusive, kThreading,
-                         kImplemented, kBlocking, kSketchy);
+DECLARE_XBOXKRNL_EXPORT2(ExAcquireReadWriteLockExclusive, kThreading,
+                         kImplemented, kBlocking);
+
+dword_result_t ExTryToAcquireReadWriteLockExclusive(
+    pointer_t<X_ERWLOCK> lock_ptr) {
+  auto old_irql = xeKeKfAcquireSpinLock(&lock_ptr->spin_lock);
+
+  uint32_t result;
+  if (lock_ptr->lock_count < 0) {
+    lock_ptr->lock_count = 0;
+    result = 1;
+  } else {
+    result = 0;
+  }
+
+  xeKeKfReleaseSpinLock(&lock_ptr->spin_lock, old_irql);
+  return result;
+}
+DECLARE_XBOXKRNL_EXPORT1(ExTryToAcquireReadWriteLockExclusive, kThreading,
+                         kImplemented);
+
+void ExAcquireReadWriteLockShared(pointer_t<X_ERWLOCK> lock_ptr) {
+  auto old_irql = xeKeKfAcquireSpinLock(&lock_ptr->spin_lock);
+
+  int32_t lock_count = ++lock_ptr->lock_count;
+  if (!lock_count ||
+      (lock_ptr->readers_entry_count && !lock_ptr->writers_waiting_count)) {
+    lock_ptr->readers_entry_count++;
+    xeKeKfReleaseSpinLock(&lock_ptr->spin_lock, old_irql);
+    return;
+  }
+
+  lock_ptr->readers_waiting_count++;
+
+  xeKeKfReleaseSpinLock(&lock_ptr->spin_lock, old_irql);
+  xeKeWaitForSingleObject(&lock_ptr->reader_semaphore, 7, 0, 0, nullptr);
+}
+DECLARE_XBOXKRNL_EXPORT2(ExAcquireReadWriteLockShared, kThreading, kImplemented,
+                         kBlocking);
+
+dword_result_t ExTryToAcquireReadWriteLockShared(
+    pointer_t<X_ERWLOCK> lock_ptr) {
+  auto old_irql = xeKeKfAcquireSpinLock(&lock_ptr->spin_lock);
+
+  uint32_t result;
+  if (lock_ptr->lock_count < 0 ||
+      (lock_ptr->readers_entry_count && !lock_ptr->writers_waiting_count)) {
+    lock_ptr->lock_count++;
+    lock_ptr->readers_entry_count++;
+    result = 1;
+  } else {
+    result = 0;
+  }
+
+  xeKeKfReleaseSpinLock(&lock_ptr->spin_lock, old_irql);
+  return result;
+}
+DECLARE_XBOXKRNL_EXPORT1(ExTryToAcquireReadWriteLockShared, kThreading,
+                         kImplemented);
 
 void ExReleaseReadWriteLock(pointer_t<X_ERWLOCK> lock_ptr) {
   auto old_irql = xeKeKfAcquireSpinLock(&lock_ptr->spin_lock);
-  lock_ptr->lock_count--;
 
-  if (lock_ptr->lock_count < 0) {
+  int32_t lock_count = --lock_ptr->lock_count;
+
+  if (lock_count < 0) {
+    lock_ptr->readers_entry_count = 0;
     xeKeKfReleaseSpinLock(&lock_ptr->spin_lock, old_irql);
     return;
   }
@@ -1218,14 +1279,17 @@ void ExReleaseReadWriteLock(pointer_t<X_ERWLOCK> lock_ptr) {
     }
   }
 
-  auto count = lock_ptr->readers_entry_count--;
-  xeKeKfReleaseSpinLock(&lock_ptr->spin_lock, old_irql);
-  if (!count) {
-    xeKeSetEvent(&lock_ptr->writer_event, 1, 0);
+  auto readers_entry_count = --lock_ptr->readers_entry_count;
+  if (readers_entry_count) {
+    xeKeKfReleaseSpinLock(&lock_ptr->spin_lock, old_irql);
+    return;
   }
+
+  lock_ptr->writers_waiting_count--;
+  xeKeKfReleaseSpinLock(&lock_ptr->spin_lock, old_irql);
+  xeKeSetEvent(&lock_ptr->writer_event, 1, 0);
 }
-DECLARE_XBOXKRNL_EXPORT2(ExReleaseReadWriteLock, kThreading, kImplemented,
-                         kSketchy);
+DECLARE_XBOXKRNL_EXPORT1(ExReleaseReadWriteLock, kThreading, kImplemented);
 
 // NOTE: This function is very commonly inlined, and probably won't be called!
 pointer_result_t InterlockedPushEntrySList(
