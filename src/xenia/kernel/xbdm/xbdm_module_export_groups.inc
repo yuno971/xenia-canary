@@ -7,20 +7,7 @@
  ******************************************************************************
  */
 
-#ifndef XENIA_KERNEL_XBOXKRNL_XBOXKRNL_VIDEO_H_
-#define XENIA_KERNEL_XBOXKRNL_XBOXKRNL_VIDEO_H_
+// This is a partial file designed to be included by other files when
+// constructing various tables.
 
-#include "xenia/kernel/util/shim_utils.h"
-#include "xenia/xbox.h"
-
-namespace xe {
-namespace kernel {
-namespace xboxkrnl {
-
-void VdQueryVideoMode(X_VIDEO_MODE* video_mode);
-
-}  // namespace xboxkrnl
-}  // namespace kernel
-}  // namespace xe
-
-#endif  // XENIA_KERNEL_XBOXKRNL_XBOXKRNL_VIDEO_H_
+XE_MODULE_EXPORT_GROUP(xbdm, Misc)

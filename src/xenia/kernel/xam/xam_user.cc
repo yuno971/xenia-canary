@@ -2,7 +2,7 @@
  ******************************************************************************
  * Xenia : Xbox 360 Emulator Research Project                                 *
  ******************************************************************************
- * Copyright 2021 Ben Vanik. All rights reserved.                             *
+ * Copyright 2022 Ben Vanik. All rights reserved.                             *
  * Released under the BSD license - see LICENSE in the root for more details. *
  ******************************************************************************
  */
@@ -23,8 +23,8 @@ namespace xe {
 namespace kernel {
 namespace xam {
 
-X_HRESULT_result_t XamUserGetXUID(dword_t user_index, dword_t type_mask,
-                                  lpqword_t xuid_ptr) {
+X_HRESULT_result_t XamUserGetXUID_entry(dword_t user_index, dword_t type_mask,
+                                        lpqword_t xuid_ptr) {
   assert_true(type_mask == 1 || type_mask == 2 || type_mask == 3 ||
               type_mask == 4 || type_mask == 7);
   if (!xuid_ptr) {
@@ -54,7 +54,7 @@ X_HRESULT_result_t XamUserGetXUID(dword_t user_index, dword_t type_mask,
 }
 DECLARE_XAM_EXPORT1(XamUserGetXUID, kUserProfiles, kImplemented);
 
-dword_result_t XamUserGetSigninState(dword_t user_index) {
+dword_result_t XamUserGetSigninState_entry(dword_t user_index) {
   // Yield, as some games spam this.
   xe::threading::MaybeYield();
   uint32_t signin_state = 0;
@@ -79,8 +79,8 @@ typedef struct {
 } X_USER_SIGNIN_INFO;
 static_assert_size(X_USER_SIGNIN_INFO, 40);
 
-X_HRESULT_result_t XamUserGetSigninInfo(dword_t user_index, dword_t flags,
-                                        pointer_t<X_USER_SIGNIN_INFO> info) {
+X_HRESULT_result_t XamUserGetSigninInfo_entry(
+    dword_t user_index, dword_t flags, pointer_t<X_USER_SIGNIN_INFO> info) {
   if (!info) {
     return X_E_INVALIDARG;
   }
@@ -105,8 +105,8 @@ X_HRESULT_result_t XamUserGetSigninInfo(dword_t user_index, dword_t flags,
 }
 DECLARE_XAM_EXPORT1(XamUserGetSigninInfo, kUserProfiles, kImplemented);
 
-dword_result_t XamUserGetName(dword_t user_index, lpstring_t buffer,
-                              dword_t buffer_len) {
+dword_result_t XamUserGetName_entry(dword_t user_index, lpstring_t buffer,
+                                    dword_t buffer_len) {
   if (user_index >= 4) {
     return X_E_INVALIDARG;
   }
@@ -123,8 +123,9 @@ dword_result_t XamUserGetName(dword_t user_index, lpstring_t buffer,
 }
 DECLARE_XAM_EXPORT1(XamUserGetName, kUserProfiles, kImplemented);
 
-dword_result_t XamUserGetGamerTag(dword_t user_index, lpu16string_t buffer,
-                                  dword_t buffer_len) {
+dword_result_t XamUserGetGamerTag_entry(dword_t user_index,
+                                        lpu16string_t buffer,
+                                        dword_t buffer_len) {
   if (user_index >= 4) {
     return X_E_INVALIDARG;
   }
@@ -315,7 +316,7 @@ uint32_t xeXamUserReadProfileSettingsEx(uint32_t title_id, uint32_t user_index,
   return X_ERROR_SUCCESS;
 }
 
-dword_result_t XamUserReadProfileSettings(
+dword_result_t XamUserReadProfileSettings_entry(
     dword_t title_id, dword_t user_index, dword_t xuid_count, lpqword_t xuids,
     dword_t setting_count, lpdword_t setting_ids, lpdword_t buffer_size_ptr,
     lpvoid_t buffer_ptr, dword_t overlapped_ptr) {
@@ -325,7 +326,7 @@ dword_result_t XamUserReadProfileSettings(
 }
 DECLARE_XAM_EXPORT1(XamUserReadProfileSettings, kUserProfiles, kImplemented);
 
-dword_result_t XamUserReadProfileSettingsEx(
+dword_result_t XamUserReadProfileSettingsEx_entry(
     dword_t title_id, dword_t user_index, dword_t xuid_count, lpqword_t xuids,
     dword_t setting_count, lpdword_t setting_ids, lpdword_t buffer_size_ptr,
     dword_t unk_2, lpvoid_t buffer_ptr, dword_t overlapped_ptr) {
@@ -358,7 +359,7 @@ typedef struct {
   };
 } X_USER_WRITE_PROFILE_SETTING;
 
-dword_result_t XamUserWriteProfileSettings(
+dword_result_t XamUserWriteProfileSettings_entry(
     dword_t title_id, dword_t user_index, dword_t setting_count,
     pointer_t<X_USER_WRITE_PROFILE_SETTING> settings, dword_t overlapped_ptr) {
   if (!setting_count || !settings) {
@@ -433,8 +434,8 @@ dword_result_t XamUserWriteProfileSettings(
 }
 DECLARE_XAM_EXPORT1(XamUserWriteProfileSettings, kUserProfiles, kImplemented);
 
-dword_result_t XamUserCheckPrivilege(dword_t user_index, dword_t mask,
-                                     lpdword_t out_value) {
+dword_result_t XamUserCheckPrivilege_entry(dword_t user_index, dword_t mask,
+                                           lpdword_t out_value) {
   // checking all users?
   if (user_index != 0xFF) {
     if (user_index >= 4) {
@@ -452,8 +453,8 @@ dword_result_t XamUserCheckPrivilege(dword_t user_index, dword_t mask,
 }
 DECLARE_XAM_EXPORT1(XamUserCheckPrivilege, kUserProfiles, kStub);
 
-dword_result_t XamUserContentRestrictionGetFlags(dword_t user_index,
-                                                 lpdword_t out_flags) {
+dword_result_t XamUserContentRestrictionGetFlags_entry(dword_t user_index,
+                                                       lpdword_t out_flags) {
   if (!kernel_state()->IsUserSignedIn(user_index)) {
     return X_ERROR_NO_SUCH_USER;
   }
@@ -464,10 +465,10 @@ dword_result_t XamUserContentRestrictionGetFlags(dword_t user_index,
 }
 DECLARE_XAM_EXPORT1(XamUserContentRestrictionGetFlags, kUserProfiles, kStub);
 
-dword_result_t XamUserContentRestrictionGetRating(dword_t user_index,
-                                                  dword_t unk1,
-                                                  lpdword_t out_unk2,
-                                                  lpdword_t out_unk3) {
+dword_result_t XamUserContentRestrictionGetRating_entry(dword_t user_index,
+                                                        dword_t unk1,
+                                                        lpdword_t out_unk2,
+                                                        lpdword_t out_unk3) {
   if (!kernel_state()->IsUserSignedIn(user_index)) {
     return X_ERROR_NO_SUCH_USER;
   }
@@ -480,11 +481,9 @@ dword_result_t XamUserContentRestrictionGetRating(dword_t user_index,
 }
 DECLARE_XAM_EXPORT1(XamUserContentRestrictionGetRating, kUserProfiles, kStub);
 
-dword_result_t XamUserContentRestrictionCheckAccess(dword_t user_index,
-                                                    dword_t unk1, dword_t unk2,
-                                                    dword_t unk3, dword_t unk4,
-                                                    lpdword_t out_unk5,
-                                                    dword_t overlapped_ptr) {
+dword_result_t XamUserContentRestrictionCheckAccess_entry(
+    dword_t user_index, dword_t unk1, dword_t unk2, dword_t unk3, dword_t unk4,
+    lpdword_t out_unk5, dword_t overlapped_ptr) {
   *out_unk5 = 1;
 
   if (overlapped_ptr) {
@@ -497,10 +496,10 @@ dword_result_t XamUserContentRestrictionCheckAccess(dword_t user_index,
 }
 DECLARE_XAM_EXPORT1(XamUserContentRestrictionCheckAccess, kUserProfiles, kStub);
 
-dword_result_t XamUserIsOnlineEnabled(dword_t user_index) { return 1; }
+dword_result_t XamUserIsOnlineEnabled_entry(dword_t user_index) { return 1; }
 DECLARE_XAM_EXPORT1(XamUserIsOnlineEnabled, kUserProfiles, kStub);
 
-dword_result_t XamUserGetMembershipTier(dword_t user_index) {
+dword_result_t XamUserGetMembershipTier_entry(dword_t user_index) {
   if (user_index >= 4) {
     return X_ERROR_INVALID_PARAMETER;
   }
@@ -512,9 +511,9 @@ dword_result_t XamUserGetMembershipTier(dword_t user_index) {
 }
 DECLARE_XAM_EXPORT1(XamUserGetMembershipTier, kUserProfiles, kStub);
 
-dword_result_t XamUserAreUsersFriends(dword_t user_index, dword_t unk1,
-                                      dword_t unk2, lpdword_t out_value,
-                                      dword_t overlapped_ptr) {
+dword_result_t XamUserAreUsersFriends_entry(dword_t user_index, dword_t unk1,
+                                            dword_t unk2, lpdword_t out_value,
+                                            dword_t overlapped_ptr) {
   uint32_t are_friends = 0;
   X_RESULT result;
 
@@ -556,10 +555,10 @@ dword_result_t XamUserAreUsersFriends(dword_t user_index, dword_t unk1,
 }
 DECLARE_XAM_EXPORT1(XamUserAreUsersFriends, kUserProfiles, kStub);
 
-dword_result_t XamShowSigninUI(dword_t unk, dword_t unk_mask) {
-  kernel_state()->UpdateUsedUserProfiles();
+dword_result_t XamShowSigninUI_entry(dword_t unk, dword_t unk_mask) {
   // Mask values vary. Probably matching user types? Local/remote?
   // Games seem to sit and loop until we trigger this notification:
+  kernel_state()->UpdateUsedUserProfiles();
 
   for (uint8_t i = 1; i < 4; i++) {
     if (kernel_state()->IsUserSignedIn(i)) {
@@ -690,12 +689,10 @@ class XStaticAchievementEnumerator : public XEnumerator {
   size_t current_item_ = 0;
 };
 
-dword_result_t XamUserCreateAchievementEnumerator(dword_t title_id,
-                                                  dword_t user_index,
-                                                  dword_t xuid, dword_t flags,
-                                                  dword_t offset, dword_t count,
-                                                  lpdword_t buffer_size_ptr,
-                                                  lpdword_t handle_ptr) {
+dword_result_t XamUserCreateAchievementEnumerator_entry(
+    dword_t title_id, dword_t user_index, dword_t xuid, dword_t flags,
+    dword_t offset, dword_t count, lpdword_t buffer_size_ptr,
+    lpdword_t handle_ptr) {
   if (!count || !buffer_size_ptr || !handle_ptr) {
     return X_ERROR_INVALID_PARAMETER;
   }
@@ -741,8 +738,9 @@ dword_result_t XamUserCreateAchievementEnumerator(dword_t title_id,
 DECLARE_XAM_EXPORT1(XamUserCreateAchievementEnumerator, kUserProfiles,
                     kSketchy);
 
-dword_result_t XamParseGamerTileKey(lpdword_t key_ptr, lpdword_t out1_ptr,
-                                    lpdword_t out2_ptr, lpdword_t out3_ptr) {
+dword_result_t XamParseGamerTileKey_entry(lpdword_t key_ptr, lpdword_t out1_ptr,
+                                          lpdword_t out2_ptr,
+                                          lpdword_t out3_ptr) {
   *out1_ptr = 0xC0DE0001;
   *out2_ptr = 0xC0DE0002;
   *out3_ptr = 0xC0DE0003;
@@ -750,10 +748,11 @@ dword_result_t XamParseGamerTileKey(lpdword_t key_ptr, lpdword_t out1_ptr,
 }
 DECLARE_XAM_EXPORT1(XamParseGamerTileKey, kUserProfiles, kStub);
 
-dword_result_t XamReadTileToTexture(dword_t unknown, dword_t title_id,
-                                    qword_t tile_id, dword_t user_index,
-                                    lpvoid_t buffer_ptr, dword_t stride,
-                                    dword_t height, dword_t overlapped_ptr) {
+dword_result_t XamReadTileToTexture_entry(dword_t unknown, dword_t title_id,
+                                          qword_t tile_id, dword_t user_index,
+                                          lpvoid_t buffer_ptr, dword_t stride,
+                                          dword_t height,
+                                          dword_t overlapped_ptr) {
   // TODO(gibbed): unknown=0,2,3,9
   if (!tile_id) {
     return X_ERROR_INVALID_PARAMETER;
@@ -771,9 +770,9 @@ dword_result_t XamReadTileToTexture(dword_t unknown, dword_t title_id,
 }
 DECLARE_XAM_EXPORT1(XamReadTileToTexture, kUserProfiles, kStub);
 
-dword_result_t XamWriteGamerTile(dword_t arg1, dword_t arg2, dword_t arg3,
-                                 dword_t arg4, dword_t arg5,
-                                 dword_t overlapped_ptr) {
+dword_result_t XamWriteGamerTile_entry(dword_t arg1, dword_t arg2, dword_t arg3,
+                                       dword_t arg4, dword_t arg5,
+                                       dword_t overlapped_ptr) {
   if (overlapped_ptr) {
     kernel_state()->CompleteOverlappedImmediate(overlapped_ptr,
                                                 X_ERROR_SUCCESS);
@@ -783,13 +782,14 @@ dword_result_t XamWriteGamerTile(dword_t arg1, dword_t arg2, dword_t arg3,
 }
 DECLARE_XAM_EXPORT1(XamWriteGamerTile, kUserProfiles, kStub);
 
-dword_result_t XamSessionCreateHandle(lpdword_t handle_ptr) {
+dword_result_t XamSessionCreateHandle_entry(lpdword_t handle_ptr) {
   *handle_ptr = 0xCAFEDEAD;
   return X_ERROR_SUCCESS;
 }
 DECLARE_XAM_EXPORT1(XamSessionCreateHandle, kUserProfiles, kStub);
 
-dword_result_t XamSessionRefObjByHandle(dword_t handle, lpdword_t obj_ptr) {
+dword_result_t XamSessionRefObjByHandle_entry(dword_t handle,
+                                              lpdword_t obj_ptr) {
   assert_true(handle == 0xCAFEDEAD);
   // TODO(PermaNull): Implement this properly,
   // For the time being returning 0xDEADF00D will prevent crashing.
@@ -802,5 +802,4 @@ DECLARE_XAM_EXPORT1(XamSessionRefObjByHandle, kUserProfiles, kStub);
 }  // namespace kernel
 }  // namespace xe
 
-void xe::kernel::xam::RegisterUserExports(
-    xe::cpu::ExportResolver* export_resolver, KernelState* kernel_state) {}
+DECLARE_XAM_EMPTY_REGISTER_EXPORTS(User);

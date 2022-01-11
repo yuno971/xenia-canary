@@ -2,7 +2,7 @@
  ******************************************************************************
  * Xenia : Xbox 360 Emulator Research Project                                 *
  ******************************************************************************
- * Copyright 2021 Ben Vanik. All rights reserved.                             *
+ * Copyright 2022 Ben Vanik. All rights reserved.                             *
  * Released under the BSD license - see LICENSE in the root for more details. *
  ******************************************************************************
  */
@@ -72,9 +72,10 @@ uint32_t xeXamEnumerate(uint32_t handle, uint32_t flags, lpvoid_t buffer_ptr,
   }
 }
 
-dword_result_t XamEnumerate(dword_t handle, dword_t flags, lpvoid_t buffer,
-                            dword_t buffer_length, lpdword_t items_returned,
-                            pointer_t<XAM_OVERLAPPED> overlapped) {
+dword_result_t XamEnumerate_entry(dword_t handle, dword_t flags,
+                                  lpvoid_t buffer, dword_t buffer_length,
+                                  lpdword_t items_returned,
+                                  pointer_t<XAM_OVERLAPPED> overlapped) {
   uint32_t dummy;
   auto result = xeXamEnumerate(handle, flags, buffer, buffer_length,
                                !overlapped ? &dummy : nullptr, overlapped);
@@ -85,11 +86,10 @@ dword_result_t XamEnumerate(dword_t handle, dword_t flags, lpvoid_t buffer,
 }
 DECLARE_XAM_EXPORT1(XamEnumerate, kNone, kImplemented);
 
-dword_result_t XamCreateEnumeratorHandle(dword_t user_index, dword_t app_id,
-                                         dword_t open_message,
-                                         dword_t close_message,
-                                         dword_t extra_size, dword_t item_count,
-                                         dword_t flags, lpdword_t out_handle) {
+dword_result_t XamCreateEnumeratorHandle_entry(
+    dword_t user_index, dword_t app_id, dword_t open_message,
+    dword_t close_message, dword_t extra_size, dword_t item_count,
+    dword_t flags, lpdword_t out_handle) {
   auto e = object_ref<XStaticUntypedEnumerator>(
       new XStaticUntypedEnumerator(kernel_state(), item_count, extra_size));
 
@@ -104,8 +104,8 @@ dword_result_t XamCreateEnumeratorHandle(dword_t user_index, dword_t app_id,
 }
 DECLARE_XAM_EXPORT1(XamCreateEnumeratorHandle, kNone, kImplemented);
 
-dword_result_t XamGetPrivateEnumStructureFromHandle(dword_t handle,
-                                                    lpdword_t out_object_ptr) {
+dword_result_t XamGetPrivateEnumStructureFromHandle_entry(
+    dword_t handle, lpdword_t out_object_ptr) {
   auto e = kernel_state()->object_table()->LookupObject<XEnumerator>(handle);
   if (!e) {
     return X_STATUS_INVALID_HANDLE;
@@ -123,9 +123,8 @@ dword_result_t XamGetPrivateEnumStructureFromHandle(dword_t handle,
 }
 DECLARE_XAM_EXPORT1(XamGetPrivateEnumStructureFromHandle, kNone, kStub);
 
-void RegisterEnumExports(xe::cpu::ExportResolver* export_resolver,
-                         KernelState* kernel_state) {}
-
 }  // namespace xam
 }  // namespace kernel
 }  // namespace xe
+
+DECLARE_XAM_EMPTY_REGISTER_EXPORTS(Enum);
