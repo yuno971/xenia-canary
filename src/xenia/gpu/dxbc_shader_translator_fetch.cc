@@ -1209,10 +1209,22 @@ void DxbcShaderTranslator::ProcessTextureFetchInstruction(
           // Denormalize and offset Z (re-apply the offset not to lose precision
           // as a result of division) if stacked.
           a_.OpIf(false, dxbc::Src::R(size_and_is_3d_temp, dxbc::Src::kWWWW));
+
+          uint32_t is_nan = PushSystemTemp();
+          a_.OpEq(dxbc::Dest::R(is_nan, 1), coord_operand.SelectFromSwizzled(2),
+                  coord_operand.SelectFromSwizzled(2));
+          a_.OpIf(false, dxbc::Src::R(is_nan, 1));
+
           a_.OpMAd(dxbc::Dest::R(coord_and_sampler_temp, 0b0100),
                    coord_operand.SelectFromSwizzled(2),
                    dxbc::Src::R(size_and_is_3d_temp, dxbc::Src::kZZZZ),
                    dxbc::Src::LF(offsets[2]));
+
+          a_.OpElse();
+          a_.OpMov(dxbc::Dest::R(coord_and_sampler_temp, 0b0100),
+                   dxbc::Src::LF(0.0f));
+          a_.OpEndIf();
+          PopSystemTemp();
           a_.OpEndIf();
         } else {
           // Denormalize Z if stacked, and revert to normalized if 3D.
