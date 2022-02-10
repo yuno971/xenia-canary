@@ -19,6 +19,7 @@ project("xenia-cpu")
   local_platform_files("compiler/passes")
   local_platform_files("hir")
   local_platform_files("ppc")
+  lz4_depend()
 
 include("testing")
 include("ppc/testing")
