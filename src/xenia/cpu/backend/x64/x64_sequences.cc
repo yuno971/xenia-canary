@@ -35,7 +35,9 @@
 #include "xenia/cpu/backend/x64/x64_emitter.h"
 #include "xenia/cpu/backend/x64/x64_op.h"
 #include "xenia/cpu/backend/x64/x64_tracers.h"
+#include "xenia/cpu/cpu_flags.h"
 #include "xenia/cpu/hir/hir_builder.h"
+#include "xenia/cpu/lut.h"
 #include "xenia/cpu/processor.h"
 
 namespace xe {
@@ -2351,6 +2353,28 @@ struct SQRT_V128 : Sequence<SQRT_V128, I<OPCODE_SQRT, V128Op, V128Op>> {
 };
 EMITTER_OPCODE_TABLE(OPCODE_SQRT, SQRT_F32, SQRT_F64, SQRT_V128);
 
+// This should be an IR sequence emitted by ppc parser but it's easier to fiddle
+// with it this way
+struct LUT_V128 {
+  static void Emit(X64Emitter& e, Xmm dest, Xmm src, bool single_value,
+                   float* lut) {
+    if (single_value) {
+      // xmm1 is writemask for vpgatherqd ( 1 0 0 0 )
+      e.vpxor(e.xmm1, e.xmm1, e.xmm1);  // zero
+      e.mov(e.eax, 0xFFFFFFFF);
+      e.vpinsrd(e.xmm1, e.eax, 0);
+      // copy indexes 1,2,3. 0 will be replaced by vpgatherqd later
+      e.movapd(e.xmm0, src);
+    } else {
+      e.vpcmpeqd(e.xmm1, e.xmm1, e.xmm1);  // one
+    }
+    e.mov(e.rax, (uint64_t)lut);
+    e.vpmovzxdq(e.ymm2, src);  // zero extend, indexes are signed...
+    e.vpgatherqd(e.xmm0, e.ptr[e.rax + e.ymm2 * 4], e.xmm1);
+    e.vmovapd(dest, e.xmm0);
+  }
+};
+
 // ============================================================================
 // OPCODE_RSQRT
 // ============================================================================
@@ -2442,10 +2466,15 @@ struct POW2_F32 : Sequence<POW2_F32, I<OPCODE_POW2, F32Op, F32Op>> {
     return _mm_load_ss(&result);
   }
   static void Emit(X64Emitter& e, const EmitArgType& i) {
-    assert_always();
-    e.lea(e.GetNativeParam(0), e.StashXmm(0, i.src1));
-    e.CallNativeSafe(reinterpret_cast<void*>(EmulatePow2));
-    e.vmovaps(i.dest, e.xmm0);
+    if (cvars::lut_vexptefp) {
+      LUT_V128::Emit(e, i.dest, i.src1, true,
+                     xe::cpu::LUT::getInstance().vexptefp());
+    } else {
+      assert_always();
+      e.lea(e.GetNativeParam(0), e.StashXmm(0, i.src1));
+      e.CallNativeSafe(reinterpret_cast<void*>(EmulatePow2));
+      e.vmovaps(i.dest, e.xmm0);
+    }
   }
 };
 struct POW2_F64 : Sequence<POW2_F64, I<OPCODE_POW2, F64Op, F64Op>> {
@@ -2472,9 +2501,14 @@ struct POW2_V128 : Sequence<POW2_V128, I<OPCODE_POW2, V128Op, V128Op>> {
     return _mm_load_ps(values);
   }
   static void Emit(X64Emitter& e, const EmitArgType& i) {
-    e.lea(e.GetNativeParam(0), e.StashXmm(0, i.src1));
-    e.CallNativeSafe(reinterpret_cast<void*>(EmulatePow2));
-    e.vmovaps(i.dest, e.xmm0);
+    if (cvars::lut_vexptefp) {
+      LUT_V128::Emit(e, i.dest, i.src1, false,
+                     xe::cpu::LUT::getInstance().vexptefp());
+    } else {
+      e.lea(e.GetNativeParam(0), e.StashXmm(0, i.src1));
+      e.CallNativeSafe(reinterpret_cast<void*>(EmulatePow2));
+      e.vmovaps(i.dest, e.xmm0);
+    }
   }
 };
 EMITTER_OPCODE_TABLE(OPCODE_POW2, POW2_F32, POW2_F64, POW2_V128);
@@ -2493,14 +2527,19 @@ struct LOG2_F32 : Sequence<LOG2_F32, I<OPCODE_LOG2, F32Op, F32Op>> {
     return _mm_load_ss(&result);
   }
   static void Emit(X64Emitter& e, const EmitArgType& i) {
-    assert_always();
-    if (i.src1.is_constant) {
-      e.lea(e.GetNativeParam(0), e.StashConstantXmm(0, i.src1.constant()));
+    if (cvars::lut_vlogefp) {
+      LUT_V128::Emit(e, i.dest, i.src1, true,
+                     xe::cpu::LUT::getInstance().vlogefp());
     } else {
-      e.lea(e.GetNativeParam(0), e.StashXmm(0, i.src1));
+      assert_always();
+      if (i.src1.is_constant) {
+        e.lea(e.GetNativeParam(0), e.StashConstantXmm(0, i.src1.constant()));
+      } else {
+        e.lea(e.GetNativeParam(0), e.StashXmm(0, i.src1));
+      }
+      e.CallNativeSafe(reinterpret_cast<void*>(EmulateLog2));
+      e.vmovaps(i.dest, e.xmm0);
     }
-    e.CallNativeSafe(reinterpret_cast<void*>(EmulateLog2));
-    e.vmovaps(i.dest, e.xmm0);
   }
 };
 struct LOG2_F64 : Sequence<LOG2_F64, I<OPCODE_LOG2, F64Op, F64Op>> {
@@ -2531,13 +2570,18 @@ struct LOG2_V128 : Sequence<LOG2_V128, I<OPCODE_LOG2, V128Op, V128Op>> {
     return _mm_load_ps(values);
   }
   static void Emit(X64Emitter& e, const EmitArgType& i) {
-    if (i.src1.is_constant) {
-      e.lea(e.GetNativeParam(0), e.StashConstantXmm(0, i.src1.constant()));
+    if (cvars::lut_vlogefp) {
+      LUT_V128::Emit(e, i.dest, i.src1, false,
+                     xe::cpu::LUT::getInstance().vlogefp());
     } else {
-      e.lea(e.GetNativeParam(0), e.StashXmm(0, i.src1));
+      if (i.src1.is_constant) {
+        e.lea(e.GetNativeParam(0), e.StashConstantXmm(0, i.src1.constant()));
+      } else {
+        e.lea(e.GetNativeParam(0), e.StashXmm(0, i.src1));
+      }
+      e.CallNativeSafe(reinterpret_cast<void*>(EmulateLog2));
+      e.vmovaps(i.dest, e.xmm0);
     }
-    e.CallNativeSafe(reinterpret_cast<void*>(EmulateLog2));
-    e.vmovaps(i.dest, e.xmm0);
   }
 };
 EMITTER_OPCODE_TABLE(OPCODE_LOG2, LOG2_F32, LOG2_F64, LOG2_V128);

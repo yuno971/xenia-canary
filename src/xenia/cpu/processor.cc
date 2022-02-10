@@ -24,6 +24,7 @@
 #include "xenia/cpu/breakpoint.h"
 #include "xenia/cpu/cpu_flags.h"
 #include "xenia/cpu/export_resolver.h"
+#include "xenia/cpu/lut.h"
 #include "xenia/cpu/module.h"
 #include "xenia/cpu/ppc/ppc_decode_data.h"
 #include "xenia/cpu/ppc/ppc_frontend.h"
@@ -148,6 +149,9 @@ bool Processor::Setup(std::unique_ptr<backend::Backend> backend) {
     functions_trace_file_ =
         ChunkedMappedMemoryWriter::Open(functions_trace_path_, 32_MiB, true);
   }
+
+  // Preload to not freeze in JIT
+  LUT::getInstance();
 
   return true;
 }

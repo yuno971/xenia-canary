@@ -2,7 +2,7 @@
  ******************************************************************************
  * Xenia : Xbox 360 Emulator Research Project                                 *
  ******************************************************************************
- * Copyright 2013 Ben Vanik. All rights reserved.                             *
+ * Copyright 2022 Ben Vanik. All rights reserved.                             *
  * Released under the BSD license - see LICENSE in the root for more details. *
  ******************************************************************************
  */
@@ -44,6 +44,15 @@ DEFINE_uint64(
     "number.\nBits 16 to 31 are the revision number.\nNote: Some XEXs (such as "
     "mfgbootlauncher.xex) may check for a value that's less than 0x710700.",
     "CPU");
+
+#define XE_LUT(name)                                       \
+  DEFINE_bool(lut_##name, false,                           \
+              "Use a LookUp-Table to implement the " #name \
+              " instruction. "                             \
+              "Requires 16GB of additional RAM.",          \
+              "CPU");
+#include "xenia/cpu/lut_table.inc"
+#undef XE_LUT
 
 // Breakpoints:
 DEFINE_uint64(break_on_instruction, 0,

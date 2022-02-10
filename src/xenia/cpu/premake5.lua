@@ -8,6 +8,7 @@ project("xenia-cpu")
   language("C++")
   links({
     "xenia-base",
+    "lz4",
     "mspack",
   })
   includedirs({

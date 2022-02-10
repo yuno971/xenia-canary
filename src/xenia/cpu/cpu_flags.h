@@ -2,7 +2,7 @@
  ******************************************************************************
  * Xenia : Xbox 360 Emulator Research Project                                 *
  ******************************************************************************
- * Copyright 2013 Ben Vanik. All rights reserved.                             *
+ * Copyright 2022 Ben Vanik. All rights reserved.                             *
  * Released under the BSD license - see LICENSE in the root for more details. *
  ******************************************************************************
  */
@@ -27,6 +27,10 @@ DECLARE_bool(disable_global_lock);
 DECLARE_bool(validate_hir);
 
 DECLARE_uint64(pvr);
+
+#define XE_LUT(name) DECLARE_bool(lut_##name);
+#include "xenia/cpu/lut_table.inc"
+#undef XE_LUT
 
 // Breakpoints:
 DECLARE_uint64(break_on_instruction);
