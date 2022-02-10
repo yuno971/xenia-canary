@@ -2,7 +2,7 @@
  ******************************************************************************
  * Xenia : Xbox 360 Emulator Research Project                                 *
  ******************************************************************************
- * Copyright 2020 Ben Vanik. All rights reserved.                             *
+ * Copyright 2022 Ben Vanik. All rights reserved.                             *
  * Released under the BSD license - see LICENSE in the root for more details. *
  ******************************************************************************
  */
@@ -89,19 +89,23 @@ bool Protect(void* base_address, size_t length, PageAccess access,
 // the region.
 bool QueryProtect(void* base_address, size_t& length, PageAccess& access_out);
 
-// Allocates a block of memory for a type with the given alignment.
+// Allocates an aligned block of memory
 // The memory must be freed with AlignedFree.
-template <typename T>
-inline T* AlignedAlloc(size_t alignment) {
+inline void* AlignedAlloc(size_t size, size_t alignment) {
 #if XE_COMPILER_MSVC
-  return reinterpret_cast<T*>(_aligned_malloc(sizeof(T), alignment));
+  return _aligned_malloc(size, alignment);
 #else
   void* ptr = nullptr;
-  if (posix_memalign(&ptr, alignment, sizeof(T))) {
+  if (posix_memalign(&ptr, alignment, size)) {
     return nullptr;
   }
-  return reinterpret_cast<T*>(ptr);
+  return ptr;
 #endif  // XE_COMPILER_MSVC
+}
+// Allocates a block of memory for a type with the given alignment.
+template <typename T>
+inline T* AlignedAlloc(size_t alignment) {
+  return reinterpret_cast<T*>(AlignedAlloc(sizeof(T), alignment));
 }
 
 // Frees memory previously allocated with AlignedAlloc.
