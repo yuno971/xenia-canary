@@ -107,22 +107,6 @@ void D3D12CommandProcessor::RestoreEdramSnapshot(const void* snapshot) {
   render_target_cache_->RestoreEdramSnapshot(snapshot);
 }
 
-uint32_t D3D12CommandProcessor::GetCurrentColorMask(
-    uint32_t shader_writes_color_targets) const {
-  auto& regs = *register_file_;
-  if (regs.Get<reg::RB_MODECONTROL>().edram_mode !=
-      xenos::ModeControl::kColorDepth) {
-    return 0;
-  }
-  uint32_t color_mask = regs[XE_GPU_REG_RB_COLOR_MASK].u32 & 0xFFFF;
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (!(shader_writes_color_targets & (1 << i))) {
-      color_mask &= ~(0xF << (i * 4));
-    }
-  }
-  return color_mask;
-}
-
 void D3D12CommandProcessor::PushTransitionBarrier(
     ID3D12Resource* resource, D3D12_RESOURCE_STATES old_state,
     D3D12_RESOURCE_STATES new_state, UINT subresource) {
@@ -703,7 +687,7 @@ void D3D12CommandProcessor::ReleaseScratchGPUBuffer(
 void D3D12CommandProcessor::SetExternalPipeline(ID3D12PipelineState* pipeline) {
   if (current_external_pipeline_ != pipeline) {
     current_external_pipeline_ = pipeline;
-    current_cached_pipeline_ = nullptr;
+    current_guest_pipeline_ = nullptr;
     deferred_command_list_.D3DSetPipelineState(pipeline);
   }
 }
@@ -727,7 +711,7 @@ void D3D12CommandProcessor::SetViewport(const D3D12_VIEWPORT& viewport) {
   ff_viewport_update_needed_ |= ff_viewport_.MaxDepth != viewport.MaxDepth;
   if (ff_viewport_update_needed_) {
     ff_viewport_ = viewport;
-    deferred_command_list_.RSSetViewport(viewport);
+    deferred_command_list_.RSSetViewport(ff_viewport_);
     ff_viewport_update_needed_ = false;
   }
 }
@@ -739,7 +723,7 @@ void D3D12CommandProcessor::SetScissorRect(const D3D12_RECT& scissor_rect) {
   ff_scissor_update_needed_ |= ff_scissor_.bottom != scissor_rect.bottom;
   if (ff_scissor_update_needed_) {
     ff_scissor_ = scissor_rect;
-    deferred_command_list_.RSSetScissorRect(scissor_rect);
+    deferred_command_list_.RSSetScissorRect(ff_scissor_);
     ff_scissor_update_needed_ = false;
   }
 }
@@ -2156,10 +2140,12 @@ bool D3D12CommandProcessor::IssueDraw(xenos::PrimitiveType primitive_type,
           : DxbcShaderTranslator::Modification(0);
 
   // Set up the render targets - this may perform dispatches and draws.
-  uint32_t pixel_shader_writes_color_targets =
-      pixel_shader ? pixel_shader->writes_color_targets() : 0;
+  uint32_t normalized_color_mask =
+      pixel_shader ? draw_util::GetNormalizedColorMask(
+                         regs, pixel_shader->writes_color_targets())
+                   : 0;
   if (!render_target_cache_->Update(is_rasterization_done,
-                                    pixel_shader_writes_color_targets)) {
+                                    normalized_color_mask)) {
     return false;
   }
 
@@ -2190,7 +2176,8 @@ bool D3D12CommandProcessor::IssueDraw(xenos::PrimitiveType primitive_type,
   ID3D12RootSignature* root_signature;
   if (!pipeline_cache_->ConfigurePipeline(
           vertex_shader_translation, pixel_shader_translation,
-          primitive_processing_result, bound_depth_and_color_render_target_bits,
+          primitive_processing_result, normalized_color_mask,
+          bound_depth_and_color_render_target_bits,
           bound_depth_and_color_render_target_formats, &pipeline_handle,
           &root_signature)) {
     return false;
@@ -2206,10 +2193,10 @@ bool D3D12CommandProcessor::IssueDraw(xenos::PrimitiveType primitive_type,
 
   // Bind the pipeline after configuring it and doing everything that may bind
   // other pipelines.
-  if (current_cached_pipeline_ != pipeline_handle) {
+  if (current_guest_pipeline_ != pipeline_handle) {
     deferred_command_list_.SetPipelineStateHandle(
         reinterpret_cast<void*>(pipeline_handle));
-    current_cached_pipeline_ = pipeline_handle;
+    current_guest_pipeline_ = pipeline_handle;
     current_external_pipeline_ = nullptr;
   }
 
@@ -2245,9 +2232,7 @@ bool D3D12CommandProcessor::IssueDraw(xenos::PrimitiveType primitive_type,
       memexport_used, primitive_polygonal,
       primitive_processing_result.line_loop_closing_index,
       primitive_processing_result.host_index_endian, viewport_info,
-      used_texture_mask,
-      pixel_shader ? GetCurrentColorMask(pixel_shader->writes_color_targets())
-                   : 0);
+      used_texture_mask, normalized_color_mask);
 
   // Update constant buffers, descriptors and root parameters.
   if (!UpdateBindings(vertex_shader, pixel_shader, root_signature)) {
@@ -2818,7 +2803,7 @@ bool D3D12CommandProcessor::BeginSubmission(bool is_guest_command) {
     ff_scissor_update_needed_ = true;
     ff_blend_factor_update_needed_ = true;
     ff_stencil_ref_update_needed_ = true;
-    current_cached_pipeline_ = nullptr;
+    current_guest_pipeline_ = nullptr;
     current_external_pipeline_ = nullptr;
     current_graphics_root_signature_ = nullptr;
     current_graphics_root_up_to_date_ = 0;
@@ -3078,19 +3063,18 @@ void D3D12CommandProcessor::UpdateFixedFunctionState(
     const RegisterFile& regs = *register_file_;
 
     // Blend factor.
+    float blend_factor[] = {
+        regs[XE_GPU_REG_RB_BLEND_RED].f32,
+        regs[XE_GPU_REG_RB_BLEND_GREEN].f32,
+        regs[XE_GPU_REG_RB_BLEND_BLUE].f32,
+        regs[XE_GPU_REG_RB_BLEND_ALPHA].f32,
+    };
+    // std::memcmp instead of != so in case of NaN, every draw won't be
+    // invalidating it.
     ff_blend_factor_update_needed_ |=
-        ff_blend_factor_[0] != regs[XE_GPU_REG_RB_BLEND_RED].f32;
-    ff_blend_factor_update_needed_ |=
-        ff_blend_factor_[1] != regs[XE_GPU_REG_RB_BLEND_GREEN].f32;
-    ff_blend_factor_update_needed_ |=
-        ff_blend_factor_[2] != regs[XE_GPU_REG_RB_BLEND_BLUE].f32;
-    ff_blend_factor_update_needed_ |=
-        ff_blend_factor_[3] != regs[XE_GPU_REG_RB_BLEND_ALPHA].f32;
+        std::memcmp(ff_blend_factor_, blend_factor, sizeof(float) * 4) != 0;
     if (ff_blend_factor_update_needed_) {
-      ff_blend_factor_[0] = regs[XE_GPU_REG_RB_BLEND_RED].f32;
-      ff_blend_factor_[1] = regs[XE_GPU_REG_RB_BLEND_GREEN].f32;
-      ff_blend_factor_[2] = regs[XE_GPU_REG_RB_BLEND_BLUE].f32;
-      ff_blend_factor_[3] = regs[XE_GPU_REG_RB_BLEND_ALPHA].f32;
+      std::memcpy(ff_blend_factor_, blend_factor, sizeof(float) * 4);
       deferred_command_list_.D3DOMSetBlendFactor(ff_blend_factor_);
       ff_blend_factor_update_needed_ = false;
     }
@@ -3111,7 +3095,7 @@ void D3D12CommandProcessor::UpdateFixedFunctionState(
     ff_stencil_ref_update_needed_ |= ff_stencil_ref_ != stencil_ref;
     if (ff_stencil_ref_update_needed_) {
       ff_stencil_ref_ = stencil_ref;
-      deferred_command_list_.D3DOMSetStencilRef(stencil_ref);
+      deferred_command_list_.D3DOMSetStencilRef(ff_stencil_ref_);
       ff_stencil_ref_update_needed_ = false;
     }
   }
@@ -3121,7 +3105,7 @@ void D3D12CommandProcessor::UpdateSystemConstantValues(
     bool shared_memory_is_uav, bool primitive_polygonal,
     uint32_t line_loop_closing_index, xenos::Endian index_endian,
     const draw_util::ViewportInfo& viewport_info, uint32_t used_texture_mask,
-    uint32_t color_mask) {
+    uint32_t normalized_color_mask) {
 #if XE_UI_D3D12_FINE_GRAINED_DRAW_SCOPES
   SCOPE_profile_cpu_f("gpu");
 #endif  // XE_UI_D3D12_FINE_GRAINED_DRAW_SCOPES
@@ -3168,7 +3152,7 @@ void D3D12CommandProcessor::UpdateSystemConstantValues(
       // Get the mask for keeping previous color's components unmodified,
       // or two UINT32_MAX if no colors actually existing in the RT are written.
       DxbcShaderTranslator::ROV_GetColorFormatSystemConstants(
-          color_info.color_format, (color_mask >> (i * 4)) & 0b1111,
+          color_info.color_format, (normalized_color_mask >> (i * 4)) & 0b1111,
           rt_clamp[i][0], rt_clamp[i][1], rt_clamp[i][2], rt_clamp[i][3],
           rt_keep_masks[i][0], rt_keep_masks[i][1]);
     }
