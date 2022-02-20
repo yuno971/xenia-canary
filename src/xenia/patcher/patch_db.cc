@@ -36,10 +36,10 @@ void PatchDB::LoadPatches() {
   const std::vector<xe::filesystem::FileInfo>& patch_files =
       filesystem::ListFiles(patches_directory);
   const std::regex file_name_regex_match =
-      std::regex("^[A-Fa-f0-9]{8}.*\\.patch$");
+      std::regex("^[A-F0-9]{8}.*\\.patch\\.toml$");
 
   for (const xe::filesystem::FileInfo& patch_file : patch_files) {
-    // Skip files that doesn't have only title_id as name and .patch as
+    // Skip files that doesn't have only title_id as name and .patch.toml as
     // extension
     if (!std::regex_match(path_to_utf8(patch_file.name),
                           file_name_regex_match)) {
