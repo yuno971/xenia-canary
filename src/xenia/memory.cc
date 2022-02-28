@@ -555,7 +555,7 @@ uint32_t Memory::SystemHeapAlloc(uint32_t size, uint32_t alignment,
   uint32_t address;
   if (!heap->AllocSystemHeap(
           size, alignment, kMemoryAllocationReserve | kMemoryAllocationCommit,
-          kMemoryProtectRead | kMemoryProtectWrite, true, &address)) {
+          kMemoryProtectRead | kMemoryProtectWrite, false, &address)) {
     return 0;
   }
   Zero(address, size);
@@ -1071,6 +1071,11 @@ bool BaseHeap::AllocSystemHeap(uint32_t size, uint32_t alignment,
   alignment = xe::round_up(alignment, page_size_);
 
   uint32_t low_address = heap_base_;
+  if (heap_type_ == xe::HeapType::kGuestVirtual) {
+    // Both virtual heaps are same size, so we can assume that we substract
+    // constant value.
+    low_address = heap_base_ + heap_size_ - 0x10000000;
+  }
   uint32_t high_address = heap_base_ + (heap_size_ - 1);
   return AllocRange(low_address, high_address, size, alignment, allocation_type,
                     protect, top_down, out_address);
