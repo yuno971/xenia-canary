@@ -391,6 +391,41 @@ class RenderTargetCache {
                                  const Rectangle* cutout = nullptr);
   };
 
+  union HostDepthStoreRectangleConstant {
+    uint32_t constant;
+    struct {
+      // - 1 because the maximum is 0x1FFF / 8, not 0x2000 / 8.
+      uint32_t x_pixels_div_8 : xenos::kResolveSizeBits - 1 -
+                                xenos::kResolveAlignmentPixelsLog2;
+      uint32_t y_pixels_div_8 : xenos::kResolveSizeBits - 1 -
+                                xenos::kResolveAlignmentPixelsLog2;
+      uint32_t width_pixels_div_8_minus_1 : xenos::kResolveSizeBits - 1 -
+                                            xenos::kResolveAlignmentPixelsLog2;
+    };
+    HostDepthStoreRectangleConstant() : constant(0) {
+      static_assert_size(*this, sizeof(constant));
+    }
+  };
+
+  union HostDepthStoreRenderTargetConstant {
+    uint32_t constant;
+    struct {
+      uint32_t pitch_tiles : xenos::kEdramPitchTilesBits;
+      uint32_t resolution_scale_x : 2;
+      uint32_t resolution_scale_y : 2;
+      // Whether 2x MSAA is supported natively rather than through 4x.
+      uint32_t msaa_2x_supported : 1;
+    };
+    HostDepthStoreRenderTargetConstant() : constant(0) {
+      static_assert_size(*this, sizeof(constant));
+    }
+  };
+
+  struct HostDepthStoreConstants {
+    HostDepthStoreRectangleConstant rectangle;
+    HostDepthStoreRenderTargetConstant render_target;
+  };
+
   struct ResolveCopyDumpRectangle {
     RenderTarget* render_target;
     // If rows == 1:
@@ -510,6 +545,21 @@ class RenderTargetCache {
     assert_true(GetPath() == Path::kHostRenderTargets);
     return last_update_transfers_;
   }
+
+  HostDepthStoreRenderTargetConstant GetHostDepthStoreRenderTargetConstant(
+      uint32_t pitch_tiles, bool msaa_2x_supported) const {
+    HostDepthStoreRenderTargetConstant constant;
+    constant.pitch_tiles = pitch_tiles;
+    constant.resolution_scale_x = GetResolutionScaleX();
+    constant.resolution_scale_y = GetResolutionScaleY();
+    constant.msaa_2x_supported = uint32_t(msaa_2x_supported);
+    return constant;
+  }
+  void GetHostDepthStoreRectangleInfo(
+      const Transfer::Rectangle& transfer_rectangle,
+      xenos::MsaaSamples msaa_samples,
+      HostDepthStoreRectangleConstant& rectangle_constant_out,
+      uint32_t& group_count_x_out, uint32_t& group_count_y_out) const;
 
   // Returns mappings between ranges within the specified tile rectangle (not
   // render target texture rectangle - textures may have any pitch they need)
