@@ -34,7 +34,7 @@ if one is not detected. Make sure that you have the latest drivers installed. **
 
 ***There are no magical workarounds to make Xenia work on your potato computer.***
 
-***OpenGL and Direct3D11 or lower are not, and never will be supported.***
+***OpenGL and Direct3D 11 or lower are not, and never will be supported.***
 
 Windows Update tends to lag behind, so download GPU drivers from your manufacturer:
   * **[AMD](https://www.amd.com/en/support)**
