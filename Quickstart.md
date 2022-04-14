@@ -43,7 +43,7 @@ Windows Update tends to lag behind, so download GPU drivers from your manufactur
 
 ## Where do I download Xenia?
 
-  * **[Master](https://ci.appveyor.com/api/projects/benvanik/xenia/artifacts/xenia_master.zip?branch=master&job=Configuration:%20Release&pr=false)**
+  * **[Master](https://github.com/xenia-project/release-builds-windows/releases/latest/download/xenia_master.zip)**
   * *[Canary](https://github.com/xenia-canary/xenia-canary/releases/latest/download/xenia_canary.zip)*
 
 Xenia is sometimes detected as a virus. Ignore this, as it is a false positive.
