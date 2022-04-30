@@ -21,8 +21,6 @@
 #include "xenia/kernel/xfile.h"
 #include "xenia/kernel/xthread.h"
 
-DEFINE_bool(xex_apply_patches, true, "Apply XEX patches.", "Kernel");
-
 namespace xe {
 namespace kernel {
 
@@ -47,6 +45,42 @@ uint32_t UserModule::title_id() const {
     }
   }
   return 0;
+}
+
+uint32_t UserModule::disc_number() const {
+  if (module_format_ != kModuleFormatXex) {
+    return 0;
+  }
+  auto header = xex_header();
+  for (uint32_t i = 0; i < header->header_count; i++) {
+    auto& opt_header = header->headers[i];
+    if (opt_header.key == XEX_HEADER_EXECUTION_INFO) {
+      auto opt_header_ptr =
+          reinterpret_cast<const uint8_t*>(header) + opt_header.offset;
+      auto opt_exec_info =
+          reinterpret_cast<const xex2_opt_execution_info*>(opt_header_ptr);
+      return static_cast<uint32_t>(opt_exec_info->disc_number);
+    }
+  }
+  return 1;
+}
+
+bool UserModule::is_multi_disc_title() const {
+  if (module_format_ != kModuleFormatXex) {
+    return 0;
+  }
+  auto header = xex_header();
+  for (uint32_t i = 0; i < header->header_count; i++) {
+    auto& opt_header = header->headers[i];
+    if (opt_header.key == XEX_HEADER_EXECUTION_INFO) {
+      auto opt_header_ptr =
+          reinterpret_cast<const uint8_t*>(header) + opt_header.offset;
+      auto opt_exec_info =
+          reinterpret_cast<const xex2_opt_execution_info*>(opt_header_ptr);
+      return opt_exec_info->disc_count > 1;
+    }
+  }
+  return false;
 }
 
 X_STATUS UserModule::LoadFromFile(const std::string_view path) {
@@ -100,49 +134,10 @@ X_STATUS UserModule::LoadFromFile(const std::string_view path) {
     // Load the module.
     result = LoadFromMemory(buffer.data(), bytes_read);
 
-    // Generate xex hash
-    XXH3_state_t hash_state;
-    XXH3_64bits_reset(&hash_state);
-    XXH3_64bits_update(&hash_state, buffer.data(), bytes_read);
-    hash_ = XXH3_64bits_digest(&hash_state);
-
     // Close the file.
     file->Destroy();
   }
-
-  // Only XEX returns X_STATUS_PENDING
-  if (result != X_STATUS_PENDING) {
-    return result;
-  }
-
-  if (cvars::xex_apply_patches) {
-    // Search for xexp patch file
-    auto patch_entry = kernel_state()->file_system()->ResolvePath(path_ + "p");
-
-    if (patch_entry) {
-      auto patch_path = patch_entry->absolute_path();
-
-      XELOGI("Loading XEX patch from {}", patch_path);
-
-      auto patch_module = object_ref<UserModule>(new UserModule(kernel_state_));
-      result = patch_module->LoadFromFile(patch_path);
-      if (!result) {
-        result = patch_module->xex_module()->ApplyPatch(xex_module());
-        if (result) {
-          XELOGE("Failed to apply XEX patch, code: {}", result);
-        }
-      } else {
-        XELOGE("Failed to load XEX patch, code: {}", result);
-      }
-
-      if (result) {
-        return X_STATUS_UNSUCCESSFUL;
-      }
-    }
-  }
-
-  XELOGI("Module hash: {:16X} for {}", hash_, name_);
-  return LoadXexContinue();
+  return result;
 }
 
 X_STATUS UserModule::LoadFromMemory(const void* addr, const size_t length) {
@@ -208,7 +203,7 @@ X_STATUS UserModule::LoadFromMemory(const void* addr, const size_t length) {
   return X_STATUS_SUCCESS;
 }
 
-X_STATUS UserModule::LoadXexContinue() {
+X_STATUS UserModule::LoadContinue() {
   // LoadXexContinue: finishes loading XEX after a patch has been applied (or
   // patch wasn't found)
 
@@ -413,6 +408,8 @@ object_ref<UserModule> UserModule::Restore(KernelState* kernel_state,
 }
 
 void UserModule::Dump() {
+  CalculateHash();
+
   if (module_format_ == kModuleFormatElf) {
     // Quick die.
     return;
@@ -823,6 +820,17 @@ void UserModule::Dump() {
   }
 
   xe::logging::AppendLogLine(xe::LogLevel::Info, 'i', sb.to_string_view());
+}
+
+void UserModule::CalculateHash() {
+  uint8_t* base_adr = memory()->TranslateVirtual(xex_module()->base_address());
+
+  XXH3_state_t hash_state;
+  XXH3_64bits_reset(&hash_state);
+  XXH3_64bits_update(&hash_state, base_adr, xex_module()->image_size());
+  hash_ = XXH3_64bits_digest(&hash_state);
+
+  XELOGI("Module {} Hash: {:016X}", name_, hash_);
 }
 
 }  // namespace kernel
