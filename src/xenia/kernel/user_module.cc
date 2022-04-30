@@ -21,7 +21,7 @@
 #include "xenia/kernel/xfile.h"
 #include "xenia/kernel/xthread.h"
 
-DEFINE_bool(xex_apply_patches, true, "Apply XEX patches.", "Kernel");
+DEFINE_bool(apply_title_update, true, "Apply title updates.", "Kernel");
 
 namespace xe {
 namespace kernel {
@@ -115,28 +115,41 @@ X_STATUS UserModule::LoadFromFile(const std::string_view path) {
     return result;
   }
 
-  if (cvars::xex_apply_patches) {
-    // Search for xexp patch file
-    auto patch_entry = kernel_state()->file_system()->ResolvePath(path_ + "p");
+  if (cvars::apply_title_update) {
+    std::vector<xam::XCONTENT_AGGREGATE_DATA> tu_list =
+        kernel_state_->content_manager()->ListContent(
+            1, xe::XContentType::kInstaller, title_id());
 
-    if (patch_entry) {
-      auto patch_path = patch_entry->absolute_path();
+    // TODO(Gliniak): Support for selecting from multiple TUs
+    if (!tu_list.empty()) {
+      const xam::XCONTENT_AGGREGATE_DATA& title_update = tu_list.front();
+      X_RESULT open_status =
+          kernel_state_->content_manager()->OpenContent("UPDATE", title_update);
 
-      XELOGI("Loading XEX patch from {}", patch_path);
+      std::string resolved_path = "";
+      kernel_state_->file_system()->FindSymbolicLink("UPDATE:", resolved_path);
+      xe::vfs::Entry* patch_entry = kernel_state()->file_system()->ResolvePath(
+          resolved_path + "default.xexp");
 
-      auto patch_module = object_ref<UserModule>(new UserModule(kernel_state_));
-      result = patch_module->LoadFromFile(patch_path);
-      if (!result) {
-        result = patch_module->xex_module()->ApplyPatch(xex_module());
-        if (result) {
-          XELOGE("Failed to apply XEX patch, code: {}", result);
+      if (patch_entry) {
+        const std::string patch_path = patch_entry->absolute_path();
+        XELOGI("Loading XEX patch from {}", patch_path);
+
+        auto patch_module =
+            object_ref<UserModule>(new UserModule(kernel_state_));
+        result = patch_module->LoadFromFile(patch_path);
+        if (!result) {
+          result = patch_module->xex_module()->ApplyPatch(xex_module());
+          if (result) {
+            XELOGE("Failed to apply XEX patch, code: {}", result);
+          }
+        } else {
+          XELOGE("Failed to load XEX patch, code: {}", result);
         }
-      } else {
-        XELOGE("Failed to load XEX patch, code: {}", result);
-      }
 
-      if (result) {
-        return X_STATUS_UNSUCCESSFUL;
+        if (result) {
+          return X_STATUS_UNSUCCESSFUL;
+        }
       }
     }
   }
