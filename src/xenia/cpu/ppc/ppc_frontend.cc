@@ -53,7 +53,51 @@ PPCFrontend::~PPCFrontend() {
 
 Memory* PPCFrontend::memory() const { return processor_->memory(); }
 
-// Checks the state of the global lock and sets scratch to the current MSR
+ void SUB_82B471F8(PPCContext* ppc_context, void* arg0, void* arg1) {
+  uint32_t r3 = uint32_t(ppc_context->r[3]);
+  uint32_t r10 = uint32_t(ppc_context->r[10]);
+  uint32_t r11 = uint32_t(ppc_context->r[11]);
+
+  XELOGE("trapPointCrashUp1 {:08X} {:08X} {:08X}", r3, r10, r11);
+}
+
+// XMemCpy
+void SUB_82208FAC(PPCContext* ppc_context, void* arg0, void* arg1) {
+  uint32_t pDest = uint32_t(ppc_context->r[3]);
+  uint32_t pSrc = uint32_t(ppc_context->r[4]);
+  uint32_t size = uint32_t(ppc_context->r[5]);
+  uint32_t adr = uint32_t(ppc_context->r[9]);
+
+  uint32_t src_c1 = uint32_t(ppc_context->r[11]);
+  uint32_t src_c2 = uint32_t(ppc_context->r[26]);
+  XELOGE("XMemCpy({:08X}, {:08X}, {:08X} = {:08X} + {:08X})", pDest, pSrc, size,
+         src_c1, src_c2);
+
+  if (pSrc == 0x46B9BD34) {
+    XELOGE("WTF");
+    assert_always();
+  }
+}
+
+void SUB_82B47708(PPCContext* ppc_context, void* arg0, void* arg1) {
+  uint32_t r29 = uint32_t(ppc_context->r[29]);
+  XELOGE("Size to allocate: {:08X}", r29);
+}
+
+void SUB_82BF6044(PPCContext* ppc_context, void* arg0, void* arg1) {
+  uint32_t function_call = uint32_t(ppc_context->r[11]);
+  XELOGE("luaZ_fill call to: {:08X}", function_call);
+}
+
+void SUB_82BF5FCC(PPCContext* ppc_context, void* arg0, void* arg1) {
+  uint32_t zio_ptr = uint32_t(ppc_context->r[3]);
+  uint32_t dest_ptr = uint32_t(ppc_context->r[4]);
+  uint32_t size = uint32_t(ppc_context->r[5]);
+
+  auto r11 = uint32_t(ppc_context->r[11]);
+  XELOGE("lua_mem_copy({:08X}, {:08X}, {:08X})", zio_ptr, dest_ptr, size);
+}
+    // Checks the state of the global lock and sets scratch to the current MSR
 // value.
 void CheckGlobalLock(PPCContext* ppc_context, void* arg0, void* arg1) {
   auto global_mutex = reinterpret_cast<std::recursive_mutex*>(arg0);
@@ -93,6 +137,24 @@ void SyscallHandler(PPCContext* ppc_context, void* arg0, void* arg1) {
 bool PPCFrontend::Initialize() {
   void* arg0 = reinterpret_cast<void*>(&xe::global_critical_region::mutex());
   void* arg1 = reinterpret_cast<void*>(&builtins_.global_lock_count);
+
+  builtins_.sub_82B471F8 =
+      processor_->DefineBuiltin("SUB_82B471F8", SUB_82B471F8, arg0, arg1);
+
+
+  // XMemCpy
+  builtins_.sub_82208FAC =
+      processor_->DefineBuiltin("SUB_82208FAC", SUB_82208FAC, arg0, arg1);
+
+  // DEEP SHIT
+  builtins_.sub_82B47708 =
+      processor_->DefineBuiltin("SUB_82B47708", SUB_82B47708, arg0, arg1);
+
+  // MAIN SHIT
+  builtins_.sub_82BF6044 =
+      processor_->DefineBuiltin("SUB_82BF6044", SUB_82BF6044, arg0, arg1);
+  builtins_.sub_82BF5FCC =
+      processor_->DefineBuiltin("SUB_82BF5FCC", SUB_82BF5FCC, arg0, arg1);
   builtins_.check_global_lock =
       processor_->DefineBuiltin("CheckGlobalLock", CheckGlobalLock, arg0, arg1);
   builtins_.enter_global_lock =

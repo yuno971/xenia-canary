@@ -30,6 +30,28 @@ class PPCTranslator;
 
 struct PPCBuiltins {
   int32_t global_lock_count;
+
+  // BEFORE
+  Function* sub_82BF6044;
+
+
+  //MAIN SHIT
+  Function* sub_82BF5FCC;
+
+  // DEEP SHIT
+  Function* sub_82B47708;
+
+  // XMemCpy
+  Function* sub_82208FAC;
+
+  Function* sub_82B471F8;
+
+  /* Function* sub_82BF5AA8;
+  Function* sub_82BF5AD4;
+  Function* sub_82BF5E7C;
+  Function* sub_82BF4DC4;
+  Function* sub_82BF5FCC;*/
+
   Function* check_global_lock;
   Function* enter_global_lock;
   Function* leave_global_lock;

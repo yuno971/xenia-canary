@@ -81,6 +81,8 @@ void PPCHIRBuilder::Reset() {
   HIRBuilder::Reset();
 }
 
+static bool start_logging = false;
+
 bool PPCHIRBuilder::Emit(GuestFunction* function, uint32_t flags) {
   SCOPE_profile_cpu_f("cpu");
 
@@ -169,6 +171,108 @@ bool PPCHIRBuilder::Emit(GuestFunction* function, uint32_t flags) {
 
     MaybeBreakOnInstruction(address);
 
+    if (address == 0x82B47CE0) {
+      CallExtern(builtins()->sub_82208FAC);
+    }
+
+    if (address == 0x82B476E8) {
+      //StoreGPR(11, LoadConstantInt64(0));
+    }
+
+    if (address == 0x82B47708) {
+      CallExtern(builtins()->sub_82B47708);
+    }
+
+    if (address == 0x82B471F8) {
+      CallExtern(builtins()->sub_82B471F8);
+    }
+    /*
+    if (address == 0x82A2CB34) {
+      start_logging = true;
+      XELOGE("START LOGGING FROM THERE");
+      CallExtern(builtins()->sub_82BF6044);
+    }
+
+    //if (start_logging) {
+      if (address == 0x82BF5AD4) {
+        XELOGE("0x82BF5AD4");
+      }
+
+      if (address == 0x82BF5E7C) {
+        XELOGE("Point A");
+      }
+
+      if (address == 0x82BF5D20) {
+        XELOGE("Point B");
+      }
+
+      if (address == 0x82BF5D84) {
+        XELOGE("Point C");
+      }
+
+      if (address == 0x82BF5AA8) {
+        XELOGE("Point Main");
+      }
+
+      if (address == 0x82BF5B04) {
+        XELOGE("Point D");
+      }
+
+      if (address == 0x82BF5E28) {
+        XELOGE("Point E");
+      }
+
+      if (address == 0x82BF5FB0) {
+        XELOGE("POINT F");
+      }
+
+
+
+      if (address == 0x82BF4DC4) {
+        XELOGE("0x82BF4DC4");
+      }
+
+      if (address == 0x82BF5FCC) {
+        XELOGE("0x82BF5FCC");
+        CallExtern(builtins()->sub_82BF5FCC);
+        //MaybeBreakOnInstruction(address);
+      }
+
+      if (address == 0x82BF4DF4) {
+        XELOGE("0x82BF4DF4");
+      }
+
+      if (address == 0x82BF5EC4) {
+        XELOGE("0x82BF5EC4");
+        //StoreGPR(10, LoadConstantInt64(0));
+      }
+
+      if (address == 0x82BF5FCC) {
+        XELOGE("CRASH POINT!");
+      }
+
+      if (address == 0x8217979C) {
+        XELOGE("0x8217979C");
+      }
+
+      if (address == 0x821797A8) {
+        XELOGE("Call luaZ_fill");
+      }
+
+      if (address == 0x82179800) {
+        XELOGE("0x82179800");
+      }
+
+      if (address == 0x82BF5ED8) {
+        XELOGE("0x82BF5ED8");
+      }
+
+      if (address == 0x82BF5FBC) {
+        XELOGE("0x82BF5FBC");
+      }
+
+    //}
+    */
     InstrData i;
     i.address = address;
     i.code = code;
