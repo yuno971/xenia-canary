@@ -663,7 +663,11 @@ void DxbcShaderTranslator::StartPixelShader() {
     a_.OpIf(true, dxbc::Src::R(param_gen_temp, dxbc::Src::kXXXX));
     {
       // XY - floored pixel position (Direct3D VPOS) in the absolute value,
-      // faceness as X sign bit. Using Z as scratch register now.
+      // faceness as X sign bit, whether is a point primitive as Y sign bit.
+      // Using Z as scratch register now.
+      // ZW - [0, 1] UV within a point sprite in the absolute value, whether is
+      // a line primitive as Z sign bit.
+      // Pixel position.
       // Get XY address of the current host pixel as float (no matter whether
       // the position is pixel-rate or sample-rate also due to float24 depth
       // conversion requirements, it will be rounded the same). Rounding down,
@@ -688,6 +692,7 @@ void DxbcShaderTranslator::StartPixelShader() {
       }
       a_.OpMov(dxbc::Dest::R(param_gen_temp, 0b0011),
                dxbc::Src::R(param_gen_temp).Abs());
+      // Faceness.
       // Check if faceness applies to the current primitive type.
       a_.OpAnd(dxbc::Dest::R(param_gen_temp, 0b0100), LoadFlagsSystemConstant(),
                dxbc::Src::LU(kSysFlag_PrimitivePolygonal));
@@ -704,31 +709,28 @@ void DxbcShaderTranslator::StartPixelShader() {
             -dxbc::Src::R(param_gen_temp, dxbc::Src::kXXXX));
       }
       a_.OpEndIf();
-      // ZW - UV within a point sprite in the absolute value, at centroid if
-      // requested for the interpolator.
-      // TODO(Triang3l): Are centroid point coordinates possible in the hardware
-      // at all? ps_param_gen is not a triangle-IJ-interpolated value
-      // apparently, rather, it replaces the value in the shader input.
-      // TODO(Triang3l): Saturate to avoid negative point coordinates (the sign
-      // bit is used for the primitive type indicator) in case of extrapolation
-      // when the center is not covered with MSAA.
-      dxbc::Dest point_coord_r_zw_dest(dxbc::Dest::R(param_gen_temp, 0b1100));
-      dxbc::Src point_coord_v_xxxy_src(dxbc::Src::V(
-          uint32_t(InOutRegister::kPSInPointParameters), 0b01000000));
-      a_.OpUBFE(dxbc::Dest::R(param_gen_temp, 0b0100), dxbc::Src::LU(1),
-                param_gen_index_src,
-                LoadSystemConstant(
-                    SystemConstants::Index::kInterpolatorSamplingPattern,
-                    offsetof(SystemConstants, interpolator_sampling_pattern),
-                    dxbc::Src::kXXXX));
-      a_.OpIf(bool(xenos::SampleLocation::kCenter),
-              dxbc::Src::R(param_gen_temp, dxbc::Src::kZZZZ));
-      // At center.
-      a_.OpMov(point_coord_r_zw_dest, point_coord_v_xxxy_src);
-      a_.OpElse();
-      // At centroid.
-      a_.OpEvalCentroid(point_coord_r_zw_dest, point_coord_v_xxxy_src);
-      a_.OpEndIf();
+      // Point sprite coordinates.
+      // Saturate to avoid negative point coordinates if the center of the pixel
+      // is not covered, and extrapolation is done.
+      a_.OpMov(dxbc::Dest::R(param_gen_temp, 0b1100),
+               dxbc::Src::V(uint32_t(InOutRegister::kPSInPointParameters),
+                            0b0100 << 4),
+               true);
+      // Primitive type.
+      {
+        uint32_t param_gen_primitive_type_temp = PushSystemTemp();
+        a_.OpUBFE(dxbc::Dest::R(param_gen_primitive_type_temp, 0b0011),
+                  dxbc::Src::LU(1),
+                  dxbc::Src::LU(kSysFlag_PrimitivePoint_Shift,
+                                kSysFlag_PrimitiveLine_Shift, 0, 0),
+                  LoadFlagsSystemConstant());
+        a_.OpBFI(dxbc::Dest::R(param_gen_temp, 0b0110), dxbc::Src::LU(1),
+                 dxbc::Src::LU(31),
+                 dxbc::Src::R(param_gen_primitive_type_temp, 0b0100 << 2),
+                 dxbc::Src::R(param_gen_temp));
+        // Release param_gen_primitive_type_temp.
+        PopSystemTemp();
+      }
       // TODO(Triang3l): Point / line primitive type flags to the sign bits.
       // Write ps_param_gen to the specified GPR.
       dxbc::Src param_gen_src(dxbc::Src::R(param_gen_temp));
@@ -792,7 +794,7 @@ void DxbcShaderTranslator::StartTranslation() {
     system_temp_position_ = PushSystemTemp(0b1111);
     system_temp_point_size_edge_flag_kill_vertex_ = PushSystemTemp(0b0100);
     // Set the point size to a negative value to tell the geometry shader that
-    // it should use the global point size if the vertex shader does not
+    // it should use the default point size if the vertex shader does not
     // override it.
     a_.OpMov(
         dxbc::Dest::R(system_temp_point_size_edge_flag_kill_vertex_, 0b0001),
@@ -1578,6 +1580,30 @@ void DxbcShaderTranslator::StoreResult(const InstructionResult& result,
                            float((constant_1_mask >> 2) & 1),
                            float((constant_1_mask >> 3) & 1)));
   }
+
+  // Make the point size non-negative as negative is used to indicate that the
+  // default size must be used, and also clamp it to the bounds the way the R400
+  // (Adreno 200, to be more precise) hardware clamps it (functionally like a
+  // signed 32-bit integer, -NaN and -Infinity...-0 to the minimum, +NaN to the
+  // maximum).
+  if (result.storage_target ==
+          InstructionStorageTarget::kPointSizeEdgeFlagKillVertex &&
+      (used_write_mask & 0b0001)) {
+    a_.OpIMax(
+        dxbc::Dest::R(system_temp_point_size_edge_flag_kill_vertex_, 0b0001),
+        LoadSystemConstant(SystemConstants::Index::kPointVertexDiameterMin,
+                           offsetof(SystemConstants, point_vertex_diameter_min),
+                           dxbc::Src::kXXXX),
+        dxbc::Src::R(system_temp_point_size_edge_flag_kill_vertex_,
+                     dxbc::Src::kXXXX));
+    a_.OpIMin(
+        dxbc::Dest::R(system_temp_point_size_edge_flag_kill_vertex_, 0b0001),
+        LoadSystemConstant(SystemConstants::Index::kPointVertexDiameterMax,
+                           offsetof(SystemConstants, point_vertex_diameter_max),
+                           dxbc::Src::kXXXX),
+        dxbc::Src::R(system_temp_point_size_edge_flag_kill_vertex_,
+                     dxbc::Src::kXXXX));
+  }
 }
 
 void DxbcShaderTranslator::UpdateExecConditionalsAndEmitDisassembly(
@@ -1788,12 +1814,26 @@ void DxbcShaderTranslator::ProcessLoopStartInstruction(
                     2 + (instr.loop_constant_index >> 2))
           .Select(instr.loop_constant_index & 3));
 
-  // Push the count to the loop count stack - move XYZ to YZW and set X to this
-  // loop count.
-  a_.OpMov(dxbc::Dest::R(system_temp_loop_count_, 0b1110),
-           dxbc::Src::R(system_temp_loop_count_, 0b10010000));
-  a_.OpAnd(dxbc::Dest::R(system_temp_loop_count_, 0b0001), loop_constant_src,
-           dxbc::Src::LU(UINT8_MAX));
+  {
+    uint32_t loop_count_temp = PushSystemTemp();
+    a_.OpAnd(dxbc::Dest::R(loop_count_temp, 0b0001), loop_constant_src,
+             dxbc::Src::LU(UINT8_MAX));
+
+    // Skip the loop without pushing if the count is zero from the beginning.
+    a_.OpIf(false, dxbc::Src::R(loop_count_temp, dxbc::Src::kXXXX));
+    JumpToLabel(instr.loop_skip_address);
+    a_.OpEndIf();
+
+    // Push the count to the loop count stack - move XYZ to YZW and set X to the
+    // new loop count.
+    a_.OpMov(dxbc::Dest::R(system_temp_loop_count_, 0b1110),
+             dxbc::Src::R(system_temp_loop_count_, 0b10010000));
+    a_.OpMov(dxbc::Dest::R(system_temp_loop_count_, 0b0001),
+             dxbc::Src::R(loop_count_temp, dxbc::Src::kXXXX));
+
+    // Release loop_count_temp.
+    PopSystemTemp();
+  }
 
   // Push aL - keep the same value as in the previous loop if repeating, or the
   // new one otherwise.
@@ -1803,13 +1843,6 @@ void DxbcShaderTranslator::ProcessLoopStartInstruction(
     a_.OpUBFE(dxbc::Dest::R(system_temp_aL_, 0b0001), dxbc::Src::LU(8),
               dxbc::Src::LU(8), loop_constant_src);
   }
-
-  // Break if the loop counter is 0 (since the condition is checked in the end).
-  // TODO(Triang3l): Move this before pushing and address loading. This won't
-  // pop if the counter is 0.
-  a_.OpIf(false, dxbc::Src::R(system_temp_loop_count_, dxbc::Src::kXXXX));
-  JumpToLabel(instr.loop_skip_address);
-  a_.OpEndIf();
 }
 
 void DxbcShaderTranslator::ProcessLoopEndInstruction(
@@ -2007,14 +2040,16 @@ const DxbcShaderTranslator::SystemConstantRdef
          sizeof(float) * 4 * 6},
 
         {"xe_ndc_scale", ShaderRdefTypeIndex::kFloat3, sizeof(float) * 3},
-        {"xe_point_size_x", ShaderRdefTypeIndex::kFloat, sizeof(float)},
+        {"xe_point_vertex_diameter_min", ShaderRdefTypeIndex::kFloat,
+         sizeof(float)},
 
         {"xe_ndc_offset", ShaderRdefTypeIndex::kFloat3, sizeof(float) * 3},
-        {"xe_point_size_y", ShaderRdefTypeIndex::kFloat, sizeof(float)},
+        {"xe_point_vertex_diameter_max", ShaderRdefTypeIndex::kFloat,
+         sizeof(float)},
 
-        {"xe_point_size_min_max", ShaderRdefTypeIndex::kFloat2,
+        {"xe_point_constant_diameter", ShaderRdefTypeIndex::kFloat2,
          sizeof(float) * 2},
-        {"xe_point_screen_to_ndc", ShaderRdefTypeIndex::kFloat2,
+        {"xe_point_screen_diameter_to_ndc_radius", ShaderRdefTypeIndex::kFloat2,
          sizeof(float) * 2},
 
         {"xe_interpolator_sampling_pattern", ShaderRdefTypeIndex::kUint,

@@ -77,11 +77,13 @@ std::filesystem::path ContentManager::ResolvePackagePath(
   // Content path:
   // content_root/title_id/content_type/data_file_name/
   auto package_root = ResolvePackageRoot(data.content_type, data.title_id);
+  auto package_path = package_root / xe::to_path(data.file_name());
   std::string disc_directory = "";
   if (disc_number != -1) {
     disc_directory = fmt::format("disc00{}", disc_number);
+    package_path /= disc_directory;
   }
-  return package_root / xe::to_path(data.file_name()) / disc_directory;
+  return package_path;
 }
 
 std::vector<XCONTENT_AGGREGATE_DATA> ContentManager::ListContent(
@@ -141,7 +143,7 @@ bool ContentManager::ContentExists(const XCONTENT_AGGREGATE_DATA& data) {
 
 X_RESULT ContentManager::WriteContentHeaderFile(
     const XCONTENT_AGGREGATE_DATA* data) {
-  auto title_id = fmt::format("{:8X}", kernel_state_->title_id());
+  auto title_id = fmt::format("{:08X}", kernel_state_->title_id());
   auto content_type =
       fmt::format("{:08X}", load_and_swap<uint32_t>(&data->content_type));
   auto header_path =

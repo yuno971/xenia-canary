@@ -3135,6 +3135,7 @@ void D3D12CommandProcessor::UpdateSystemConstantValues(
   auto rb_surface_info = regs.Get<reg::RB_SURFACE_INFO>();
   auto sq_context_misc = regs.Get<reg::SQ_CONTEXT_MISC>();
   auto sq_program_cntl = regs.Get<reg::SQ_PROGRAM_CNTL>();
+  auto vgt_draw_initiator = regs.Get<reg::VGT_DRAW_INITIATOR>();
   uint32_t vgt_indx_offset = regs.Get<reg::VGT_INDX_OFFSET>().indx_offset;
   uint32_t vgt_max_vtx_indx = regs.Get<reg::VGT_MAX_VTX_INDX>().max_indx;
   uint32_t vgt_min_vtx_indx = regs.Get<reg::VGT_MIN_VTX_INDX>().min_indx;
@@ -3218,6 +3219,12 @@ void D3D12CommandProcessor::UpdateSystemConstantValues(
   // Whether the primitive is polygonal and SV_IsFrontFace matters.
   if (primitive_polygonal) {
     flags |= DxbcShaderTranslator::kSysFlag_PrimitivePolygonal;
+  }
+  // Primitive type.
+  if (vgt_draw_initiator.prim_type == xenos::PrimitiveType::kPointList) {
+    flags |= DxbcShaderTranslator::kSysFlag_PrimitivePoint;
+  } else if (draw_util::IsPrimitiveLine(regs)) {
+    flags |= DxbcShaderTranslator::kSysFlag_PrimitiveLine;
   }
   // Primitive killing condition.
   if (pa_cl_clip_cntl.vtx_kill_or) {
@@ -3326,28 +3333,43 @@ void D3D12CommandProcessor::UpdateSystemConstantValues(
   }
 
   // Point size.
-  float point_size_x = float(pa_su_point_size.width) * 0.125f;
-  float point_size_y = float(pa_su_point_size.height) * 0.125f;
-  float point_size_min = float(pa_su_point_minmax.min_size) * 0.125f;
-  float point_size_max = float(pa_su_point_minmax.max_size) * 0.125f;
-  dirty |= system_constants_.point_size_x != point_size_x;
-  dirty |= system_constants_.point_size_y != point_size_y;
-  dirty |= system_constants_.point_size_min != point_size_min;
-  dirty |= system_constants_.point_size_max != point_size_max;
-  system_constants_.point_size_x = point_size_x;
-  system_constants_.point_size_y = point_size_y;
-  system_constants_.point_size_min = point_size_min;
-  system_constants_.point_size_max = point_size_max;
-  float point_screen_to_ndc_x =
+  float point_vertex_diameter_min =
+      float(pa_su_point_minmax.min_size) * (2.0f / 16.0f);
+  float point_vertex_diameter_max =
+      float(pa_su_point_minmax.max_size) * (2.0f / 16.0f);
+  float point_constant_diameter_x =
+      float(pa_su_point_size.width) * (2.0f / 16.0f);
+  float point_constant_diameter_y =
+      float(pa_su_point_size.height) * (2.0f / 16.0f);
+  dirty |=
+      system_constants_.point_vertex_diameter_min != point_vertex_diameter_min;
+  dirty |=
+      system_constants_.point_vertex_diameter_max != point_vertex_diameter_max;
+  dirty |=
+      system_constants_.point_constant_diameter[0] != point_constant_diameter_x;
+  dirty |=
+      system_constants_.point_constant_diameter[1] != point_constant_diameter_y;
+  system_constants_.point_vertex_diameter_min = point_vertex_diameter_min;
+  system_constants_.point_vertex_diameter_max = point_vertex_diameter_max;
+  system_constants_.point_constant_diameter[0] = point_constant_diameter_x;
+  system_constants_.point_constant_diameter[1] = point_constant_diameter_y;
+  // 2 because 1 in the NDC is half of the viewport's axis, 0.5 for diameter to
+  // radius conversion to avoid multiplying the per-vertex diameter by an
+  // additional constant in the shader.
+  float point_screen_diameter_to_ndc_radius_x =
       (/* 0.5f * 2.0f * */ float(resolution_scale_x)) /
       std::max(viewport_info.xy_extent[0], uint32_t(1));
-  float point_screen_to_ndc_y =
+  float point_screen_diameter_to_ndc_radius_y =
       (/* 0.5f * 2.0f * */ float(resolution_scale_y)) /
       std::max(viewport_info.xy_extent[1], uint32_t(1));
-  dirty |= system_constants_.point_screen_to_ndc[0] != point_screen_to_ndc_x;
-  dirty |= system_constants_.point_screen_to_ndc[1] != point_screen_to_ndc_y;
-  system_constants_.point_screen_to_ndc[0] = point_screen_to_ndc_x;
-  system_constants_.point_screen_to_ndc[1] = point_screen_to_ndc_y;
+  dirty |= system_constants_.point_screen_diameter_to_ndc_radius[0] !=
+           point_screen_diameter_to_ndc_radius_x;
+  dirty |= system_constants_.point_screen_diameter_to_ndc_radius[1] !=
+           point_screen_diameter_to_ndc_radius_y;
+  system_constants_.point_screen_diameter_to_ndc_radius[0] =
+      point_screen_diameter_to_ndc_radius_x;
+  system_constants_.point_screen_diameter_to_ndc_radius[1] =
+      point_screen_diameter_to_ndc_radius_y;
 
   // Interpolator sampling pattern, centroid or center.
   uint32_t interpolator_sampling_pattern =
