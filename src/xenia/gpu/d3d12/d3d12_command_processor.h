@@ -24,12 +24,13 @@
 #include "xenia/gpu/d3d12/d3d12_primitive_processor.h"
 #include "xenia/gpu/d3d12/d3d12_render_target_cache.h"
 #include "xenia/gpu/d3d12/d3d12_shared_memory.h"
+#include "xenia/gpu/d3d12/d3d12_texture_cache.h"
 #include "xenia/gpu/d3d12/deferred_command_list.h"
 #include "xenia/gpu/d3d12/pipeline_cache.h"
-#include "xenia/gpu/d3d12/texture_cache.h"
 #include "xenia/gpu/draw_util.h"
 #include "xenia/gpu/dxbc_shader.h"
 #include "xenia/gpu/dxbc_shader_translator.h"
+#include "xenia/gpu/registers.h"
 #include "xenia/gpu/xenos.h"
 #include "xenia/kernel/kernel_state.h"
 #include "xenia/ui/d3d12/d3d12_descriptor_heap_pool.h"
@@ -83,7 +84,8 @@ class D3D12CommandProcessor : public CommandProcessor {
   uint64_t GetCurrentFrame() const { return frame_current_; }
   uint64_t GetCompletedFrame() const { return frame_completed_; }
 
-  void PushTransitionBarrier(
+  // Returns true if the barrier has been inserted (the new state is different).
+  bool PushTransitionBarrier(
       ID3D12Resource* resource, D3D12_RESOURCE_STATES old_state,
       D3D12_RESOURCE_STATES new_state,
       UINT subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
@@ -207,6 +209,9 @@ class D3D12CommandProcessor : public CommandProcessor {
 
   void WriteRegister(uint32_t index, uint32_t value) override;
 
+  void OnGammaRamp256EntryTableValueWritten() override;
+  void OnGammaRampPWLValueWritten() override;
+
   void IssueSwap(uint32_t frontbuffer_ptr, uint32_t frontbuffer_width,
                  uint32_t frontbuffer_height) override;
 
@@ -303,6 +308,9 @@ class D3D12CommandProcessor : public CommandProcessor {
   // open non-frame submission, BeginSubmission(true) will promote it to a
   // frame. EndSubmission(true) will close the frame no matter whether the
   // submission has already been closed.
+  // Submission (ExecuteCommandLists) boundaries are implicit full UAV and
+  // aliasing barriers, and also result in common resource state promotion and
+  // decay.
 
   // Rechecks submission number and reclaims per-submission resources. Pass 0 as
   // the submission to await to simply check status, or pass submission_current_
@@ -345,13 +353,15 @@ class D3D12CommandProcessor : public CommandProcessor {
 
   void UpdateFixedFunctionState(const draw_util::ViewportInfo& viewport_info,
                                 const draw_util::Scissor& scissor,
-                                bool primitive_polygonal);
+                                bool primitive_polygonal,
+                                reg::RB_DEPTHCONTROL normalized_depth_control);
   void UpdateSystemConstantValues(bool shared_memory_is_uav,
                                   bool primitive_polygonal,
                                   uint32_t line_loop_closing_index,
                                   xenos::Endian index_endian,
                                   const draw_util::ViewportInfo& viewport_info,
                                   uint32_t used_texture_mask,
+                                  reg::RB_DEPTHCONTROL normalized_depth_control,
                                   uint32_t normalized_color_mask);
   bool UpdateBindings(const D3D12Shader* vertex_shader,
                       const D3D12Shader* pixel_shader,
@@ -417,6 +427,8 @@ class D3D12CommandProcessor : public CommandProcessor {
   // of UpdateBindings time, and that's outside the emulator's control even).
   bool bindless_resources_used_ = false;
 
+  std::unique_ptr<D3D12SharedMemory> shared_memory_;
+
   std::unique_ptr<D3D12RenderTargetCache> render_target_cache_;
 
   std::unique_ptr<ui::d3d12::D3D12UploadBufferPool> constant_buffer_pool_;
@@ -472,7 +484,7 @@ class D3D12CommandProcessor : public CommandProcessor {
   // number (so checking if the first can be reused is enough).
   std::deque<std::pair<ID3D12DescriptorHeap*, uint64_t>>
       sampler_bindless_heaps_overflowed_;
-  // TextureCache::SamplerParameters::value -> indices within the current
+  // D3D12TextureCache::SamplerParameters::value -> indices within the current
   // bindless sampler heap.
   std::unordered_map<uint32_t, uint32_t> texture_cache_bindless_sampler_map_;
 
@@ -481,25 +493,24 @@ class D3D12CommandProcessor : public CommandProcessor {
   ID3D12RootSignature* root_signature_bindless_vs_ = nullptr;
   ID3D12RootSignature* root_signature_bindless_ds_ = nullptr;
 
-  std::unique_ptr<D3D12SharedMemory> shared_memory_;
-
   std::unique_ptr<D3D12PrimitiveProcessor> primitive_processor_;
 
   std::unique_ptr<PipelineCache> pipeline_cache_;
 
-  std::unique_ptr<TextureCache> texture_cache_;
+  std::unique_ptr<D3D12TextureCache> texture_cache_;
 
-  // Bytes 0x0...0x3FF - 256-entry R10G10B10X2 gamma ramp (red and blue must be
-  // read as swapped - 535107D4 has settings allowing separate configuration).
+  // Bytes 0x0...0x3FF - 256-entry gamma ramp table with B10G10R10X2 data (read
+  // as R10G10B10X2 with swizzle).
   // Bytes 0x400...0x9FF - 128-entry PWL R16G16 gamma ramp (R - base, G - delta,
   // low 6 bits of each are zero, 3 elements per entry).
-  // https://www.x.org/docs/AMD/old/42590_m76_rrg_1.01o.pdf
   Microsoft::WRL::ComPtr<ID3D12Resource> gamma_ramp_buffer_;
   D3D12_RESOURCE_STATES gamma_ramp_buffer_state_;
   // Upload buffer for an image that is the same as gamma_ramp_, but with
   // kQueueFrames array layers.
   Microsoft::WRL::ComPtr<ID3D12Resource> gamma_ramp_upload_buffer_;
   uint8_t* gamma_ramp_upload_buffer_mapping_ = nullptr;
+  bool gamma_ramp_256_entry_table_up_to_date_ = false;
+  bool gamma_ramp_pwl_up_to_date_ = false;
 
   struct ApplyGammaConstants {
     uint32_t size[2];
@@ -637,10 +648,11 @@ class D3D12CommandProcessor : public CommandProcessor {
   // Size of these should be ignored when checking whether these are up to date,
   // layout UID should be checked first (they will be different for different
   // binding counts).
-  std::vector<TextureCache::TextureSRVKey> current_texture_srv_keys_vertex_;
-  std::vector<TextureCache::TextureSRVKey> current_texture_srv_keys_pixel_;
-  std::vector<TextureCache::SamplerParameters> current_samplers_vertex_;
-  std::vector<TextureCache::SamplerParameters> current_samplers_pixel_;
+  std::vector<D3D12TextureCache::TextureSRVKey>
+      current_texture_srv_keys_vertex_;
+  std::vector<D3D12TextureCache::TextureSRVKey> current_texture_srv_keys_pixel_;
+  std::vector<D3D12TextureCache::SamplerParameters> current_samplers_vertex_;
+  std::vector<D3D12TextureCache::SamplerParameters> current_samplers_pixel_;
   std::vector<uint32_t> current_sampler_bindless_indices_vertex_;
   std::vector<uint32_t> current_sampler_bindless_indices_pixel_;
 

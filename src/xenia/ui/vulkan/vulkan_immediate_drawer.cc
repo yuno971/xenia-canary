@@ -426,7 +426,8 @@ void VulkanImmediateDrawer::End() {
       image_memory_barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
       image_memory_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
       image_memory_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-      util::InitializeSubresourceRange(image_memory_barrier.subresourceRange);
+      image_memory_barrier.subresourceRange =
+          util::InitializeSubresourceRange();
       for (const PendingTextureUpload& pending_texture_upload :
            texture_uploads_pending_) {
         image_memory_barriers.emplace_back(image_memory_barrier).image =
@@ -705,7 +706,7 @@ bool VulkanImmediateDrawer::EnsurePipelinesCreatedForCurrentRenderPass() {
   pipeline_create_info.renderPass = vulkan_ui_draw_context.render_pass();
   pipeline_create_info.subpass = 0;
   pipeline_create_info.basePipelineHandle = VK_NULL_HANDLE;
-  pipeline_create_info.basePipelineIndex = UINT32_MAX;
+  pipeline_create_info.basePipelineIndex = -1;
   if (dfn.vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1,
                                     &pipeline_create_info, nullptr,
                                     &pipeline_triangle_) != VK_SUCCESS) {
@@ -865,6 +866,9 @@ bool VulkanImmediateDrawer::CreateTextureResource(
     size_t& pending_upload_index_out) {
   const VulkanProvider::DeviceFunctions& dfn = provider_.dfn();
   VkDevice device = provider_.device();
+  const VkPhysicalDevicePortabilitySubsetFeaturesKHR*
+      device_portability_subset_features =
+          provider_.device_portability_subset_features();
 
   // Create the image and the descriptor.
 
@@ -906,14 +910,18 @@ bool VulkanImmediateDrawer::CreateTextureResource(
   image_view_create_info.image = image;
   image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
   image_view_create_info.format = VK_FORMAT_R8G8B8A8_UNORM;
-  // data == nullptr is a special case for (1, 1, 1, 1).
+  // data == nullptr is a special case for (1, 1, 1, 1), though the image will
+  // be cleared to (1, 1, 1, 1) anyway, just a micro-optimization.
   VkComponentSwizzle swizzle =
-      data ? VK_COMPONENT_SWIZZLE_IDENTITY : VK_COMPONENT_SWIZZLE_ONE;
+      (data || (device_portability_subset_features &&
+                !device_portability_subset_features->imageViewFormatSwizzle))
+          ? VK_COMPONENT_SWIZZLE_IDENTITY
+          : VK_COMPONENT_SWIZZLE_ONE;
   image_view_create_info.components.r = swizzle;
   image_view_create_info.components.g = swizzle;
   image_view_create_info.components.b = swizzle;
   image_view_create_info.components.a = swizzle;
-  util::InitializeSubresourceRange(image_view_create_info.subresourceRange);
+  image_view_create_info.subresourceRange = util::InitializeSubresourceRange();
   VkImageView image_view;
   if (dfn.vkCreateImageView(device, &image_view_create_info, nullptr,
                             &image_view) != VK_SUCCESS) {
