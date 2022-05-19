@@ -429,7 +429,7 @@ class DxbcShaderTranslator : public ShaderTranslator {
     // descriptor handling simplicity.
     xenos::FetchOpDimension dimension;
     bool is_signed;
-    std::string name;
+    std::string bindful_name;
   };
 
   // Arbitrary limit - there can't be more than 2048 in a shader-visible
@@ -450,7 +450,7 @@ class DxbcShaderTranslator : public ShaderTranslator {
     xenos::TextureFilter min_filter;
     xenos::TextureFilter mip_filter;
     xenos::AnisoFilter aniso_filter;
-    std::string name;
+    std::string bindful_name;
   };
 
   // Unordered access view bindings in space 0.
@@ -646,13 +646,13 @@ class DxbcShaderTranslator : public ShaderTranslator {
 
   bool IsDxbcVertexShader() const {
     return is_vertex_shader() &&
-           GetDxbcShaderModification().vertex.host_vertex_shader_type ==
-               Shader::HostVertexShaderType::kVertex;
+           !Shader::IsHostVertexShaderTypeDomain(
+               GetDxbcShaderModification().vertex.host_vertex_shader_type);
   }
   bool IsDxbcDomainShader() const {
     return is_vertex_shader() &&
-           GetDxbcShaderModification().vertex.host_vertex_shader_type !=
-               Shader::HostVertexShaderType::kVertex;
+           Shader::IsHostVertexShaderTypeDomain(
+               GetDxbcShaderModification().vertex.host_vertex_shader_type);
   }
 
   // Whether to use switch-case rather than if (pc >= label) for control flow.
