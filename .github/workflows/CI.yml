@@ -2,41 +2,62 @@ name: CI
 
 on:
   push:
-    branches-ignore: [ gh-pages, master ]
     paths-ignore:
+      - '.clang-format'
+      - '.drone.star'
+      - '.gitattributes'
+      - '.gitignore'
+      - '.gdbinit'
       - '.github/*'
       - '.github/*_TEMPLATE/**'
       - '*.md'
       - '*.yml'
       - 'docs/**'
+      - 'src/**/*_posix.*'
+      - 'src/**/*_linux.*'
+      - 'src/**/*_gnulinux.*'
+      - 'src/**/*_x11.*'
+      - 'src/**/*_gtk.*'
+      - 'src/**/*_android.*'
+      - 'src/**/*_mac.*'
       - 'LICENSE'
+      - 'README.md'
   pull_request:
-    branches-ignore: [ gh-pages, master ]
     paths-ignore:
+      - '.clang-format'
+      - '.drone.star'
+      - '.gitattributes'
+      - '.gitignore'
+      - '.gdbinit'
       - '.github/*'
       - '.github/*_TEMPLATE/**'
       - '*.md'
       - '*.yml'
       - 'docs/**'
+      - 'src/**/*_posix.*'
+      - 'src/**/*_linux.*'
+      - 'src/**/*_gnulinux.*'
+      - 'src/**/*_x11.*'
+      - 'src/**/*_gtk.*'
+      - 'src/**/*_android.*'
+      - 'src/**/*_mac.*'
       - 'LICENSE'
+      - 'README.md'
   workflow_dispatch:
 
 jobs:
   build-windows:
-    runs-on: ${{ matrix.runs-on }}
+    runs-on: ${{ matrix.config.runs-on }}
     env:
       POWERSHELL_TELEMETRY_OPTOUT: 1
     strategy:
       fail-fast: false
       matrix:
-        runs-on: [windows-2019, windows-latest]
-        include:
-          - runs-on: windows-2019
-            vsver: VS2019
-          - runs-on: windows-latest
-            vsver: VS2022
+        config:
+          - {vsver: VS2022, runs-on: windows-latest}
+          - {vsver: VS2019, runs-on: windows-2019}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - name: Setup
@@ -51,20 +72,20 @@ jobs:
           curl -fLJO https://github.com/xenia-canary/game-patches/archive/refs/heads/main.zip
           7z e game-patches-main.zip game-patches-main\patches -oartifacts\xenia_canary\patches
       - name: Upload xenia-vfs-dump artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
-          name: xenia-vfs-dump_canary_${{ matrix.vsver }}
+          name: xenia-vfs-dump_canary_${{ matrix.config.vsver }}
           path: artifacts\xenia-vfs-dump
           if-no-files-found: error
       - name: Upload xenia artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
-          name: xenia_canary_${{ matrix.vsver }}
+          name: xenia_canary_${{ matrix.config.vsver }}
           path: artifacts\xenia_canary
           if-no-files-found: error
       - name: Create release
         if: |
-          matrix.runs-on == 'windows-2019' &&
+          matrix.config.runs-on == 'windows-2019' &&
           github.repository == 'xenia-canary/xenia-canary' &&
           github.event.action != 'pull_request' &&
           contains(github.ref, 'refs/heads/canary') &&
@@ -78,9 +99,12 @@ jobs:
             Throw "Error: Archive $asset too small!"
           }
           $tag=$env:GITHUB_SHA.SubString(0,7)
-          $branch=$($env:GITHUB_REF -replace 'refs/heads/', '')
+          $branch=$($env:GITHUB_REF -replace 'refs/heads/')
           $title="${tag}_$branch"
           gh release create $tag $asset --target $env:GITHUB_SHA -t $title
-          gh release delete $branch -y
-          If ($LastExitCode -ne 0) { echo "LastExitCode = $LastExitCode";$LastExitCode = 0 }
-          gh release create $branch $asset --target $env:GITHUB_SHA -t $branch
+          # Remove canary_ to prevent conflicts from tag
+          $tag=$($branch -replace 'canary_')
+          gh release delete $tag -y
+          git push --delete origin $tag
+          git tag -d $tag
+          gh release create $tag $asset --target $env:GITHUB_SHA -t $branch
