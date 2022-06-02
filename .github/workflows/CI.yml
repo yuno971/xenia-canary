@@ -107,4 +107,7 @@ jobs:
           gh release delete $tag -y
           git push --delete origin $tag
           git tag -d $tag
-          gh release create $tag $asset --target $env:GITHUB_SHA -t $branch
+          if ($tag -eq 'pr') {
+            $p='-p'
+          }
+          gh release create $tag $asset --target $env:GITHUB_SHA -t $branch $p
