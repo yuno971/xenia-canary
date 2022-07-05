@@ -198,6 +198,8 @@ To run games in full/activated mode you need to change [this option](Options#Run
 
 ***IF YOUR DRIVE IS NOT LISTED HERE IT WILL NOT WORK!***
 
+*http://wiki.redump.org/index.php?title=Microsoft_Xbox_and_Xbox_360_Dumping_Guide*
+
 # How to install DLCs
 
 1. Identify what the Game Title ID is.
@@ -229,5 +231,3 @@ to `Documents\Xenia\TitleID\00000002` and their corresponding folder names.
 <details><summary>Image (click to expand)</summary>
 
 ![](https://i.imgur.com/e4zk397.png)</details>
-
-*http://wiki.redump.org/index.php?title=Microsoft_Xbox_and_Xbox_360_Dumping_Guide*
