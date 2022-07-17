@@ -125,6 +125,18 @@ Horizontal scale:
 |-
 | 3x (3840x)
 | <code>3</code>
+|-
+| 4x (5120x)
+| <code>4</code>
+|-
+| 5x (6400x)
+| <code>5</code>
+|-
+| 6x (7680x)
+| <code>6</code>
+|-
+| 7x (8960x)
+| <code>7</code>
 |}
 
 Vertical scale:
@@ -141,6 +153,18 @@ Vertical scale:
 |-
 | 3x (x2160)
 | <code>3</code>
+|-
+| 4x (x2880)
+| <code>4</code>
+|-
+| 5x (x3600)
+| <code>5</code>
+|-
+| 6x (x4320)
+| <code>6</code>
+|-
+| 7x (x5040)
+| <code>7</code>
 |}
 
 ==== CPU readback after render target resolving ====
