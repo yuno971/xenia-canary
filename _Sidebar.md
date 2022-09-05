@@ -8,7 +8,6 @@
   * [[Options]]
   * [Compatibility List](https://github.com/xenia-project/game-compatibility#game-compatibility)
   * [[About]]
-  * [[Game hacks, mods, etc]]
 
 #
 ### For Developers:
