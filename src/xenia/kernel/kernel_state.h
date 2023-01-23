@@ -128,6 +128,13 @@ class KernelState {
   }
 
   xam::UserProfile* user_profile(uint32_t index) const {
+    if (index == 0xFF) {
+      index = 0;
+    }
+    if (index == 0xFE) {
+      index = recently_used_profile_;
+    }
+
     if (!IsUserSignedIn(index)) {
       return nullptr;
     }
@@ -282,6 +289,8 @@ class KernelState {
   std::condition_variable_any dispatch_cond_;
   std::list<std::function<void()>> dispatch_queue_;
 
+  // This should be in ProfileManager, but it is what it is
+  uint8_t recently_used_profile_ = 0;
   BitMap tls_bitmap_;
   uint32_t ke_timestamp_bundle_ptr_ = 0;
   std::unique_ptr<xe::threading::HighResolutionTimer> timestamp_timer_;

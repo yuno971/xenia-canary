@@ -486,7 +486,7 @@ X_RESULT KernelState::ApplyTitleUpdate(const object_ref<UserModule> module) {
   }
 
   std::vector<xam::XCONTENT_AGGREGATE_DATA> tu_list =
-      content_manager()->ListContent(1, xe::XContentType::kInstaller,
+      content_manager()->ListContent(1, 0, xe::XContentType::kInstaller,
                                      module->title_id());
 
   if (tu_list.empty()) {
@@ -500,7 +500,7 @@ X_RESULT KernelState::ApplyTitleUpdate(const object_ref<UserModule> module) {
   // TODO(Gliniak): Support for selecting from multiple TUs
   const xam::XCONTENT_AGGREGATE_DATA& title_update = tu_list.front();
   X_RESULT open_status =
-      content_manager()->OpenContent("UPDATE", title_update, disc_number);
+      content_manager()->OpenContent("UPDATE", 0, title_update, disc_number);
 
   // Use the corresponding patch for the launch module
   std::filesystem::path patch_xexp = fmt::format("{0}.xexp", module->name());
