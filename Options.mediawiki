@@ -1,7 +1,5 @@
 __TOC__
 
-''[https://github.com/xenia-canary/xenia-canary/wiki/Options Xenia Canary Options]''
-
 = How to use =
 # Run xenia if you haven't before.
 # [https://social.technet.microsoft.com/wiki/contents/articles/1784.windows-how-to-view-file-name-extensions.aspx Show file name extensions in Explorer].
@@ -11,7 +9,7 @@ __TOC__
 # For launchers/frontends like [https://github.com/quinton-ashley/bottlenose Bottlenose] you can use the <code>--config</code> launch parameter to specify what config to use.
 #* To launch specific games, add the path to the game before the launch options. For example: <code>xenia.exe path/to/game/default.xex --vsync=false</code>
 
-= Options =
+= Master =
 == Run games as full/activated ==
 {|
 ! <code>license_mask</code> =
@@ -211,10 +209,7 @@ Allow texture and vertex fetch constants with invalid type - generally unsafe be
 |}
 
 * ''This won’t improve the framerate if your PC can’t handle running the game at it’s native FPS.''
-* This doesn’t work with all games, including but not limited to:
-** Banjo Kazooie/Tooie
-** Halo 3/ODST/Reach/4
-** Sonic The Hedgehog (2006)
+* Games that speed up have the [https://github.com/xenia-project/game-compatibility/issues?q=is%3Aopen+is%3Aissue+label%3Avsync-off-speedup vsync-off-speedup] label.
 
 ==== Renderer/Backend ====
 {|
@@ -288,3 +283,61 @@ Allow texture and vertex fetch constants with invalid type - generally unsafe be
 **** These games additionally require the following:
 ***** <code>cl</code> set to <code>-dvd -retail -nosound</code>
 -->
+
+= Canary =
+== Video ==
+=== Vsync interval ===
+{|
+! <code>vsync_interval</code> =
+! <code>#</code> (frametime in milliseconds)
+|-
+| x1 ''(60 FPS, default)''
+| <code>16</code>
+|-
+| x2 ''(120 FPS; 60 FPS for 30 FPS games)''
+| <code>8</code>
+|}
+
+=== avpack (video mode) ===
+{|
+! <code>avpack</code> =
+! <code>#</code>
+|-
+| HDMI ''(default)''
+| <code>8</code>
+|-
+| TV PAL-60
+| <code>7</code>
+|-
+| VGA
+| <code>6</code>
+|-
+| PAL-60 Composite/S-Video
+| <code>5</code>
+|-
+| HDMI+A
+| <code>4</code>
+|-
+| 480p Component(HD)
+| <code>3</code>
+|-
+| PAL-60 SCART
+| <code>2</code>
+|-
+| Unused
+| <s><code>1</code></s>
+|-
+| PAL-60 Component(SD)
+| <code>0</code>
+|}
+
+== Audio ==
+=== Max queued frames ===
+Allows changing max buffered audio frames to reduce audio delay.
+{|
+! <code>max_queued_frames</code> =
+! <code>#</code>
+|-
+| Default
+| <code>64</code>
+|}
