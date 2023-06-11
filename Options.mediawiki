@@ -96,18 +96,6 @@ Leave this option blank for auto-selection.
 
 ==== Resolution scaling ====
 This is a hack, and as such, '''bugs should be expected'''.
-<!--Most games run at 720p, however, there are a few exceptions:
-{|
-! Title
-! Resolution(s)
-|-
-| Halo 3<br>Halo 3 ODST<br>Halo 3 Mythic<br>Halo CE Anniversary
-| 1152x640
-|-
-| Banjo Kazooie<br>Banjo Tooie<br>Bean (GoldenEye 007 HD/Remaster)<br>Perfect Dark
-| 1280x720 (default), 1920x1080
-|}
--->
 
 Horizontal scale:
 
@@ -167,8 +155,7 @@ Vertical scale:
 
 ==== CPU readback after render target resolving ====
 * This is needed for certain games, including but not limited to:
-** Orange Box (text/save icons)
-** SSX (2012, core temp missions)
+** https://github.com/xenia-project/game-compatibility/issues?q=is%3Aopen+is%3Aissue+label%3Agpu-readback
 
 {|
 ! <code>d3d12_readback_resolve</code> =
@@ -246,7 +233,7 @@ Allow texture and vertex fetch constants with invalid type - generally unsafe be
 | Keyboard
 | <code>winkey</code>
 |}
-*When using SDL: If your game controller is not mapped correctly, [https://github.com/gabomdq/SDL_GameControllerDB/blob/master/gamecontrollerdb.txt download gamecontrollerdb.txt] and place it in the folder next to your xenia executable.
+*When using SDL: If your game controller is not mapped correctly, [https://github.com/gabomdq/SDL_GameControllerDB/blob/master/gamecontrollerdb.txt download gamecontrollerdb.txt] and place it in the folder next to your Xenia executable.
 
 == Hacks ==
 === Protect zero ===
@@ -261,8 +248,8 @@ Allow texture and vertex fetch constants with invalid type - generally unsafe be
 | <code>false</code>
 |}
 * Certain games require this to set be set to false to work around crashes. This includes, but isn't limited to:
-** Saints Row 1
-<!--
+** https://github.com/xenia-project/game-compatibility/issues?q=is%3Aopen+is%3Aissue+label%3Arequires_protect_zero_false
+
 === Break on unimplemented instruction ===
 {|
 ! <code>break_on_unimplemented_instruction</code> =
@@ -275,16 +262,19 @@ Allow texture and vertex fetch constants with invalid type - generally unsafe be
 | <code>false</code>
 |}
 * Certain games require this to set be set to false to work around crashes. This includes, but isn't limited to:
-** Source Engine/Valve games:
-*** The Orange Box
-*** Counter Strike: Global Offensive
-*** <s>Portal 2</s> ''(crashes before the menu)''
-*** Left 4 Dead 1+2''(?)''
-**** These games additionally require the following:
-***** <code>cl</code> set to <code>-dvd -retail -nosound</code>
--->
+** https://github.com/xenia-project/game-compatibility/issues?q=is%3Aopen+is%3Aissue+label%3Acpu-unimplemented-instruction
 
 = Canary =
+{|
+! Description
+! Filename
+|-
+| Executable
+| <code>xenia_canary.exe</code> (older builds are called <code>xenia-canary.exe</code>)
+|-
+| config
+| <code>xenia-canary-config.toml</code>
+|}
 == Video ==
 === Vsync interval ===
 {|
@@ -324,7 +314,7 @@ Allow texture and vertex fetch constants with invalid type - generally unsafe be
 | PAL-60 SCART
 | <code>2</code>
 |-
-| Unused
+| <s>Unused</s>
 | <s><code>1</code></s>
 |-
 | PAL-60 Component(SD)
