@@ -386,7 +386,7 @@ This is the same as changing the resolution on a real Xbox 360, and as such '''D
 Allows changing max buffered audio frames to reduce audio delay.
 
 {|
-! <code>max_queued_frames</code> =
+! <code>apu_max_queued_frames</code> =
 ! <code>#</code> ''(16 minimum)''
 |-
 | Default
