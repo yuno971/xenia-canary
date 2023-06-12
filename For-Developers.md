@@ -1,5 +1,4 @@
 # Does Xenia run on Linux or macOS?
-
 The project is designed to support non-Windows platforms but until it's running
 games it's not worth the maintenance burden. MacOS will likely remain unsupported
 until Apple supports Vulkan.
@@ -12,9 +11,7 @@ Though the codebase is ready for the port, it's not a trivial task and anyone
 seeking to port it will need a deep understanding of Linux, X11, Vulkan, and
 Win32 (to ensure matching semantics).
 
-
 # You should port it to Linux, then tons of developers will contribute!
-
 No, they won't, and that's not how things work. (I'm seriously told this once
 a week...)
 
@@ -24,18 +21,14 @@ has this capability and feels so strongly about Linux support then they would be
 contributing to the porting efforts already. But otherwise they are nothing
 more than hypothetical members of our collective dreams.
 
-
 # Why did you do X? Why not just use Y? You should use Y. NIH NIH NIH!
-
 Trust that I either have a good reason for what I did or have absolutely no
 reason for what I did. This is a large project that I've been working on
 for almost 5 years and in that time new compilers and language specs have
 been released, libraries have been created and died, and I've learned a lot.
 Constructive contributions and improvements are welcome.
 
-
 # Have you heard of LLVM/asmjit/jitasm/luajit/etc?
-
 Yes, I have heard of them. In fact, I spent a long time trying them out:
 [LLVM](https://github.com/xenia-project/xenia/tree/85bdbd24d1b5923cfb104f45194a96e7ac57026e/src/xenia/cpu/codegen),
 [libjit](https://github.com/xenia-project/xenia/tree/eee856be0499a4bc721b6097f5f2b9446929f2cc/src/xenia/cpu/libjit),
@@ -44,9 +37,7 @@ I did not find them acceptable for use in this project for various reasons. If
 for some reason you feel strongly otherwise, feel free to either contribute a
 [new CPU backend](https://github.com/xenia-project/xenia/tree/master/src/xenia/cpu/backend).
 
-
 # (some argument over an unimportant technical choice)
-
 In general: *I don't care*.
 That means I either really don't care and something is they way it is because
 that was convenient or that I don't care because it's not material to the goal
@@ -68,7 +59,6 @@ projects. Premake does what I want (mostly) how I want it to.
 
 
 # Hey I'm going to go modify every file in the project, ok?
-
 We welcome contributions, but please try to understand that we cannot accept
 changes that radically alter the structure or content of the code, especially
 if they are aesthetic and even more so if they are from someone who has not
