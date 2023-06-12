@@ -97,7 +97,7 @@ Leave this option blank for auto-selection.
 ==== Resolution scaling ====
 This is a hack, and as such, '''bugs should be expected'''.
 
-Horizontal scale:
+Horizontal scale (X):
 
 {|
 ! <code>draw_resolution_scale_x</code> =
@@ -125,7 +125,7 @@ Horizontal scale:
 | <code>7</code>
 |}
 
-Vertical scale:
+Vertical scale (Y):
 
 {|
 ! <code>draw_resolution_scale_y</code> =
@@ -233,6 +233,7 @@ Allow texture and vertex fetch constants with invalid type - generally unsafe be
 | Keyboard
 | <code>winkey</code>
 |}
+
 *When using SDL: If your game controller is not mapped correctly, [https://github.com/gabomdq/SDL_GameControllerDB/blob/master/gamecontrollerdb.txt download gamecontrollerdb.txt] and place it in the folder next to your Xenia executable.
 
 == Hacks ==
@@ -247,6 +248,7 @@ Allow texture and vertex fetch constants with invalid type - generally unsafe be
 | False (hack, needed for certain games)
 | <code>false</code>
 |}
+
 * Certain games require this to set be set to false to work around crashes. This includes, but isn't limited to:
 ** https://github.com/xenia-project/game-compatibility/issues?q=is%3Aopen+is%3Aissue+label%3Arequires_protect_zero_false
 
@@ -277,6 +279,8 @@ Allow texture and vertex fetch constants with invalid type - generally unsafe be
 |}
 == Video ==
 === Vsync interval ===
+If a game speeds up when vsync is disabled this will also affect game speed.
+
 {|
 ! <code>vsync_interval</code> =
 ! <code>#</code> (frametime in milliseconds)
@@ -286,6 +290,62 @@ Allow texture and vertex fetch constants with invalid type - generally unsafe be
 |-
 | x2 ''(120 FPS; 60 FPS for 30 FPS games)''
 | <code>8</code>
+|}
+
+=== Internal display resolution ===
+This is the same as changing the resolution on a real Xbox 360, and as such '''DOES NOT WORK WITH ALL GAMES!'''
+
+{|
+! <code>internal_display_resolution</code>
+! <code>#</code>
+|-
+| 640x576
+| <code>1</code>
+|-
+| 720x480
+| <code>2</code>
+|-
+| 720x476
+| <code>3</code>
+|-
+| 800x600
+| <code>4</code>
+|-
+| 848x480
+| <code>5</code>
+|-
+| 1024x768
+| <code>6</code>
+|-
+| 1152x864
+| <code>7</code>
+|-
+| 1280x720 ''(default)''
+| <code>8</code>
+|-
+| 1280x768
+| <code>9</code>
+|-
+| 1280x960
+| <code>10</code>
+|-
+| 1280x1024
+| <code>11</code>
+|-
+| 1360x768
+| <code>12</code>
+|-
+| 1440x900
+| <code>13</code>
+|-
+| 1680x1050
+| <code>14</code>
+|-
+| 1920x540
+| <code>15</code>
+|-
+| 1920x1080 '''!ONCE AGAIN, THIS IS NOT GUARANTEED TO WORK!'''
+| <code>16</code>
 |}
 
 === avpack (video mode) ===
@@ -321,13 +381,28 @@ Allow texture and vertex fetch constants with invalid type - generally unsafe be
 | <code>0</code>
 |}
 
-== Audio ==
+== Hacks ==
 === Max queued frames ===
 Allows changing max buffered audio frames to reduce audio delay.
+
 {|
 ! <code>max_queued_frames</code> =
-! <code>#</code>
+! <code>#</code> ''(16 minimum)''
 |-
 | Default
 | <code>64</code>
+|}
+
+=== Clear GPU cache ===
+* Certain games require this to set be set to true to work around visual bugs. This includes, but isn't limited to:
+** https://github.com/xenia-project/game-compatibility/issues?q=is%3Aopen+is%3Aissue+label%3Acpu-unimplemented-instruction
+
+{|
+! <code>d3d12_clear_memory_page_state</code> =
+! <code>bool</code>
+|-
+| Default
+| <code>false</code>
+| Worsens performance, but can help reduce visual anomalies like polygon explosions or corrupted textures.
+| <code>true</code>
 |}
