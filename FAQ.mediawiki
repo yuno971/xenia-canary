@@ -104,7 +104,7 @@ Gameplay means the game reaches gameplay, even if the game is unplayable.
 == Can Xenia run original Xbox games? ==
 Xenia does not support backwards compatibility, and therefore, cannot run original Xbox games.
 
-For that there's [https://github.com/Cxbx-Reloaded/Cxbx-Reloaded Cxbx-Reloaded] and [https://github.com/xqemu/xqemu xqemu].
+For that there's [https://github.com/Cxbx-Reloaded/Cxbx-Reloaded Cxbx-Reloaded] and [https://xemu.app xemu].
 
 == I have a copy of the XDK. Do you want it? ==
 '''No.''' Do not post links or downloads to such resources or you will be banned.
