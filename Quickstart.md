@@ -186,7 +186,7 @@ Once it's done you can take the USB out of the console.
 
 ***By default Xenia runs ALL XBLA/digital games in demo/trial mode.***
 
-To run games in full/activated mode you need to change [this option](Options#Run_games_as_fullactivated).
+To run games in full/activated mode you need to change [this option](Options#user-content-Run_games_as_fullactivated).
 
 ## Redump method (rare/specific drives)
 
