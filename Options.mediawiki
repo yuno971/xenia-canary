@@ -398,7 +398,7 @@ Allows changing max buffered audio frames to reduce audio delay.
 
 === Clear GPU cache ===
 * Certain games require this to set be set to true to work around visual bugs. This includes, but isn't limited to:
-** https://github.com/xenia-project/game-compatibility/issues?q=is%3Aopen+is%3Aissue+label%3Acpu-unimplemented-instruction
+** https://github.com/xenia-project/game-compatibility/issues?q=is%3Aopen+is%3Aissue+label%3Arequires_d3d12_clear_memory_page_state_true
 
 {|
 ! <code>d3d12_clear_memory_page_state</code> =
