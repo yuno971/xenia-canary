@@ -406,6 +406,7 @@ Allows changing max buffered audio frames to reduce audio delay.
 |-
 | Default
 | <code>false</code>
+|-
 | Worsens performance, but can help reduce visual anomalies like polygon explosions or corrupted textures.
 | <code>true</code>
 |}
