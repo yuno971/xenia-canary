@@ -1,4 +1,4 @@
-Improves accuracy at the cost of performance. Recommended to be [disabled](Options#Render_target_path).
+Improves accuracy at the cost of performance. Recommended to be [disabled](Options#user-content-Render_target_path).
 
 <details><summary>Long ROV (rasterizer-ordered views) explanation [click to expand]</summary>
 
@@ -16,9 +16,9 @@ Using the Rasterizer-Ordered Views (ROV) feature of Direct3D 12 allows Xenia to 
 
 However, this is a hardware feature, and thus on older graphics cards, Xenia is limited to the RT path.
 
-Rasterizer-ordered views are used by default in Xenia where available, but if you're experiencing graphical issues, you may try [disabling it in the config](Options/#disable-rov-rasterizer-ordered-views).</details>
+Rasterizer-ordered views are not used by default in Xenia, but if you're experiencing graphical issues, you may try [enabling it in the config](Options#user-content-Render_target_path).
 
 The minimum requirements for ROV are:
   * Nvidia GeForce GTX 950 on desktops, GTX 965M on laptops (Maxwell 2nd generation — 2014)
   * AMD Radeon Vega (GCN 5th generation — 2017)
-  * Intel HD Graphics 4200 (2013)
+  * Intel HD Graphics 4200 (2013)</details>
