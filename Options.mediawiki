@@ -245,7 +245,7 @@ Allow texture and vertex fetch constants with invalid type - generally unsafe be
 |}
 
 ==== Vsync ====
-* ''This does not affect tearing. See [#user-content-Screen_tearing Screen tearing]'' for D3D12, and ''[#user-content-Present_mode Present mode]'' for Vulkan.
+* '''This does not affect tearing.''' See ''[https://github.com/xenia-canary/xenia-canary/wiki/Options#screen-tearing Screen tearing]'' for D3D12, and ''[https://github.com/xenia-canary/xenia-canary/wiki/Options#user-content-Present_mode Present mode]'' for Vulkan.
 * ''Disabling this won’t improve the framerate if your PC can’t handle running the game at it’s native FPS.''
 * Games that speed up with this disabled have the [https://github.com/xenia-project/game-compatibility/issues?q=is%3Aopen+is%3Aissue+label%3Avsync-off-speedup vsync-off-speedup] label.
 
