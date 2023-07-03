@@ -16,7 +16,7 @@ __TOC__
 ! <code>license_mask</code> =
 ! <code>#</code>
 |-
-| Deactivated/trial/demo mode ''(default)''
+| Deactivated/trial/demo mode (''default'')
 | <code>0</code>
 |-
 | Activated/full mode
@@ -78,28 +78,38 @@ __TOC__
 |}
 
 == GPU ==
-=== D3D12 ===
+=== Direct3D 12 ===
+==== Screen tearing ====
+{|
+! <code>d3d12_allow_variable_refresh_rate_and_tearing</code> =
+! <code>bool</code>
+|-
+| On (''default'', supports variable refresh rate)
+| <code>true</code>
+|-
+| Off (increases input lag, may break variable refresh rate)
+| <code>false</code>
+|}
+
 ==== Render target path ====
-[https://github.com/xenia-project/xenia/wiki/ROV What is ROV (rasterizer-ordered views)?]
-
-Leave this option blank for auto-selection.
-
 {|
 ! <code>render_target_path_d3d12</code> =
 ! <code>string</code>
 |-
-| RTV ''(recommended for speed)''
-| <code>rtv</code>
+| Auto-selection (''default'')
+| <code>""</code>
 |-
-| ROV ''(if available, for higher accuracy in certain cases)''
-| <code>rov</code>
+| RTV (recommended for speed)
+| <code>"rtv"</code>
+|-
+| ROV (if available, for higher accuracy in certain cases) <small>[https://github.com/xenia-canary/xenia-canary/wiki/ROV What is ROV (rasterizer-ordered views)?]</small>
+| <code>"rov"</code>
 |}
 
 ==== Resolution scaling ====
-This is a hack, and as such, '''bugs should be expected'''.
+This is a hack, and as such, '''bugs should be expected when changed from the default'''.
 
-Horizontal scale (X):
-
+===== Horizontal scale (X): =====
 {|
 ! <code>draw_resolution_scale_x</code> =
 ! <code>#</code>
@@ -126,8 +136,7 @@ Horizontal scale (X):
 | <code>7</code>
 |}
 
-Vertical scale (Y):
-
+===== Vertical scale (Y): =====
 {|
 ! <code>draw_resolution_scale_y</code> =
 ! <code>#</code>
@@ -155,8 +164,7 @@ Vertical scale (Y):
 |}
 
 ==== CPU readback after render target resolving ====
-* This is needed for certain games, including but not limited to:
-** https://github.com/xenia-project/game-compatibility/issues?q=is%3Aopen+is%3Aissue+label%3Agpu-readback
+* Games that require this have the [https://github.com/xenia-project/game-compatibility/issues?q=is%3Aopen+is%3Aissue+label%3Agpu-readback gpu-readback] label.
 
 {|
 ! <code>d3d12_readback_resolve</code> =
@@ -165,8 +173,60 @@ Vertical scale (Y):
 | Off (''default'')
 | <code>false</code>
 |-
-| On (''slower'')
+| On (slower)
 | <code>true</code>
+|}
+
+=== Vulkan ===
+==== Render target path ====
+{|
+! <code>render_target_path_vulkan</code> =
+! <code>string</code>
+|-
+| Auto-selection (''default'')
+| <code>""</code>
+|-
+| FB (''recommended for speed'')
+| <code>"fbo"</code>
+|-
+| FSI ''(if available, for higher accuracy in certain cases)''
+| <code>"fsi"</code>
+|}
+
+==== Present mode ====
+Sorted by priority.
+
+{|
+! <code>vulkan_allow_present_mode_immediate</code> =
+! <code>bool</code>
+|-
+| On (''default'', supports variable refresh rate)
+| <code>true</code>
+|-
+| Off (no tearing, may break variable refresh rate)
+| <code>false</code>
+|}
+
+{|
+! <code>vulkan_allow_present_mode_mailbox</code> =
+! <code>bool</code>
+|-
+| On (''default'', disables screen tearing if other present modes are disabled)
+| <code>true</code>
+|-
+| Off
+| <code>false</code>
+|}
+
+{|
+! <code>vulkan_allow_present_mode_fifo_relaxed</code> =
+! <code>bool</code>
+|-
+| On (''default'')
+| <code>true</code>
+|-
+| Off (no tearing unless below display refresh rate)
+| <code>false</code>
 |}
 
 === Misc ===
@@ -185,32 +245,33 @@ Allow texture and vertex fetch constants with invalid type - generally unsafe be
 |}
 
 ==== Vsync ====
+* ''This does not affect tearing. See d3d12_allow_variable_refresh_rate_and_tearing for that.''
+* ''Disabling this won’t improve the framerate if your PC can’t handle running the game at it’s native FPS.''
+* Games that speed up with this disabled have the [https://github.com/xenia-project/game-compatibility/issues?q=is%3Aopen+is%3Aissue+label%3Avsync-off-speedup vsync-off-speedup] label.
+
 {|
 ! <code>vsync</code> =
 ! <code>bool</code>
 |-
-| On ''(default)''
+| On (''default'')
 | <code>true</code>
 |-
-| Off ''(uncaps FPS)''
+| Off (uncaps FPS, can cause speedup)
 | <code>false</code>
 |}
-
-* ''This won’t improve the framerate if your PC can’t handle running the game at it’s native FPS.''
-* Games that speed up have the [https://github.com/xenia-project/game-compatibility/issues?q=is%3Aopen+is%3Aissue+label%3Avsync-off-speedup vsync-off-speedup] label.
 
 ==== Renderer/Backend ====
 {|
 ! <code>gpu</code> =
 ! <code>string</code>
 |-
-| Any ''(default, '''recommended''')''
+| Any (''default'', '''recommended''')
 | <code>any</code>
 |-
 | Direct3D 12
 | <code>d3d12</code>
 |-
-| <s>Vulkan ''('''not''' recommended)''</s>
+| <s>Vulkan ('''not''' recommended)</s>
 | <s><code>vulkan</code></s>
 |-
 | Null ''(blank/nothing)''
@@ -218,14 +279,16 @@ Allow texture and vertex fetch constants with invalid type - generally unsafe be
 |}
 
 == HID (Input) ==
+*When using SDL: If your game controller is not mapped correctly, [https://github.com/gabomdq/SDL_GameControllerDB/blob/master/gamecontrollerdb.txt download gamecontrollerdb.txt] and place it in the folder next to your Xenia executable.
+
 {|
 ! <code>hid</code> =
 ! <code>string</code>
 |-
-| Any ''(default)''
+| Any (''default'')
 | <code>any</code>
 |-
-| SDL2* ''(needed for non-XInput controllers, '''DOES NOT REQUIRE DLL''')''
+| SDL2* (needed for non-XInput controllers, '''DOES NOT REQUIRE DLL''')
 | <code>sdl</code>
 |-
 | XInput
@@ -235,37 +298,34 @@ Allow texture and vertex fetch constants with invalid type - generally unsafe be
 | <code>winkey</code>
 |}
 
-*When using SDL: If your game controller is not mapped correctly, [https://github.com/gabomdq/SDL_GameControllerDB/blob/master/gamecontrollerdb.txt download gamecontrollerdb.txt] and place it in the folder next to your Xenia executable.
-
 == Hacks ==
 === Protect zero ===
+* Games that require this to be false have the [https://github.com/xenia-project/game-compatibility/issues?q=is%3Aopen+is%3Aissue+label%3Arequires-protect-zero-false requires-protect-zero-false] label.
+
 {|
 ! <code>protect_zero</code> =
 ! <code>bool</code>
 |-
-| True ''(default)''
+| True (''default'')
 | <code>true</code>
 |-
 | False (hack, needed for certain games)
 | <code>false</code>
 |}
 
-* Certain games require this to set be set to false to work around crashes. This includes, but isn't limited to:
-** https://github.com/xenia-project/game-compatibility/issues?q=is%3Aopen+is%3Aissue+label%3Arequires_protect_zero_false
-
 === Break on unimplemented instruction ===
+* Games that require this to be false have the [https://github.com/xenia-project/game-compatibility/issues?q=is%3Aopen+is%3Aissue+label%3Acpu-unimplemented-instruction cpu-unimplemented-instruction] label.
+
 {|
 ! <code>break_on_unimplemented_instruction</code> =
 ! <code>bool</code>
 |-
-| True ''(default)''
+| True (''default'')
 | <code>true</code>
 |-
 | False (hack, needed for certain games)
 | <code>false</code>
 |}
-* Certain games require this to set be set to false to work around crashes. This includes, but isn't limited to:
-** https://github.com/xenia-project/game-compatibility/issues?q=is%3Aopen+is%3Aissue+label%3Acpu-unimplemented-instruction
 
 = Canary =
 Newer Canary versions always have the config in the same place as the executable.
@@ -280,6 +340,7 @@ Newer Canary versions always have the config in the same place as the executable
 | config
 | <code>xenia-canary-config.toml</code>
 |}
+
 == Video ==
 === Vsync interval ===
 If a game speeds up when vsync is disabled this will also affect game speed.
@@ -288,10 +349,10 @@ If a game speeds up when vsync is disabled this will also affect game speed.
 ! <code>vsync_interval</code> =
 ! <code>#</code> (frametime in milliseconds)
 |-
-| x1 ''(60 FPS, default)''
+| x1 (60 FPS, ''default'')
 | <code>16</code>
 |-
-| x2 ''(120 FPS; 60 FPS for 30 FPS games)''
+| x2 (120 FPS; 60 FPS for 30 FPS games)
 | <code>8</code>
 |}
 
@@ -323,7 +384,7 @@ This is the same as changing the resolution on a real Xbox 360, and as such '''D
 | 1152x864
 | <code>7</code>
 |-
-| 1280x720 ''(default)''
+| 1280x720 (''default'')
 | <code>8</code>
 |-
 | 1280x768
@@ -356,7 +417,7 @@ This is the same as changing the resolution on a real Xbox 360, and as such '''D
 ! <code>avpack</code> =
 ! <code>#</code>
 |-
-| HDMI ''(default)''
+| HDMI (''default'')
 | <code>8</code>
 |-
 | TV PAL-60
@@ -397,16 +458,15 @@ Allows changing max buffered audio frames to reduce audio delay.
 |}
 
 === Clear GPU cache ===
-* Certain games require this to set be set to true to work around visual bugs. This includes, but isn't limited to:
-** https://github.com/xenia-project/game-compatibility/issues?q=is%3Aopen+is%3Aissue+label%3Arequires_d3d12_clear_memory_page_state_true
+* Games that require this to be true have the [https://github.com/xenia-project/game-compatibility/issues?q=is%3Aopen+is%3Aissue+label%3Arequires_d3d12_clear_memory_page_state_true requires_d3d12_clear_memory_page_state_true] label.
 
 {|
 ! <code>d3d12_clear_memory_page_state</code> =
 ! <code>bool</code>
 |-
-| Default
+| Off (''default'')
 | <code>false</code>
 |-
-| Worsens performance, but can help reduce visual anomalies like polygon explosions or corrupted textures.
+| On (worsens performance, but can help reduce visual anomalies like polygon explosions or corrupted textures.)
 | <code>true</code>
 |}
