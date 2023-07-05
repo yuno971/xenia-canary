@@ -109,7 +109,7 @@ __TOC__
 ==== Resolution scaling ====
 This is a hack, and as such, '''bugs should be expected when changed from the default'''.
 
-===== Horizontal scale (X): =====
+===== Horizontal scale (X) =====
 {|
 ! <code>draw_resolution_scale_x</code> =
 ! <code>#</code>
@@ -136,7 +136,7 @@ This is a hack, and as such, '''bugs should be expected when changed from the de
 | <code>7</code>
 |}
 
-===== Vertical scale (Y): =====
+===== Vertical scale (Y) =====
 {|
 ! <code>draw_resolution_scale_y</code> =
 ! <code>#</code>
