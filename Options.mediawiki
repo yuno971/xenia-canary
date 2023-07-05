@@ -268,13 +268,13 @@ Allow texture and vertex fetch constants with invalid type - generally unsafe be
 ! <code>string</code>
 |-
 | Any (''default'', '''recommended''')
-| <code>any</code>
+| <code>"any"</code>
 |-
 | Direct3D 12
-| <code>d3d12</code>
+| <code>"d3d12"</code>
 |-
 | <s>Vulkan ('''not''' recommended)</s>
-| <s><code>vulkan</code></s>
+| <s><code>"vulkan"</code></s>
 |-
 | Null ''(blank/nothing)''
 | <code>null</code>
@@ -288,16 +288,16 @@ Allow texture and vertex fetch constants with invalid type - generally unsafe be
 ! <code>string</code>
 |-
 | Any (''default'')
-| <code>any</code>
+| <code>"any"</code>
 |-
 | SDL2* (needed for non-XInput controllers, '''DOES NOT REQUIRE DLL''')
-| <code>sdl</code>
+| <code>"sdl"</code>
 |-
 | XInput
-| <code>xinput</code>
+| <code>"xinput"</code>
 |-
 | Keyboard
-| <code>winkey</code>
+| <code>"winkey"</code>
 |}
 
 == Hacks ==
