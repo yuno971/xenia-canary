@@ -277,7 +277,7 @@ Allow texture and vertex fetch constants with invalid type - generally unsafe be
 | <s><code>"vulkan"</code></s>
 |-
 | Null ''(blank/nothing)''
-| <code>null</code>
+| <code>"null"</code>
 |}
 
 == HID (Input) ==
