@@ -23,37 +23,13 @@
 // Parameters based on 1280x720 resolution
 constexpr ImVec2 default_drawing_resolution = ImVec2(1280.f, 720.f);
 
-constexpr ImVec2 default_notification_icon_size = ImVec2(58.0f, 58.0f);
-constexpr ImVec2 default_notification_margin_size = ImVec2(50.f, 5.f);
-constexpr float default_notification_text_scale = 2.3f;
-constexpr float default_notification_rounding = 30.f;
-constexpr float default_font_size = 12.f;
-
 constexpr ImVec4 white_color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
-
-constexpr ImVec4 default_notification_background_color =
-    ImVec4(0.215f, 0.215f, 0.215f, 1.0f);
-constexpr ImVec4 default_notification_border_color = white_color;
 
 enum class NotificationAlignment : uint8_t {
   kAlignLeft = 0,
   kAlignRight = 1,
   kAlignCenter = 2,
   kAlignUnknown = 0xFF
-};
-
-const static std::vector<ImVec2> notification_position_id_screen_offset = {
-    {0.50f, 0.45f},  // CENTER-CENTER - 0
-    {0.50f, 0.10f},  // CENTER-TOP - 1
-    {0.50f, 0.80f},  // CENTER-BOTTOM - 2
-    {NAN, NAN},      // NOT EXIST - 3
-    {0.07f, 0.45f},  // LEFT-CENTER - 4
-    {0.07f, 0.10f},  // LEFT-TOP - 5
-    {0.07f, 0.80f},  // LEFT-BOTTOM - 6
-    {NAN, NAN},      // NOT EXIST - 7
-    {0.93f, 0.45f},  // RIGHT-CENTER - 8
-    {0.93f, 0.10f},  // RIGHT-TOP - 9
-    {0.93f, 0.80f}   // RIGHT-BOTTOM - 10
 };
 
 namespace xe {
@@ -102,21 +78,30 @@ class ImGuiNotification {
   const uint8_t GetPositionId() { return position_; }
   const uint8_t GetUserIndex() { return user_index_; }
 
-  void UpdateNotificationState();
+  void SetNewLifeTime(uint32_t ms_to_close) { time_to_close_ = ms_to_close; }
 
   virtual void OnDraw(ImGuiIO& io) {}
+  virtual void OnUpdate() {}
 
+  virtual const ImVec2 CalculateNotificationSize(ImVec2 text_size, float scale);
+
+  virtual const ImVec2 CalculateNotificationScreenPosition(
+      const ImVec2 screen_size, const ImVec2 window_size,
+      const uint8_t notification_position_id);
+
+  virtual const NotificationAlignment GetNotificationAlignment(
+      const uint8_t notification_position_id);
+
+  NotificationStage current_stage_;
+  uint64_t creation_time_;
+  uint8_t position_;
   float notification_draw_progress_;
 
  private:
-  NotificationStage current_stage_;
-  uint8_t position_;
   uint8_t user_index_;
 
   uint32_t delay_ = 0;
   uint32_t time_to_close_ = 4500;
-
-  uint64_t creation_time_;
 
   std::string title_;
   std::string description_;
@@ -124,15 +109,18 @@ class ImGuiNotification {
   ImGuiDrawer* imgui_drawer_ = nullptr;
 };
 
-class AchievementNotificationWindow final : ImGuiNotification {
+class HostNotificationWindow final : ImGuiNotification {
  public:
-  AchievementNotificationWindow(ui::ImGuiDrawer* imgui_drawer,
-                                std::string title, std::string description,
-                                uint8_t user_index, uint8_t position_id = 0)
+  HostNotificationWindow(ui::ImGuiDrawer* imgui_drawer, std::string title,
+                         std::string description, uint8_t user_index,
+                         uint8_t position_id = 0)
       : ImGuiNotification(imgui_drawer, title, description, user_index,
-                          position_id){};
+                          position_id) {
+    SetNewLifeTime(1500);
+  }
 
   void OnDraw(ImGuiIO& io) override;
+  void OnUpdate() override;
 };
 
 }  // namespace ui

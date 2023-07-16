@@ -38,6 +38,7 @@
 #include "xenia/ui/graphics_provider.h"
 #include "xenia/ui/imgui_dialog.h"
 #include "xenia/ui/imgui_drawer.h"
+#include "xenia/ui/imgui_notification.h"
 #include "xenia/ui/immediate_drawer.h"
 #include "xenia/ui/presenter.h"
 #include "xenia/ui/ui_event.h"
@@ -1269,6 +1270,14 @@ EmulatorWindow::ControllerHotKey EmulatorWindow::ProcessControllerHotkey(
     case ButtonFunctions::ReadbackResolve:
       ToggleGPUSetting(gpu_cvar::ReadbackResolve);
 
+      app_context().CallInUIThread([this]() {
+        const std::string message =
+            fmt::format("Readback resolve is {}",
+                        cvars::d3d12_readback_resolve ? "on" : "off");
+
+        new xe::ui::HostNotificationWindow(imgui_drawer(), "Settings changed!",
+                                           message, 0xFF);
+      });
       // Extra Sleep
       xe::threading::Sleep(delay);
       break;

@@ -13,6 +13,7 @@
 #include "xenia/kernel/kernel_state.h"
 #include "xenia/kernel/util/shim_utils.h"
 #include "xenia/ui/imgui_notification.h"
+#include "xenia/ui/imgui_guest_notification.h"
 
 DEFINE_bool(show_achievement_notification, false,
             "Show achievement notification on screen.", "UI");
@@ -55,7 +56,7 @@ void AchievementManager::EarnAchievement(uint64_t xuid, uint32_t title_id,
       }
 
       app_context.CallInUIThread([imgui_drawer, description]() {
-        new xe::ui::AchievementNotificationWindow(
+        new xe::ui::GuestNotificationWindow(
             imgui_drawer, "Achievement unlocked", description, 0,
             kernel_state()->notification_position_);
       });
