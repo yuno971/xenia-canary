@@ -16,7 +16,7 @@
 
 * OS: Windows 7+ x64 (Linux/macOS not *natively* supported)
   * **Windows <10 support is limited. *Don't expect anything to work.***
-  * Runs on Linux with Wine. Vulkan is recommended due to vkd3d having graphical issues.
+  * Runs on Linux with Proton/Wine. Vulkan is recommended due to VKD3D having graphical issues.
 * CPU: 64-bit x86 processor with AVX or AVX2 support
   * You can check with [CPU-Z](https://www.cpuid.com/softwares/cpu-z.html)
 * GPU: Direct3D 12-compatible or Vulkan-compatible GPU from [this list](https://vulkan.gpuinfo.org/)
