@@ -5,36 +5,37 @@
 ## Recommended:
 
 * OS: Windows 10+ x64
-* CPU: 4th generation or later i5/i7 64-bit x86 processor with AVX(2) support
+* CPU: 12th generation or later i5-i9
   * You can check with [CPU-Z](https://www.cpuid.com/softwares/cpu-z.html)
 * GPU: GTX 980 Ti or later
   * You can check with [GPU-Z](https://www.techpowerup.com/download/techpowerup-gpu-z/)
 * RAM: 6GB or more
-* [Microsoft Visual C++ Redistributable for Visual Studio 2015, 2017 and 2019](https://aka.ms/vs/16/release/vc_redist.x64.exe)
+* [Microsoft Visual C++ Redistributable for Visual Studio 2015-2022](https://aka.ms/vs/17/release/vc_redist.x64.exe)
 
 ### Minimum:
 
 * OS: Windows 7+ x64 (Linux/macOS not *natively* supported)
   * **Windows <10 support is limited. *Don't expect anything to work.***
-  * Runs on Linux with Wine *using Vulkan*.
-* CPU: 64-bit x86 processor with AVX(2) support
+  * Runs on Linux with Wine. Vulkan is recommended due to vkd3d having graphical issues.
+* CPU: 64-bit x86 processor with AVX or AVX2 support
   * You can check with [CPU-Z](https://www.cpuid.com/softwares/cpu-z.html)
 * GPU: Direct3D 12-compatible or Vulkan-compatible GPU from [this list](https://vulkan.gpuinfo.org/)
   * You can check with [GPU-Z](https://www.techpowerup.com/download/techpowerup-gpu-z/)
-  * Direct3D 12 will only work on Windows 10 due to D3D12on7 and vkd3d not being supported.
-  * GPUs without [ROV (rasterizer-ordered view) / fragment shader interlock](FAQ#what-is-rov) support will perform worse and possibly have more graphical issues. Integrated GPUs will also generally provide frame rates too low for comfortable playing.
-    * AMD GPUs also fall under this due to Xenia triggering driver bugs causing crashes.
+  * ***OpenGL and Direct3D 11 or lower are not, and never will be supported.***
+  * AMD GPUs are not recommended due to having driver bugs that can cause crashes with Xenia.
+  * Direct3D 12 is only supported on Windows 10+ due to D3D12on7 not being supported.
+  * Integrated GPUs generally provide frame rates too low for comfortable playing.
 * RAM: 4GB
-* [2017/2019 x64 Visual C++ Redistributable](https://support.microsoft.com/en-us/help/2977003/the-latest-supported-visual-c-downloads)
+* [2015-2022 x64 Visual C++ Redistributable](https://support.microsoft.com/en-us/help/2977003/the-latest-supported-visual-c-downloads)
 
 Xenia doesn't require any Xbox 360 system files.
 
-Xenia will check for the minimum supported CPU and GPU on startup and error out
+Xenia checks for the minimum supported CPU and GPU on startup and errors out
 if one is not detected. Make sure that you have the latest drivers installed. **You cannot just remove the checks in the code and assume things will work.**
 
 ***There are no magical workarounds to make Xenia work on your potato computer.***
 
-***OpenGL and Direct3D 11 or lower are not, and never will be supported.***
+On Android, Xenia can only render GPU traces so it can't play games yet. Anything claiming to be a Xenia apk, etc is fake and probably a virus.
 
 Windows Update tends to lag behind, so download GPU drivers from your manufacturer:
   * **[AMD](https://www.amd.com/en/support)**
@@ -46,7 +47,7 @@ Windows Update tends to lag behind, so download GPU drivers from your manufactur
   * **[Master](https://github.com/xenia-project/release-builds-windows/releases/latest/download/xenia_master.zip)**
   * *[Canary](https://github.com/xenia-canary/xenia-canary/releases/download/experimental/xenia_canary.zip)*
 
-Xenia is sometimes detected as a virus. Ignore this, as it is a false positive.
+Xenia is sometimes detected as a virus. If it was downloaded from an official source it is a false positive and can be ignored.
 
 Xenia Canary is a fork of Xenia with changes not present in master.
 
@@ -56,17 +57,15 @@ For more information: *[What is the difference between Xenia Canary and Xenia ma
 
 **YOU CANNOT PLAY GAMES DIRECTLY FROM THE DISC DRIVE, OR USE AN XBOX ONE/SERIES TO RIP GAMES!**
 
-## Stock console method
+## Stock/unmodded console method
 
 ### Requirements
 
 * Xbox 360 console
-* USB storage device that's at least 16GB. You *might* encounter problems with smaller devices.
+  * If you want to rip discs it must be able to read them.
+  * Dashboards older than 17511 might be different.
+* USB storage device that's at least as big as the games themselves, preferrably larger. You will encounter problems with smaller devices.
 * [Velocity](https://github.com/Gualdimar/Velocity/releases/download/xex%2Biso-branch/Velocity-XEXISO.rar)
-
-If you're wanting to rip games from disc:
-  * Xbox 360 game disc
-  * Xbox 360 that can read discs
 
 ### Preparation
 
@@ -131,13 +130,7 @@ Xbox Dashboard:
 3. Once the game shows up press X (Game Details) with the game selected.
 4. Press the *Install* button.
     * If you see *Delete* instead, skip to Section 2.
-      * Note: Not all games have the *Install* option. List of currently known uninstallable games:
-        * College Hoops 2k7
-        * Minecraft
-        * Pocket Bike Racers
-        * Sneak King
-        * Crackdown **(Can be installed with latest title update)**
-        * Dead or Alive Xtreme 2
+      * Note: Games with the [no-disc-install label](https://github.com/xenia-project/game-compatibility/issues?q=is%3Aopen+is%3Aissue+label%3Ano-disc-install) can't be installed this way, and require a modded console or using the Redump method.
 5. Select the storage device you want to install the game on.
 6. Once it's 100% Completed press A to continue, and press B to go back to home.
 
@@ -190,15 +183,18 @@ To run games in full/activated mode you need to change [this option](Options#use
 
 ## Redump method (rare/specific drives)
 
-*For these DVD drives:*
-  * SH-D163A / TS-H353A
-  * SH-D163B / TS-H353B
-  * SH-162C / TS-H352C / SD-M2012C(?)
-  * SH-D162D / TS-H352D
+See http://wiki.redump.org/index.php?title=Microsoft_Xbox_and_Xbox_360_Dumping_Guide
 
-***IF YOUR DRIVE IS NOT LISTED HERE IT WILL NOT WORK!***
+<!--## Modded console method
 
-*http://wiki.redump.org/index.php?title=Microsoft_Xbox_and_Xbox_360_Dumping_Guide*
+While you can use a modded console to dump games, it is unnecessary in 99% of cases.
+
+## Requirements
+
+* Modded Xbox 360 console
+  * If you want to rip discs it must be able to read them.
+
+-->
 
 # How to install DLCs
 
