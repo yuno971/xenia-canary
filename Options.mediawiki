@@ -233,6 +233,8 @@ Sorted by priority. (i.e. if the first doesn't work then the next is tried, and 
 ==== Allow invalid fetch constants ====
 Allow texture and vertex fetch constants with invalid type - generally unsafe because the constant may contain completely invalid values, but may be used to bypass fetch constant type errors in certain games until the real reason why they're invalid is found.
 
+Games that require this have the [https://github.com/xenia-project/game-compatibility/issues?q=is%3Aopen+is%3Aissue+label%3Agpu-invalid-fetch-constants gpu-invalid-fetch-constants] label.
+
 {|
 ! <code>gpu_allow_invalid_fetch_constants</code> =
 ! <code>bool</code>
@@ -259,6 +261,18 @@ Allow texture and vertex fetch constants with invalid type - generally unsafe be
 | <code>true</code>
 |-
 | Off (uncaps FPS, can cause speedup)
+| <code>false</code>
+|}
+
+==== Black bars (letterboxing/pillarboxing) ====
+{|
+! <code>present_letterbox</code> =
+! <code>bool</code>
+|-
+| On (no stretching, ''default'')
+| <code>true</code>
+|-
+| Off (stretching, required for aspect ratio patches)
 | <code>false</code>
 |}
 
