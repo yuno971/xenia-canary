@@ -77,6 +77,20 @@ __TOC__
 |align="center"| <code>17</code>
 |}
 
+== Cache ==
+* Games that require this have the [https://github.com/xenia-project/game-compatibility/issues?q=is%3Aopen+is%3Aissue+label%3Arequires_mount_cache requires_mount_cache] label.
+
+{|
+! <code>d3d12_allow_variable_refresh_rate_and_tearing</code> =
+! <code>bool</code>
+|-
+| Off (''default'')
+| <code>false</code>
+|-
+| On ([https://github.com/xenia-project/game-compatibility/issues?q=is%3Aopen+is%3Aissue+label%3Arequires_mount_cache fixes some games])
+| <code>true</code>
+|}
+
 == GPU ==
 === Direct3D 12 ===
 ==== Screen tearing ====
