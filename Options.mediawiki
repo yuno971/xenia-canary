@@ -177,6 +177,23 @@ This is a hack, and as such, '''bugs should be expected when changed from the de
 | <code>true</code>
 |}
 
+==== Queue priority ====
+Setting this higher than default may improve performance.
+
+{|
+! <code>d3d12_queue_priority</code> =
+! <code>#</code>
+|-
+| Normal (''default'')
+| <code>0</code>
+|-
+| High (''recommended for speed'')
+| <code>1</code>
+|-
+| Global realtime ''(requires running Xenia as administrator)''
+| <code>2</code>
+|}
+
 === Vulkan ===
 ==== Render target path ====
 {|
